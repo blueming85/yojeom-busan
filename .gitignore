@@ -1,0 +1,15 @@
+# 로컬 전용 파일들
+.env
+/fonts/
+/data/pdfs/
+__pycache__/
+*.pyc
+
+# 시스템 파일
+.DS_Store
+Thumbs.db
+
+# 로그 파일
+*.log
+
+new_busan_env/
