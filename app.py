@@ -9,10 +9,13 @@
 
 import streamlit as st
 import json
+import re
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import List, Dict, Optional
 import streamlit.components.v1 as components
+import time
+from streamlit_scroll_to_top import scroll_to_here
 
 # 프로젝트 모듈 import
 from config import (
@@ -450,8 +453,8 @@ def render_header():
     st.info("""
     **📖 이용 방법**
     - 왼쪽 사이드바에서 **분야를 선택**하면 해당 분야의 보도자료를 확인할 수 있습니다
-    - **검색어**를 입력하여 원하는 내용을 빠르게 찾아보세요
-    - 각 카드를 클릭하면 **상세 내용**을 볼 수 있습니다
+    - **검색어**를 입력하여 원하는 내용을 빠르게 찾아보세요**(검색어 모두 지우신 후 엔터 치면 전체보기 가능)**
+    - 각 카드를 클릭하면 **상세 내용**을 볼 수 있습니다 (보도자료 원문 링크 포함)
     """)
     
     # 🔧 제작자 정보 추가
@@ -480,7 +483,7 @@ def render_sidebar(portal: BusanNewsPortal):
     # 검색어 입력 (간단하게)
     search_query = st.sidebar.text_input(
         "🔎 검색어",
-        placeholder="제목이나 내용에서 검색... (지우면 전체보기)",
+        placeholder="제목이나 내용 검색",
         help="보도자료 제목이나 내용에서 검색합니다. 검색어를 지우면 전체 목록이 표시됩니다.",
         key="search_input"
     )
@@ -774,23 +777,50 @@ def render_news_card_aligned(news_item: Dict):
         ):
             st.session_state.selected_news = news_item
             st.session_state.show_detail = True
+            st.session_state.scroll_to_top = True  # 🔧 스크롤 상태 설정
             st.rerun()
         
         # 카드 간격
         st.markdown("<div style='margin-bottom: 2rem;'></div>", unsafe_allow_html=True)
 
-def render_news_detail(news_item: Dict):
-    """뉴스 상세 페이지 렌더링 (글자 크기 확대 + 자동 스크롤 상단 + 문의처 추가)"""
+def extract_contact_from_content(content):
+    """🔧 개선된 문의처 추출 함수"""
+    patterns = [
+        # "## 📞 세부문의" 또는 "## 📞 문의 및 신청" 섹션에서 추출
+        r'## 📞.*?(?:세부문의|문의.*?신청).*?\n(.*?(?:과|팀|실|국|본부|센터|담당관).*?\(051-888-\d{4}\))',
+        # 일반적인 부서명 (전화번호) 패턴
+        r'([가-힣]{2,}(?:과|팀|실|국|본부|센터|담당관))\s*\(051-888-\d{4}\)',
+        # 더 넓은 패턴: 문의처가 있는 줄에서 추출
+        r'.*(?:문의|연락처|담당).*?([가-힣]{2,}(?:과|팀|실|국|본부|센터)).*?(051-[0-9-]+)',
+        # 전화번호만 있는 경우
+        r'.*☎.*?([0-9-]+)',
+        r'.*(051-[0-9-]+)',
+    ]
     
-    # 🔧 페이지 상단으로 자동 스크롤 (검증된 방법)
-    scroll_js = '''
-    <script>
-    var body = window.parent.document.querySelector(".main");
-    console.log("Scrolling to top...");
-    body.scrollTop = 0;
-    </script>
-    '''
-    components.html(scroll_js, height=0)
+    for pattern in patterns:
+        matches = re.search(pattern, content, re.MULTILINE | re.DOTALL)
+        if matches:
+            if len(matches.groups()) == 2:
+                dept, phone = matches.groups()
+                return f"{dept.strip()} ({phone.strip()})"
+            elif len(matches.groups()) == 1:
+                phone = matches.groups()[0]
+                if phone.startswith('051'):
+                    return f"부산시청 ({phone.strip()})"
+    
+    return "부산시청 (051-888-1234)"
+
+def render_news_detail(news_item: Dict):
+    """뉴스 상세 페이지 렌더링 (streamlit-scroll-to-top 컴포넌트 사용)"""
+    
+    # 🔧 세션 상태에서 스크롤 상태 관리
+    if 'scroll_to_top' not in st.session_state:
+        st.session_state.scroll_to_top = False
+    
+    # 🔧 상세페이지 진입시 자동 스크롤 실행
+    if st.session_state.scroll_to_top:
+        scroll_to_here(0, key='detail_top')  # 즉시 상단으로 스크롤
+        st.session_state.scroll_to_top = False  # 상태 리셋
     
     # 상세 페이지 컨테이너 시작
     st.markdown('<div class="detail-page">', unsafe_allow_html=True)
@@ -815,27 +845,6 @@ def render_news_detail(news_item: Dict):
     
     # 제목 (더 큰 글자)
     st.markdown(f'<h1 style="font-size: 36px; line-height: 1.4; margin-bottom: 20px; color: #1F2937;">{news_item["title"]}</h1>', unsafe_allow_html=True)
-    
-    # 🔧 마크다운 내용에서 문의처 추출
-    def extract_contact_from_content(content):
-        import re
-        patterns = [
-            r'.*(?:문의|연락처|담당).*?([가-힣]{2,}(?:과|팀|실|국|본부|센터)).*?(051-[0-9-]+)',
-            r'.*☎.*?([0-9-]+)',
-            r'.*(051-[0-9-]+)',
-        ]
-        
-        for pattern in patterns:
-            matches = re.search(pattern, content)
-            if matches:
-                if len(matches.groups()) == 2:
-                    dept, phone = matches.groups()
-                    return f"{dept.strip()} ({phone.strip()})"
-                elif len(matches.groups()) == 1:
-                    phone = matches.groups()[0]
-                    return f"부산시청 ({phone.strip()})"
-        
-        return "부산시청 (051-888-1234)"
     
     # MD 파일에서 문의처 추출
     contact_info = "부산시청 (051-888-1234)"  # 기본값
@@ -873,6 +882,9 @@ def render_news_detail(news_item: Dict):
             frontmatter_end = md_content.find('---', 3)
             if frontmatter_end > 0:
                 md_content = md_content[frontmatter_end + 3:].strip()
+        
+        # 🔧 "문의 및 신청"을 "세부문의"로 변경
+        md_content = md_content.replace("## 📞 문의 및 신청", "## 📞 세부문의")
         
         # 마크다운 내용 표시 (큰 글자로)
         st.markdown(md_content)

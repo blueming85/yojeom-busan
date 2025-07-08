@@ -1,7 +1,7 @@
 """
 부산시청 보도자료 포털 - 로컬 통합 실행 스크립트
 =================================================
-크롤링 → 요약까지 원클릭 실행 (썸네일 제거)
+크롤링 → 요약까지 원클릭 실행 (URL 매핑 수정)
 
 사용법:
     python local_main.py                    # 전체 실행
@@ -47,7 +47,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 class LocalPipelineManager:
-    """로컬 파이프라인 매니저 (썸네일 제거)"""
+    """로컬 파이프라인 매니저 (URL 매핑 수정)"""
     
     def __init__(self):
         """초기화"""
@@ -62,7 +62,7 @@ class LocalPipelineManager:
     
     def _create_directories(self):
         """필요한 디렉토리 생성"""
-        directories = [PDF_DIR, MD_DIR]  # 썸네일 디렉토리 제거
+        directories = [PDF_DIR, MD_DIR]
         for directory in directories:
             Path(directory).mkdir(parents=True, exist_ok=True)
             logger.info(f"📁 디렉토리 확인: {directory}")
@@ -86,7 +86,7 @@ class LocalPipelineManager:
             logger.error(f"상세 오류: {traceback.format_exc()}")
     
     def run_crawling(self, max_pages: int = 5) -> List[Dict]:
-        """🔧 보도자료 크롤링 실행"""
+        """보도자료 크롤링 실행"""
         logger.info(f"🕷️ 부산시 보도자료 크롤링 시작 (최대 {max_pages}페이지)...")
         
         try:
@@ -94,7 +94,7 @@ class LocalPipelineManager:
                 logger.error("❌ 크롤러가 초기화되지 않았습니다")
                 return []
             
-            # 🔧 crawl_all → crawl_news로 변경
+            # 크롤링 실행
             crawler_results = self.crawler.crawl_news(max_pages=max_pages)
             
             if crawler_results:
@@ -117,7 +117,7 @@ class LocalPipelineManager:
             return []
     
     def run_summarization(self, crawler_results: List[Dict] = None) -> List[str]:
-        """🔧 보도자료 요약 생성 (URL 매핑 개선)"""
+        """🔧 보도자료 요약 생성 (URL 매핑 수정)"""
         logger.info("📝 보도자료 요약 생성 시작...")
         
         if not self.summarizer:
@@ -126,56 +126,71 @@ class LocalPipelineManager:
             return [str(f) for f in existing_md_files]
         
         try:
+            # 🔧 URL 매핑 딕셔너리 생성
+            url_mapping = {}
             if crawler_results:
-                # 🔧 크롤러 결과를 직접 활용한 요약 처리
-                processed_files = []
+                logger.info(f"🔗 URL 매핑 생성: {len(crawler_results)}개")
                 for result in crawler_results:
-                    try:
-                        pdf_path = Path(result['path'])  # 'filepath' → 'path'로 수정
-                        if pdf_path.exists():
-                            md_file = self.summarizer.process_pdf_file(
-                                str(pdf_path), 
-                                source_url=result.get('url', 'https://www.busan.go.kr/nbtnewsBU')
-                            )
-                            if md_file:
-                                processed_files.append(md_file)
-                                logger.info(f"✅ 요약 완료: {Path(md_file).name}")
-                            else:
-                                logger.warning(f"⚠️ 요약 실패: {pdf_path.name}")
-                        else:
-                            logger.warning(f"⚠️ PDF 파일 없음: {pdf_path}")
-                    except Exception as e:
-                        logger.error(f"❌ PDF 처리 실패 {result.get('filename', 'unknown')}: {e}")
-                        continue
-            else:
-                # PDF 폴더에서 파일 스캔
-                pdf_files = list(Path(PDF_DIR).glob("*.pdf"))
-                if not pdf_files:
-                    logger.warning("⚠️ 처리할 PDF 파일이 없습니다")
-                    return []
-                
-                logger.info(f"📋 처리할 PDF 파일: {len(pdf_files)}개")
-                processed_files = []
-                
-                for pdf_path in pdf_files:
-                    try:
-                        # 기본 URL로 처리
-                        md_file = self.summarizer.process_pdf_file(
-                            str(pdf_path), 
-                            source_url="https://www.busan.go.kr/nbtnewsBU"
-                        )
-                        
-                        if md_file:
-                            processed_files.append(md_file)
-                            logger.info(f"✅ 요약 완료: {Path(md_file).name}")
-                        else:
-                            logger.warning(f"⚠️ 요약 실패: {pdf_path.name}")
+                    # 파일명을 키로 URL을 값으로 매핑
+                    filename = result.get('filename', '')
+                    url = result.get('url', '')
                     
-                    except Exception as e:
-                        logger.error(f"❌ PDF 처리 실패 {pdf_path.name}: {e}")
-                        continue
+                    if filename and url:
+                        url_mapping[filename] = url
+                        logger.debug(f"   📎 {filename} → {url}")
+                
+                logger.info(f"✅ URL 매핑 완료: {len(url_mapping)}개")
+            else:
+                logger.info("🔗 크롤러 결과가 없어 URL 매핑을 건너뜁니다")
+            
+            # 처리할 PDF 파일들 확인
+            pdf_files = list(Path(PDF_DIR).glob("*.pdf"))
+            if not pdf_files:
+                logger.warning("⚠️ 처리할 PDF 파일이 없습니다")
+                return []
+            
+            logger.info(f"📋 처리할 PDF 파일: {len(pdf_files)}개")
+            processed_files = []
+            
+            for pdf_path in pdf_files:
+                try:
+                    pdf_filename = pdf_path.name
+                    
+                    # 🔧 URL 매핑에서 해당 파일의 URL 찾기
+                    source_url = url_mapping.get(pdf_filename, "")
+                    
+                    if source_url:
+                        logger.info(f"🔗 URL 매핑 적용: {pdf_filename} → {source_url}")
+                    else:
+                        logger.warning(f"⚠️ URL 매핑 없음: {pdf_filename} (기본 URL 사용)")
+                        source_url = "https://www.busan.go.kr/nbtnewsBU"
+                    
+                    # PDF 처리
+                    md_file = self.summarizer.process_pdf_file(
+                        str(pdf_path), 
+                        source_url=source_url
+                    )
+                    
+                    if md_file:
+                        processed_files.append(md_file)
+                        logger.info(f"✅ 요약 완료: {Path(md_file).name}")
+                    else:
+                        logger.warning(f"⚠️ 요약 실패: {pdf_filename}")
+                
+                except Exception as e:
+                    logger.error(f"❌ PDF 처리 실패 {pdf_path.name}: {e}")
+                    continue
             
             logger.info(f"🎉 요약 생성 완료: {len(processed_files)}개")
+            
+            # 🔧 URL 매핑 통계 출력
+            if url_mapping:
+                mapped_count = sum(1 for f in processed_files if any(
+                    Path(f).stem.endswith(Path(pdf).stem) for pdf in pdf_files 
+                    if pdf.name in url_mapping
+                ))
+                logger.info(f"📊 URL 매핑 적용률: {mapped_count}/{len(processed_files)} ({mapped_count/len(processed_files)*100:.1f}%)")
+            
             return processed_files
             
         except Exception as e:
@@ -214,31 +229,43 @@ def main():
         if args.crawl_only:
             # 크롤링만 실행
             max_pages = 2 if args.test else args.max_pages
-            manager.run_crawling(max_pages)
+            crawler_results = manager.run_crawling(max_pages)
+            
+            logger.info("✅ 크롤링 작업 완료!")
+            logger.info(f"📊 결과: {len(crawler_results)}개 PDF 다운로드")
             
         elif args.summarize_only:
             # 요약만 실행
-            manager.run_summarization()
+            md_files = manager.run_summarization()
+            
+            logger.info("✅ 요약 작업 완료!")
+            logger.info(f"📊 결과: {len(md_files)}개 MD 생성")
             
         else:
-            # 전체 파이프라인 실행 (썸네일 제외)
+            # 🔧 전체 파이프라인 실행 (URL 매핑 포함)
             max_pages = 2 if args.test else args.max_pages
             
-            logger.info("🔄 전체 파이프라인 실행 시작 (크롤링 + 요약)")
+            logger.info("🔄 전체 파이프라인 실행 시작 (크롤링 + 요약 + URL 매핑)")
             
             # 1. 크롤링
             logger.info("1️⃣ 크롤링 단계")
             crawler_results = manager.run_crawling(max_pages)
             
-            # 2. 요약 생성
-            logger.info("2️⃣ 요약 생성 단계")
+            # 2. 요약 생성 (URL 매핑 포함)
+            logger.info("2️⃣ 요약 생성 단계 (URL 매핑 적용)")
             md_files = manager.run_summarization(crawler_results)
             
             # 결과 요약
             logger.info("🎉 전체 파이프라인 완료!")
-            logger.info(f"📊 결과 요약:")
+            logger.info(f"📊 최종 결과:")
             logger.info(f"   - 크롤링: {len(crawler_results)}개 PDF")
             logger.info(f"   - 요약: {len(md_files)}개 MD")
+            
+            # 🔧 URL 매핑 성공 여부 확인
+            if crawler_results and md_files:
+                logger.info(f"   - URL 매핑: ✅ 성공 (크롤러 결과 활용)")
+            else:
+                logger.info(f"   - URL 매핑: ⚠️ 부분적 (기본 URL 사용)")
         
         logger.info("✅ 모든 작업이 완료되었습니다!")
         
