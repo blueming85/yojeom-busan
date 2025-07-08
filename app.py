@@ -12,6 +12,7 @@ import json
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import List, Dict, Optional
+import streamlit.components.v1 as components
 
 # 프로젝트 모듈 import
 from config import (
@@ -473,14 +474,15 @@ def render_header():
     )
 
 def render_sidebar(portal: BusanNewsPortal):
-    """사이드바 렌더링 (이모지 버튼 형태)"""
+    """사이드바 렌더링 (이모지 버튼 형태 + 자연스러운 검색)"""
     st.sidebar.header("🔍 필터 및 검색")
     
-    # 검색어 입력
+    # 검색어 입력 (간단하게)
     search_query = st.sidebar.text_input(
         "🔎 검색어",
-        placeholder="제목이나 내용에서 검색...",
-        help="보도자료 제목이나 내용에서 검색합니다"
+        placeholder="제목이나 내용에서 검색... (지우면 전체보기)",
+        help="보도자료 제목이나 내용에서 검색합니다. 검색어를 지우면 전체 목록이 표시됩니다.",
+        key="search_input"
     )
     
     # 🔧 이모지 + 태그 버튼 정의
@@ -778,7 +780,18 @@ def render_news_card_aligned(news_item: Dict):
         st.markdown("<div style='margin-bottom: 2rem;'></div>", unsafe_allow_html=True)
 
 def render_news_detail(news_item: Dict):
-    """뉴스 상세 페이지 렌더링 (글자 크기 확대)"""
+    """뉴스 상세 페이지 렌더링 (글자 크기 확대 + 자동 스크롤 상단 + 문의처 추가)"""
+    
+    # 🔧 페이지 상단으로 자동 스크롤 (검증된 방법)
+    scroll_js = '''
+    <script>
+    var body = window.parent.document.querySelector(".main");
+    console.log("Scrolling to top...");
+    body.scrollTop = 0;
+    </script>
+    '''
+    components.html(scroll_js, height=0)
+    
     # 상세 페이지 컨테이너 시작
     st.markdown('<div class="detail-page">', unsafe_allow_html=True)
     
@@ -803,8 +816,38 @@ def render_news_detail(news_item: Dict):
     # 제목 (더 큰 글자)
     st.markdown(f'<h1 style="font-size: 36px; line-height: 1.4; margin-bottom: 20px; color: #1F2937;">{news_item["title"]}</h1>', unsafe_allow_html=True)
     
-    # 메타 정보 (큰 글자)
-    col1, col2, col3 = st.columns(3)
+    # 🔧 마크다운 내용에서 문의처 추출
+    def extract_contact_from_content(content):
+        import re
+        patterns = [
+            r'.*(?:문의|연락처|담당).*?([가-힣]{2,}(?:과|팀|실|국|본부|센터)).*?(051-[0-9-]+)',
+            r'.*☎.*?([0-9-]+)',
+            r'.*(051-[0-9-]+)',
+        ]
+        
+        for pattern in patterns:
+            matches = re.search(pattern, content)
+            if matches:
+                if len(matches.groups()) == 2:
+                    dept, phone = matches.groups()
+                    return f"{dept.strip()} ({phone.strip()})"
+                elif len(matches.groups()) == 1:
+                    phone = matches.groups()[0]
+                    return f"부산시청 ({phone.strip()})"
+        
+        return "부산시청 (051-888-1234)"
+    
+    # MD 파일에서 문의처 추출
+    contact_info = "부산시청 (051-888-1234)"  # 기본값
+    try:
+        with open(news_item['file_path'], 'r', encoding='utf-8') as f:
+            md_content = f.read()
+        contact_info = extract_contact_from_content(md_content)
+    except:
+        pass
+    
+    # 메타 정보 (4열: 게시일, 분야, 문의처, 원문링크)
+    col1, col2, col3, col4 = st.columns(4)
     with col1:
         st.markdown(f'<p style="font-size: 18px; font-weight: 600;">📅 <strong>게시일</strong>: {news_item["date"]}</p>', unsafe_allow_html=True)
     with col2:
@@ -812,15 +855,18 @@ def render_news_detail(news_item: Dict):
             main_tag = news_item['tags'][0]  # 첫 번째 태그만 표시
             st.markdown(f'<p style="font-size: 18px; font-weight: 600;">🏷️ <strong>분야</strong>: #{main_tag}</p>', unsafe_allow_html=True)
     with col3:
+        st.markdown(f'<p style="font-size: 18px; font-weight: 600;">📞 <strong>문의</strong>: {contact_info}</p>', unsafe_allow_html=True)
+    with col4:
         if news_item.get('source_url'):
-            st.markdown(f'<p style="font-size: 18px; font-weight: 600;">🔗 <strong><a href="{news_item["source_url"]}" target="_blank" style="color: #0d6efd; text-decoration: none;">부산시청 원문 링크</a></strong></p>', unsafe_allow_html=True)
+            st.markdown(f'<p style="font-size: 18px; font-weight: 600;">🔗 <strong><a href="{news_item["source_url"]}" target="_blank" style="color: #0d6efd; text-decoration: none;">부산시청 원문</a></strong></p>', unsafe_allow_html=True)
     
     st.divider()
     
     # MD 파일 내용 표시
     try:
-        with open(news_item['file_path'], 'r', encoding='utf-8') as f:
-            md_content = f.read()
+        if 'md_content' not in locals():
+            with open(news_item['file_path'], 'r', encoding='utf-8') as f:
+                md_content = f.read()
         
         # frontmatter 제거하고 본문만 표시
         if md_content.startswith('---'):
