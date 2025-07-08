@@ -27,19 +27,84 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# 🔧 간소화된 CSS - Deploy 버튼 숨기기 + 호버 효과 제거 + 큰 버튼 + 찐한 보라색
+# 🔧 정교한 CSS - Deploy 버튼만 숨기고 사이드바 토글은 보존
 st.markdown("""
 <style>
-/* 🔧 Deploy 버튼 숨기기 */
-[data-testid="stToolbar"] {
+/* 🔧 Deploy 버튼만 정확히 타겟해서 숨기기 */
+[data-testid="stToolbar"] > div > div > div > div:last-child {
     display: none !important;
 }
 
-.stApp > header {
+/* 🔧 Streamlit 헤더에서 Deploy 버튼만 숨기기 */
+header[data-testid="stHeader"] button[title*="Deploy"],
+header[data-testid="stHeader"] button[aria-label*="Deploy"],
+header[data-testid="stHeader"] a[href*="deploy"] {
     display: none !important;
 }
 
-iframe[title="streamlit_app"] {
+/* 🔧 모든 Deploy 관련 요소 숨기기 (하지만 다른 버튼은 보존) */
+button[kind="header"]:has-text("Deploy"),
+a[href*="deploy.streamlit.io"] {
+    display: none !important;
+}
+
+/* 🔧 사이드바 토글 버튼은 명시적으로 보이도록 강제 */
+[data-testid="collapsedControl"],
+button[data-testid="collapsedControl"],
+div[data-testid="collapsedControl"] {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    position: fixed !important;
+    top: 0.75rem !important;
+    left: 0.75rem !important;
+    z-index: 999999 !important;
+    background: #ffffff !important;
+    border: 2px solid #e2e8f0 !important;
+    border-radius: 8px !important;
+    padding: 8px !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+    width: 40px !important;
+    height: 40px !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+/* 🔧 사이드바 토글 버튼 호버 효과 */
+[data-testid="collapsedControl"]:hover,
+button[data-testid="collapsedControl"]:hover {
+    background: #f7fafc !important;
+    border-color: #cbd5e0 !important;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.2) !important;
+}
+
+/* 🔧 사이드바 토글 버튼 아이콘 스타일 */
+[data-testid="collapsedControl"] svg,
+button[data-testid="collapsedControl"] svg {
+    color: #4a5568 !important;
+    width: 18px !important;
+    height: 18px !important;
+}
+
+/* 🔧 다른 가능한 토글 버튼 선택자들도 활성화 */
+button[aria-label*="Open"],
+button[title*="Open"],
+button[aria-label*="sidebar"],
+button[title*="sidebar"] {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+}
+
+/* 🔧 Streamlit 앱 전체 헤더 숨기기 (토글 버튼 제외) */
+.stApp > header:not(:has([data-testid="collapsedControl"])) {
+    display: none !important;
+}
+
+/* 🔧 특정 iframe만 숨기기 */
+iframe[title="streamlit_app"]:not([data-testid="collapsedControl"]) {
     display: none !important;
 }
 
@@ -164,6 +229,41 @@ section[data-testid="stSidebar"] div.stButton > button[kind="primary"] {
     border-radius: 8px;
     border-left: 4px solid #dee2e6;
     line-height: 1.6;
+}
+
+/* 상세 페이지 전용 CSS */
+.detail-page {
+    font-size: 18px !important;
+    line-height: 1.8 !important;
+}
+.detail-page h1 {
+    font-size: 36px !important;
+    line-height: 1.4 !important;
+    margin-bottom: 20px !important;
+}
+.detail-page h2 {
+    font-size: 28px !important;
+    line-height: 1.5 !important;
+    margin: 25px 0 15px 0 !important;
+}
+.detail-page h3 {
+    font-size: 24px !important;
+    line-height: 1.5 !important;
+    margin: 20px 0 10px 0 !important;
+}
+.detail-page p {
+    font-size: 18px !important;
+    line-height: 1.8 !important;
+    margin-bottom: 15px !important;
+}
+.detail-page li {
+    font-size: 18px !important;
+    line-height: 1.8 !important;
+    margin-bottom: 8px !important;
+}
+.detail-page strong, .detail-page b {
+    font-size: 19px !important;
+    font-weight: 700 !important;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -341,9 +441,36 @@ class BusanNewsPortal:
         return filtered_news
 
 def render_header():
-    """헤더 렌더링"""
+    """헤더 렌더링 (사용 안내 포함)"""
     st.title("🏢 요즘 부산")
     st.markdown("### 부산시의 최신 보도자료를 한눈에 확인하세요")
+    
+    # 🔧 사용 안내 추가
+    st.info("""
+    **📖 이용 방법**
+    - 왼쪽 사이드바에서 **분야를 선택**하면 해당 분야의 보도자료를 확인할 수 있습니다
+    - **검색어**를 입력하여 원하는 내용을 빠르게 찾아보세요
+    - 각 카드를 클릭하면 **상세 내용**을 볼 수 있습니다
+    """)
+    
+    # 🔧 제작자 정보 추가
+    st.markdown(
+        """
+        <div style="
+            text-align: center; 
+            margin: 20px 0; 
+            padding: 15px; 
+            background: linear-gradient(90deg, #f8f9fa 0%, #e9ecef 50%, #f8f9fa 100%);
+            border-radius: 10px;
+        ">
+            <p style="margin: 0; color: #495057; font-size: 14px;">
+                🏛️ <strong>Made by 부산시청 매니저</strong> | 
+                🌐 <strong><a href="https://www.busan.go.kr" target="_blank" style="color: #0d6efd; text-decoration: none;">부산시청 바로가기</a></strong>
+            </p>
+        </div>
+        """, 
+        unsafe_allow_html=True
+    )
 
 def render_sidebar(portal: BusanNewsPortal):
     """사이드바 렌더링 (이모지 버튼 형태)"""
@@ -571,26 +698,39 @@ def render_news_card_aligned(news_item: Dict):
         
         formatted_title = smart_line_break(news_item['title'])
         
-        # 2. 태그 파스텔 색상 제목 박스 (고정 크기)
+        # 2. 태그 파스텔 색상 제목 박스 (완벽한 중앙 정렬)
         st.markdown(
             f"""
             <div style="
                 background-color: {pastel_color};
                 color: #374151;
-                padding: 25px 20px;
+                padding: 15px;
                 border-radius: 12px;
                 margin: 10px 0;
-                text-align: center;
-                font-weight: bold;
                 height: 140px;
                 display: flex;
                 align-items: center;
                 justify-content: center;
                 border: 2px solid {tag_color}40;
+                text-align: center;
+                box-sizing: border-box;
             ">
-                <h3 style="margin: 0; font-size: 22px; line-height: 1.4; color: #1F2937;">
-                    {formatted_title}
-                </h3>
+                <div style="
+                    width: 100%;
+                    font-size: 20px; 
+                    font-weight: bold; 
+                    color: #1F2937;
+                    line-height: 1.4;
+                    text-align: center;
+                    margin: 0;
+                    padding: 0;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    min-height: 100%;
+                ">
+                    <span style="display: block; width: 100%;">{formatted_title}</span>
+                </div>
             </div>
             """, 
             unsafe_allow_html=True
@@ -638,7 +778,10 @@ def render_news_card_aligned(news_item: Dict):
         st.markdown("<div style='margin-bottom: 2rem;'></div>", unsafe_allow_html=True)
 
 def render_news_detail(news_item: Dict):
-    """뉴스 상세 페이지 렌더링"""
+    """뉴스 상세 페이지 렌더링 (글자 크기 확대)"""
+    # 상세 페이지 컨테이너 시작
+    st.markdown('<div class="detail-page">', unsafe_allow_html=True)
+    
     # 상단 네비게이션
     col1, col2, col3 = st.columns([1, 4, 1])
     
@@ -657,20 +800,20 @@ def render_news_detail(news_item: Dict):
                 type="primary"
             )
     
-    # 제목
-    st.title(news_item['title'])
+    # 제목 (더 큰 글자)
+    st.markdown(f'<h1 style="font-size: 36px; line-height: 1.4; margin-bottom: 20px; color: #1F2937;">{news_item["title"]}</h1>', unsafe_allow_html=True)
     
-    # 메타 정보
+    # 메타 정보 (큰 글자)
     col1, col2, col3 = st.columns(3)
     with col1:
-        st.write(f"📅 **게시일**: {news_item['date']}")
+        st.markdown(f'<p style="font-size: 18px; font-weight: 600;">📅 <strong>게시일</strong>: {news_item["date"]}</p>', unsafe_allow_html=True)
     with col2:
         if news_item['tags']:
             main_tag = news_item['tags'][0]  # 첫 번째 태그만 표시
-            st.write(f"🏷️ **분야**: #{main_tag}")
+            st.markdown(f'<p style="font-size: 18px; font-weight: 600;">🏷️ <strong>분야</strong>: #{main_tag}</p>', unsafe_allow_html=True)
     with col3:
         if news_item.get('source_url'):
-            st.markdown("🔗 **[부산시청 원문 링크]({})**".format(news_item['source_url']))
+            st.markdown(f'<p style="font-size: 18px; font-weight: 600;">🔗 <strong><a href="{news_item["source_url"]}" target="_blank" style="color: #0d6efd; text-decoration: none;">부산시청 원문 링크</a></strong></p>', unsafe_allow_html=True)
     
     st.divider()
     
@@ -685,11 +828,14 @@ def render_news_detail(news_item: Dict):
             if frontmatter_end > 0:
                 md_content = md_content[frontmatter_end + 3:].strip()
         
-        # 마크다운 내용 표시
+        # 마크다운 내용 표시 (큰 글자로)
         st.markdown(md_content)
         
     except Exception as e:
         st.error(f"파일을 읽을 수 없습니다: {e}")
+    
+    # 상세 페이지 컨테이너 종료
+    st.markdown('</div>', unsafe_allow_html=True)
     
     # 하단 액션 버튼들
     st.divider()
@@ -765,9 +911,6 @@ def main():
     if 'selected_news' not in st.session_state:
         st.session_state.selected_news = None
     
-    # 헤더 렌더링
-    render_header()
-    
     try:
         # 포털 인스턴스 생성
         portal = BusanNewsPortal()
@@ -776,7 +919,9 @@ def main():
         if st.session_state.show_detail and st.session_state.selected_news:
             render_news_detail(st.session_state.selected_news)
         else:
-            # 메인 페이지
+            # 메인 페이지에서만 헤더 표시
+            render_header()
+            
             # 사이드바 렌더링
             search_query, selected_tags, date_range = render_sidebar(portal)
             
