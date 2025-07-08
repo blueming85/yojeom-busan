@@ -5,3 +5,4 @@ python-dotenv>=1.0.1
 beautifulsoup4>=4.12.3
 pandas>=2.2.3
 requests>=2.31.0
+streamlit-scroll-to-top
