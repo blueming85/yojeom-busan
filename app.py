@@ -445,7 +445,7 @@ class BusanNewsPortal:
         return filtered_news
 
 def render_header():
-    """헤더 렌더링 (사용 안내 포함)"""
+    """헤더 렌더링 (키보드 단축키 안내)"""
     st.title("🏢 요즘 부산")
     st.markdown("### 부산시의 최신 보도자료를 한눈에 확인하세요")
     
@@ -453,11 +453,12 @@ def render_header():
     st.info("""
     **📖 이용 방법**
     - 왼쪽 사이드바에서 **분야를 선택**하면 해당 분야의 보도자료를 확인할 수 있습니다
-    - **검색어**를 입력하여 원하는 내용을 빠르게 찾아보세요**(검색어 모두 지우신 후 엔터 치면 전체보기 가능)**
+    - **검색어**를 입력하여 원하는 내용을 빠르게 찾아보세요 **(검색어 모두 지우신 후 엔터 치면 전체보기 가능)**
     - 각 카드를 클릭하면 **상세 내용**을 볼 수 있습니다 (보도자료 원문 링크 포함)
+    - (주의) AI 요약이라 세부내용, 부서 연락처 오류가 있을 수 있으니 정확한 정보는 원문링크 참고하세요!
     """)
     
-    # 🔧 제작자 정보 추가
+    # 🔧 제작자 정보 + 즐겨찾기 안내 (키보드 단축키)
     st.markdown(
         """
         <div style="
@@ -469,6 +470,7 @@ def render_header():
         ">
             <p style="margin: 0; color: #495057; font-size: 14px;">
                 🏛️ <strong>Made by 부산시청 매니저</strong> | 
+                ⭐ <strong>즐겨찾기: Ctrl+D (Windows) / Cmd+D (Mac)</strong> | 
                 🌐 <strong><a href="https://www.busan.go.kr" target="_blank" style="color: #0d6efd; text-decoration: none;">부산시청 바로가기</a></strong>
             </p>
         </div>
@@ -495,10 +497,9 @@ def render_sidebar(portal: BusanNewsPortal):
         ("💼 일자리·경제", "일자리·경제"), 
         ("❤️ 복지·건강", "복지·건강"),
         ("🚌 교통·주거", "교통·주거"),
-        ("🎭 문화·여가", "문화·여가"),
+        ("🎭 문화·관광", "문화·관광"),
         ("🛡️ 안전·환경", "안전·환경"),
-        ("🏛️ 행정·참여", "행정·참여"),
-        ("🗺️ 관광·소식", "관광·소식")
+        ("🏛️ 행정·소식", "행정·소식")
     ]
     
     # 태그별 통계 계산
@@ -808,7 +809,7 @@ def extract_contact_from_content(content):
                 if phone.startswith('051'):
                     return f"부산시청 ({phone.strip()})"
     
-    return "부산시청 (051-888-1234)"
+    return "담당 부서 (부산시청 원문참고)"
 
 def render_news_detail(news_item: Dict):
     """뉴스 상세 페이지 렌더링 (streamlit-scroll-to-top 컴포넌트 사용)"""
@@ -847,7 +848,7 @@ def render_news_detail(news_item: Dict):
     st.markdown(f'<h1 style="font-size: 36px; line-height: 1.4; margin-bottom: 20px; color: #1F2937;">{news_item["title"]}</h1>', unsafe_allow_html=True)
     
     # MD 파일에서 문의처 추출
-    contact_info = "부산시청 (051-888-1234)"  # 기본값
+    contact_info = "담당 부서 (부산시청 원문참고)"  # 기본값
     try:
         with open(news_item['file_path'], 'r', encoding='utf-8') as f:
             md_content = f.read()
