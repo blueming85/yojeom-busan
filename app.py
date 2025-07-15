@@ -163,14 +163,6 @@ a[data-testid="stLinkButton"]:hover, a[data-testid="stLinkButton"]:focus,
     background: #4A148C !important;
     background-color: #4A148C !important;
     color: white !important;
-}[data-testid="stLinkButton"]:hover, a[data-testid="stLinkButton"]:focus,
-.stLinkButton > a:hover, .stLinkButton > a:focus {
-    outline: none !important;
-    box-shadow: none !important;
-    border: 2px solid #4A148C !important;
-    background: #F3E8FF !important;
-    background-color: #F3E8FF !important;
-    color: #4A148C !important;
 }
 
 /* 🔧 사이드바 버튼들만 기본 스타일로 덮어쓰기 */
@@ -512,6 +504,34 @@ class BusanNewsPortal:
         
         return filtered_news
 
+def extract_contact_from_content(md_content: str) -> str:
+    """마크다운 내용에서 연락처 정보 추출"""
+    try:
+        # "## 📞 세부문의" 섹션 찾기
+        contact_pattern = r'## 📞 세부문의\s*\n([^\n#]+)'
+        match = re.search(contact_pattern, md_content)
+        
+        if match:
+            contact_info = match.group(1).strip()
+            return contact_info
+        
+        # 대안 패턴 찾기
+        alternative_patterns = [
+            r'문의.*?(\d{3}-\d{3,4}-\d{4})',
+            r'연락처.*?(\d{3}-\d{3,4}-\d{4})',
+            r'담당.*?(\d{3}-\d{3,4}-\d{4})',
+        ]
+        
+        for pattern in alternative_patterns:
+            match = re.search(pattern, md_content)
+            if match:
+                return f"담당 부서 ({match.group(1)})"
+        
+        return "담당 부서 (부산시청 원문참고)"
+        
+    except Exception as e:
+        return "문의처 정보 오류"
+
 def render_header():
     """헤더 렌더링 (탭 네비게이션 포함)"""
     # 제목과 탭을 나란히 배치
@@ -581,7 +601,7 @@ def render_header():
     # 페이지별 설명과 이용 방법
     current_page = st.session_state.get('page', 'news')
     if current_page == 'news':
-        st.markdown("### 검색과 필터로 부산시 보도자료를 찾아보세요")
+        st.markdown("### 부산시 최신 보도자료를 알려드립니다")
         
         # 🔧 사용 안내 추가
         st.info("""
@@ -1185,26 +1205,11 @@ def render_news_detail(news_item: Dict):
     
     st.markdown('<div class="detail-page">', unsafe_allow_html=True)
     
-    col1, col2, col3 = st.columns([1, 4, 1])
-    
-    with col1:
-        if st.button("⬅️ 뒤로가기", use_container_width=True, key="news_back_btn"):
-            st.session_state.show_detail = False
-            st.session_state.selected_news = None
-            st.rerun()
-    
-    with col3:
-        if news_item.get('source_url'):
-            st.link_button(
-                "🏠 부산시청 원문", 
-                news_item['source_url'], 
-                use_container_width=True,
-                type="primary"
-            )
+
     
     st.markdown(f'<h1>{news_item["title"]}</h1>', unsafe_allow_html=True)
     
-    # 메타 정보
+    # 메타 정보 (4개 컬럼)
     col1, col2, col3, col4 = st.columns(4)
     with col1:
         st.markdown(f'<p style="font-size: 18px;"><strong>📅 게시일</strong>: {news_item["date"]}</p>', unsafe_allow_html=True)
@@ -1212,6 +1217,27 @@ def render_news_detail(news_item: Dict):
         if news_item['tags']:
             main_tag = news_item['tags'][0]
             st.markdown(f'<p style="font-size: 18px;"><strong>🏷️ 분야</strong>: #{main_tag}</p>', unsafe_allow_html=True)
+    
+    # 연락처 정보 추가 (col3)
+    with col3:
+        contact_info = "담당 부서 (부산시청 원문참고)"
+        try:
+            with open(news_item['file_path'], 'r', encoding='utf-8') as f:
+                md_content = f.read()
+            contact_info = extract_contact_from_content(md_content)
+            if not contact_info or not contact_info.strip():
+                contact_info = "담당 부서 (부산시청 원문참고)"
+        except Exception:
+            contact_info = "문의처 정보 오류"
+        st.markdown(f'<p style="font-size: 18px;"><strong>📞 문의</strong>: {contact_info}</p>', unsafe_allow_html=True)
+    
+    # 원문 링크 추가 (col4)
+    with col4:
+        if news_item.get('source_url'):
+            st.markdown(
+                f'<p style="font-size: 18px;"><strong>🔗 <a href="{news_item["source_url"]}" target="_blank" style="color: #4A148C; text-decoration: none;">부산시청 원문</a></strong></p>',
+                unsafe_allow_html=True
+            )
     
     st.divider()
     
@@ -1234,21 +1260,11 @@ def render_news_detail(news_item: Dict):
     
     st.divider()
     
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button("⬅️ 목록으로 돌아가기", use_container_width=True, key="news_back_btn2"):
-            st.session_state.show_detail = False
-            st.session_state.selected_news = None
-            st.rerun()
-    
-    with col2:
-        if news_item.get('source_url'):
-            st.link_button(
-                "🏠 부산시청 원문으로 이동", 
-                news_item['source_url'], 
-                use_container_width=True,
-                type="primary"
-            )
+    # 하단 버튼 (목록으로 돌아가기만, 가로 길이 늘림)
+    if st.button("⬅️ 목록으로 돌아가기", use_container_width=True, key="news_back_btn2"):
+        st.session_state.show_detail = False
+        st.session_state.selected_news = None
+        st.rerun()
 
 def render_plans_detail(plan_item: Dict):
     """업무계획 상세 페이지"""
@@ -1258,18 +1274,12 @@ def render_plans_detail(plan_item: Dict):
     
     st.markdown('<div class="detail-page">', unsafe_allow_html=True)
     
-    col1, col2, col3 = st.columns([1, 4, 1])
-    
-    with col1:
-        if st.button("⬅️ 뒤로가기", use_container_width=True, key="plans_back_btn"):
-            st.session_state.show_plan_detail = False
-            st.session_state.selected_plan = None
-            st.rerun()
+
     
     st.markdown(f'<h1>{plan_item["title"]}</h1>', unsafe_allow_html=True)
     
     # 메타 정보
-    col1, col2, col3 = st.columns(3)
+    col1, col2, col3, col4 = st.columns(4)
     with col1:
         st.markdown(f'<p style="font-size: 18px;"><strong>🏛️ 담당부서</strong>: {plan_item.get("department", "미분류")}</p>', unsafe_allow_html=True)
     with col2:
@@ -1277,6 +1287,11 @@ def render_plans_detail(plan_item: Dict):
         st.markdown(f'<p style="font-size: 18px;"><strong>📋 분류</strong>: {category}</p>', unsafe_allow_html=True)
     with col3:
         st.markdown(f'<p style="font-size: 18px;"><strong>📅 기준년도</strong>: 2025년</p>', unsafe_allow_html=True)
+    with col4:
+        st.markdown(
+            f'<p style="font-size: 18px;"><strong>🔗 <a href="https://www.busan.go.kr/gbplan" target="_blank" style="color: #4A148C; text-decoration: none;">부산시청 원문</a></strong></p>',
+            unsafe_allow_html=True
+        )
     
     st.divider()
     

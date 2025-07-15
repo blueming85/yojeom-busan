@@ -126,6 +126,11 @@ class BusanPlansPortal:
             if "주요업무계획" in filename:
                 # "2025년 " 제거하고 " 주요업무계획.md" 제거
                 dept_part = filename.replace("2025년 ", "").replace(" 주요업무계획.md", "")
+                
+                # 🔧 특별 케이스 처리
+                if dept_part == "부산광역시" or dept_part == "부산시":
+                    return "부산광역시"  # 통합 시정
+                
                 return dept_part
             
             return "미분류"
