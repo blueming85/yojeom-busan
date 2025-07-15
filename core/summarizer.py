@@ -1,5 +1,5 @@
 """
-부산시청 보도자료 요약기 - BusanNewsSummarizer (개선된 OCR 연락처 추출)
+부산시청 보도자료 요약기 - BusanNewsSummarizer (개선된 OCR 연락처 추출 + 중복 체크)
 ================================================================
 PDF에서 텍스트 추출 → OCR로 연락처 추출 → GPT로 요약 → 마크다운 파일 생성
 """
@@ -25,7 +25,7 @@ from config import (
 logger = logging.getLogger(__name__)
 
 class BusanNewsSummarizer:
-    """부산시청 보도자료 요약기 (개선된 OCR 연락처 추출)"""
+    """부산시청 보도자료 요약기 (개선된 OCR 연락처 추출 + 중복 체크)"""
     
     def __init__(self):
         """초기화"""
@@ -55,6 +55,35 @@ class BusanNewsSummarizer:
                 return
         
         logger.warning("⚠️ Tesseract 경로를 찾을 수 없습니다. OCR 기능이 제한될 수 있습니다.")
+    
+    def check_existing_md_for_pdf(self, pdf_filename: str) -> Optional[str]:
+        """🔧 같은 PDF에서 생성된 기존 MD 파일이 있는지 체크"""
+        try:
+            md_files = list(Path(self.output_dir).glob("*.md"))
+            
+            for md_file in md_files:
+                try:
+                    with open(md_file, 'r', encoding='utf-8') as f:
+                        content = f.read()
+                        
+                    # frontmatter에서 source_pdf 필드 찾기
+                    if content.startswith('---'):
+                        frontmatter_end = content.find('---', 3)
+                        if frontmatter_end > 0:
+                            frontmatter = content[3:frontmatter_end]
+                            if f'source_pdf: "{pdf_filename}"' in frontmatter:
+                                logger.info(f"⏭️ 기존 MD 파일 발견: {md_file.name} (PDF: {pdf_filename})")
+                                return str(md_file)
+                
+                except Exception as e:
+                    logger.debug(f"MD 파일 체크 중 오류: {md_file.name} - {e}")
+                    continue
+            
+            return None
+            
+        except Exception as e:
+            logger.error(f"❌ 기존 MD 파일 체크 실패: {e}")
+            return None
     
     def extract_contact_with_ocr(self, pdf_path: str) -> str:
         """🔧 개선된 OCR 연락처 추출"""
@@ -232,8 +261,8 @@ class BusanNewsSummarizer:
                 except:
                     pass
 
-    def generate_summary_with_gpt(self, content: str, source_url: str = "") -> Optional[Dict]:
-        """GPT를 이용한 요약 생성 (OCR 연락처는 별도 처리)"""
+    def generate_summary_with_gpt(self, content: str, source_url: str = "", pdf_filename: str = "") -> Optional[Dict]:
+        """🔧 GPT를 이용한 요약 생성 (source_pdf 필드 추가)"""
         try:
             # 내용 길이 제한
             if len(content) > 3000:
@@ -243,7 +272,7 @@ class BusanNewsSummarizer:
             if not source_url:
                 source_url = "https://www.busan.go.kr/nbtnewsBU"
             
-            # GPT 프롬프트 (연락처는 별도 처리)
+            # GPT 프롬프트 (연락처는 별도 처리, source_pdf 추가)
             prompt = f"""
 다음 부산시청 보도자료를 자연스럽게 상세히 요약해주세요.
 
@@ -263,6 +292,7 @@ date: "YYYY-MM-DD"
 tags: ["태그1"]
 thumbnail_summary: "80자 이내 한줄요약"
 source_url: "{source_url}"
+source_pdf: "{pdf_filename}"
 ---
 
 # 상세 요약
@@ -338,10 +368,14 @@ PDF의 모든 내용을 정확하게 상세히 설명해주세요. 특히 숫자
                 metadata['source_url'] = source_url
                 summary_text = summary_text.replace("원문_URL_여기_입력", source_url)
             
+            # 🔧 source_pdf 필드 확인 및 설정
+            if not metadata.get('source_pdf'):
+                metadata['source_pdf'] = pdf_filename
+            
             # 마크다운 취소선 문법 정제
             summary_text = self._fix_markdown_strikethrough(summary_text)
             
-            logger.info(f"✅ GPT 요약 생성 완료 (태그: {validated_tags})")
+            logger.info(f"✅ GPT 요약 생성 완료 (태그: {validated_tags}, PDF: {pdf_filename})")
             return {
                 'metadata': metadata,
                 'content': summary_text
@@ -410,7 +444,7 @@ PDF의 모든 내용을 정확하게 상세히 설명해주세요. 특히 숫자
             return text
     
     def _parse_frontmatter(self, content: str) -> Optional[Dict]:
-        """frontmatter 파싱"""
+        """🔧 frontmatter 파싱 (source_pdf 필드 추가)"""
         try:
             if not content.startswith('---'):
                 return None
@@ -453,6 +487,8 @@ PDF의 모든 내용을 정확하게 상세히 설명해주세요. 특히 숫자
                 metadata['tags'] = ["행정·소식"]
             if 'thumbnail_summary' not in metadata:
                 metadata['thumbnail_summary'] = "부산시 보도자료입니다."
+            if 'source_pdf' not in metadata:
+                metadata['source_pdf'] = ""
             
             return metadata
             
@@ -528,10 +564,16 @@ PDF의 모든 내용을 정확하게 상세히 설명해주세요. 특히 숫자
             return ""
     
     def process_pdf_file(self, pdf_path: str, source_url: str = "") -> Optional[str]:
-        """PDF 파일 처리 (개선된 OCR 연락처 추출)"""
+        """🔧 PDF 파일 처리 (중복 체크 로직 추가)"""
         try:
             pdf_filename = Path(pdf_path).name
             logger.info(f"🚀 PDF 처리: {pdf_filename}")
+            
+            # 🔧 1단계: 중복 체크 - 같은 PDF에서 생성된 MD 파일이 있는지 확인
+            existing_md = self.check_existing_md_for_pdf(pdf_filename)
+            if existing_md:
+                logger.info(f"⏭️ 이미 처리된 PDF: {pdf_filename} → {Path(existing_md).name}")
+                return existing_md
             
             # 기본 URL 설정
             if not source_url:
@@ -542,8 +584,8 @@ PDF의 모든 내용을 정확하게 상세히 설명해주세요. 특히 숫자
             if not content:
                 return None
             
-            # GPT 요약 (태그 분류 포함)
-            summary_data = self.generate_summary_with_gpt(content, source_url)
+            # GPT 요약 (태그 분류 포함, PDF 파일명 전달)
+            summary_data = self.generate_summary_with_gpt(content, source_url, pdf_filename)
             if not summary_data:
                 return None
             
@@ -625,6 +667,21 @@ def test_ocr_extraction():
         print("⚠️ 테스트 PDF 파일이 없습니다.")
 
 
+def test_duplicate_check():
+    """🧪 중복 체크 로직 테스트"""
+    summarizer = BusanNewsSummarizer()
+    
+    # 기존 MD 파일들 체크
+    test_filename = "test_document.pdf"
+    existing_md = summarizer.check_existing_md_for_pdf(test_filename)
+    
+    if existing_md:
+        print(f"✅ 중복 체크 성공: {test_filename} → {existing_md}")
+    else:
+        print(f"⚠️ 기존 MD 파일 없음: {test_filename}")
+
+
 if __name__ == "__main__":
     # 테스트 실행
     test_ocr_extraction()
+    test_duplicate_check()
