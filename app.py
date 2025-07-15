@@ -1203,9 +1203,24 @@ def render_news_detail(news_item: Dict):
         scroll_to_here(0, key='news_detail_top')
         st.session_state.scroll_to_top = False
     
-    st.markdown('<div class="detail-page">', unsafe_allow_html=True)
+    # 🔧 상단 네비게이션 버튼 추가 (일관된 크기와 스타일)
+    col1, col2, col3 = st.columns([2, 4, 2])
     
-
+    with col1:
+        if st.button("← 뒤로가기", key="news_back_top", use_container_width=True, type="secondary"):
+            st.session_state.show_detail = False
+            st.session_state.selected_news = None
+            st.rerun()
+    
+    with col3:
+        if news_item.get('source_url'):
+            if st.button("🏛️ 부산시청 원문", key="news_original_top", use_container_width=True, type="primary"):
+                # 새 탭에서 링크 열기를 위한 JavaScript
+                st.markdown(f'<script>window.open("{news_item["source_url"]}", "_blank");</script>', unsafe_allow_html=True)
+                # 또는 직접 링크로 이동
+                st.markdown(f'<meta http-equiv="refresh" content="0; url={news_item["source_url"]}">', unsafe_allow_html=True)
+    
+    st.markdown('<div class="detail-page">', unsafe_allow_html=True)
     
     st.markdown(f'<h1>{news_item["title"]}</h1>', unsafe_allow_html=True)
     
@@ -1272,9 +1287,23 @@ def render_plans_detail(plan_item: Dict):
         scroll_to_here(0, key='plans_detail_top')
         st.session_state.scroll_to_top = False
     
-    st.markdown('<div class="detail-page">', unsafe_allow_html=True)
+    # 🔧 상단 네비게이션 버튼 추가 (일관된 크기와 스타일)
+    col1, col2, col3 = st.columns([2, 4, 2])
     
-
+    with col1:
+        if st.button("← 뒤로가기", key="plans_back_top", use_container_width=True, type="secondary"):
+            st.session_state.show_plan_detail = False
+            st.session_state.selected_plan = None
+            st.rerun()
+    
+    with col3:
+        if st.button("🏛️ 부산시청 원문", key="plans_original_top", use_container_width=True, type="primary"):
+            # 새 탭에서 링크 열기를 위한 JavaScript
+            st.markdown('<script>window.open("https://www.busan.go.kr/gbplan", "_blank");</script>', unsafe_allow_html=True)
+            # 또는 직접 링크로 이동  
+            st.markdown('<meta http-equiv="refresh" content="0; url=https://www.busan.go.kr/gbplan">', unsafe_allow_html=True)
+    
+    st.markdown('<div class="detail-page">', unsafe_allow_html=True)
     
     st.markdown(f'<h1>{plan_item["title"]}</h1>', unsafe_allow_html=True)
     
