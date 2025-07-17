@@ -36,18 +36,14 @@ st.set_page_config(
 # 🔧 정교한 CSS - Deploy 버튼과 메뉴 숨기고 사이드바 토글은 보존
 st.markdown("""
 <style>
-/* 🔧 Deploy 버튼과 세 줄 메뉴 강력하게 숨기기 */
-[data-testid="stToolbar"],
-[data-testid="stHeader"],
-header[data-testid="stHeader"],
+/* 🔧 Deploy 버튼만 정확히 타겟팅해서 숨기기 */
+[data-testid="stToolbar"]:not([data-testid="collapsedControl"]):not([aria-label*="sidebar"]):not([aria-label*="Open"]),
+[data-testid="stHeader"]:not([data-testid="collapsedControl"]):not([aria-label*="sidebar"]):not([aria-label*="Open"]),
 .stDeployButton,
-button[title*="Deploy"],
-button[aria-label*="Deploy"],
+button[title*="Deploy"]:not([data-testid="collapsedControl"]),
+button[aria-label*="Deploy"]:not([data-testid="collapsedControl"]),
 a[href*="deploy"],
-button[kind="header"],
-iframe[title="streamlit_app"],
-div[data-testid="stToolbar"],
-section[data-testid="stToolbar"] {
+iframe[title="streamlit_app"] {
     display: none !important;
     visibility: hidden !important;
     opacity: 0 !important;
@@ -56,6 +52,23 @@ section[data-testid="stToolbar"] {
     overflow: hidden !important;
     position: absolute !important;
     left: -9999px !important;
+}
+
+/* 🔧 사이드바 토글 버튼은 반드시 보이도록 강제 */
+[data-testid="collapsedControl"],
+button[data-testid="collapsedControl"],
+div[data-testid="collapsedControl"],
+button[aria-label*="sidebar"],
+button[aria-label*="Open"],
+button[title*="Open"] {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    position: fixed !important;
+    top: 0.75rem !important;
+    left: 0.75rem !important;
+    z-index: 999999 !important;
 }
 
 /* 🔧 상단 공간 제거 */
@@ -68,45 +81,6 @@ section[data-testid="stToolbar"] {
 *[id*="deploy" i],
 *[data-testid*="deploy" i] {
     display: none !important;
-}
-
-/* 🔧 사이드바 토글 버튼은 명시적으로 보이도록 강제 */
-[data-testid="collapsedControl"],
-button[data-testid="collapsedControl"],
-div[data-testid="collapsedControl"] {
-    display: flex !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-    pointer-events: auto !important;
-    position: fixed !important;
-    top: 0.75rem !important;
-    left: 0.75rem !important;
-    z-index: 999999 !important;
-    background: #ffffff !important;
-    border: 2px solid #e2e8f0 !important;
-    border-radius: 8px !important;
-    padding: 8px !important;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
-    width: 40px !important;
-    height: 40px !important;
-    align-items: center !important;
-    justify-content: center !important;
-}
-
-/* 🔧 사이드바 토글 버튼 호버 효과 */
-[data-testid="collapsedControl"]:hover,
-button[data-testid="collapsedControl"]:hover {
-    background: #f7fafc !important;
-    border-color: #cbd5e0 !important;
-    box-shadow: 0 6px 16px rgba(0,0,0,0.2) !important;
-}
-
-/* 🔧 사이드바 토글 버튼 아이콘 스타일 */
-[data-testid="collapsedControl"] svg,
-button[data-testid="collapsedControl"] svg {
-    color: #4a5568 !important;
-    width: 18px !important;
-    height: 18px !important;
 }
 
 /* 🔧 다른 가능한 토글 버튼 선택자들도 활성화 */
@@ -609,7 +583,7 @@ def render_header():
         - 왼쪽 사이드바에서 **분야를 선택**하면 해당 분야의 보도자료를 확인할 수 있습니다
         - **검색어**를 입력하여 원하는 내용을 빠르게 찾아보세요 **(검색어 모두 지우신 후 엔터 치면 전체보기 가능)**
         - 각 카드를 클릭하면 **상세 내용**을 볼 수 있습니다 (보도자료 원문 링크 포함)
-        - (주의) AI 요약이라 세부내용, 부서 연락처 오류가 있을 수 있으니 정확한 정보는 원문링크 참고하세요!
+        - **(주의) AI 요약이라 세부내용, 부서 연락처 오류가 있을 수 있으니 정확한 정보는 원문링크 참고하세요!**
         """)
     else:
         st.markdown("### 2025년 부산시 각 부서별 주요 업무계획을 확인하세요")
@@ -620,7 +594,7 @@ def render_header():
         - 왼쪽 사이드바에서 **부서별 분류**를 선택하여 원하는 분야의 업무계획을 확인할 수 있습니다
         - **검색어**를 입력하여 특정 부서나 사업명을 빠르게 찾아보세요
         - 각 카드를 클릭하면 **상세 업무계획**을 볼 수 있습니다 (기본현황, 추진과제, 예산 등)
-        - 2025년 부산시 각 부서의 주요 정책과 사업을 한눈에 파악하실 수 있습니다!
+        - **(주의) AI 요약이라 세부내용, 부서 연락처 오류가 있을 수 있으니 정확한 정보는 원문링크 참고하세요!**
         """)
 
 def render_news_sidebar(portal: BusanNewsPortal):
@@ -1214,11 +1188,16 @@ def render_news_detail(news_item: Dict):
     
     with col3:
         if news_item.get('source_url'):
-            if st.button("🏛️ 부산시청 원문", key="news_original_top", use_container_width=True, type="primary"):
-                # 새 탭에서 링크 열기를 위한 JavaScript
-                st.markdown(f'<script>window.open("{news_item["source_url"]}", "_blank");</script>', unsafe_allow_html=True)
-                # 또는 직접 링크로 이동
-                st.markdown(f'<meta http-equiv="refresh" content="0; url={news_item["source_url"]}">', unsafe_allow_html=True)
+            st.markdown(
+                f'''
+                <a href="{news_item["source_url"]}" target="_blank" style="text-decoration:none;">
+                    <button style="width:100%; padding:12px 14px; background:#fff; color:#4A148C; border:2px solid #4A148C; border-radius:8px; font-weight:300; font-size:10px;">
+                        🏛️ 부산시청 원문
+                    </button>
+                </a>
+                ''',
+                unsafe_allow_html=True
+            )
     
     st.markdown('<div class="detail-page">', unsafe_allow_html=True)
     
@@ -1297,11 +1276,7 @@ def render_plans_detail(plan_item: Dict):
             st.rerun()
     
     with col3:
-        if st.button("🏛️ 부산시청 원문", key="plans_original_top", use_container_width=True, type="primary"):
-            # 새 탭에서 링크 열기를 위한 JavaScript
-            st.markdown('<script>window.open("https://www.busan.go.kr/gbplan", "_blank");</script>', unsafe_allow_html=True)
-            # 또는 직접 링크로 이동  
-            st.markdown('<meta http-equiv="refresh" content="0; url=https://www.busan.go.kr/gbplan">', unsafe_allow_html=True)
+        st.markdown('<a href="https://www.busan.go.kr/gbplan" target="_blank" style="text-decoration:none;"><button style="width:100%; padding:12px 14px; background:#fff; color:#4A148C; border:2px solid #4A148C; border-radius:8px; font-weight:300; font-size:10px;">🏛️ 부산시청 원문</button></a>', unsafe_allow_html=True)
     
     st.markdown('<div class="detail-page">', unsafe_allow_html=True)
     

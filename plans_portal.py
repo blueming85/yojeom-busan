@@ -54,8 +54,14 @@ class BusanPlansPortal:
                 logger.error(f"업무계획 파일 파싱 오류 {md_file.name}: {e}")
                 continue
         
-        # 부서명순 정렬
-        plans_list.sort(key=lambda x: x.get('department', ''))
+        # 부산광역시 우선 정렬
+        def get_priority(plan):
+            dept = plan.get('department', '')
+            if "부산광역시" in dept or "부산시" in dept:
+                return ''  # 무조건 맨 앞
+            return dept or '~~~'
+
+        plans_list.sort(key=get_priority)
         self.plans_data = plans_list
         
         logger.info(f"✅ 업무계획 {len(plans_list)}개 로드 완료")

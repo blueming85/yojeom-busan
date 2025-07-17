@@ -30,6 +30,12 @@ from plans_summarizer import SimplePlansSummarizer
 
 logger = logging.getLogger(__name__)
 
+def get_priority(item):
+    dept = item.get('department', '')
+    if dept.startswith("부산광역시"):
+        return ''  # 무조건 맨 앞
+    return dept or '~~~'
+
 class PlansProcessor:
     """업무계획 파이프라인 매니저"""
     
@@ -106,7 +112,7 @@ class PlansProcessor:
                     continue
             
             # 부서명순 정렬
-            file_info_list.sort(key=lambda x: x['department'])
+            file_info_list.sort(key=get_priority)
             
             return file_info_list
             
@@ -422,3 +428,5 @@ def test_processor():
 
 if __name__ == "__main__":
     test_processor()
+
+    
