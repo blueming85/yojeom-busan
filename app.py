@@ -30,20 +30,24 @@ st.set_page_config(
     page_title="요즘 부산",
     page_icon="🏢",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="expanded"  # 🔧 항상 펼쳐진 상태로 시작해서 접기/펴기 둘 다 작동
 )
 
-# 🔧 정교한 CSS - Deploy 버튼과 메뉴 숨기고 사이드바 토글은 보존
+# 🔧 완전 개선된 CSS - 반응형 + 다크테마 완벽 대응
 st.markdown("""
 <style>
-/* 🔧 Deploy 버튼만 정확히 타겟팅해서 숨기기 */
-[data-testid="stToolbar"]:not([data-testid="collapsedControl"]):not([aria-label*="sidebar"]):not([aria-label*="Open"]),
-[data-testid="stHeader"]:not([data-testid="collapsedControl"]):not([aria-label*="sidebar"]):not([aria-label*="Open"]),
+/* 🔧 Deploy 버튼과 세 줄 메뉴 강력하게 숨기기 */
+[data-testid="stToolbar"],
+[data-testid="stHeader"],
+header[data-testid="stHeader"],
 .stDeployButton,
-button[title*="Deploy"]:not([data-testid="collapsedControl"]),
-button[aria-label*="Deploy"]:not([data-testid="collapsedControl"]),
+button[title*="Deploy"],
+button[aria-label*="Deploy"],
 a[href*="deploy"],
-iframe[title="streamlit_app"] {
+button[kind="header"],
+iframe[title="streamlit_app"],
+div[data-testid="stToolbar"],
+section[data-testid="stToolbar"] {
     display: none !important;
     visibility: hidden !important;
     opacity: 0 !important;
@@ -52,23 +56,6 @@ iframe[title="streamlit_app"] {
     overflow: hidden !important;
     position: absolute !important;
     left: -9999px !important;
-}
-
-/* 🔧 사이드바 토글 버튼은 반드시 보이도록 강제 */
-[data-testid="collapsedControl"],
-button[data-testid="collapsedControl"],
-div[data-testid="collapsedControl"],
-button[aria-label*="sidebar"],
-button[aria-label*="Open"],
-button[title*="Open"] {
-    display: flex !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-    pointer-events: auto !important;
-    position: fixed !important;
-    top: 0.75rem !important;
-    left: 0.75rem !important;
-    z-index: 999999 !important;
 }
 
 /* 🔧 상단 공간 제거 */
@@ -81,6 +68,27 @@ button[title*="Open"] {
 *[id*="deploy" i],
 *[data-testid*="deploy" i] {
     display: none !important;
+}
+
+/* 🔧 토글 버튼 CSS 완전 제거 - 스트림릿 기본 동작 사용 */
+
+/* 🔧 다른 가능한 토글 버튼 선택자들도 활성화 */
+button[aria-label*="Open"],
+button[title*="Open"],
+button[aria-label*="sidebar"],
+button[title*="sidebar"] {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+}
+
+/* 🔧 사이드바 토글 버튼 아이콘 스타일 */
+[data-testid="collapsedControl"] svg,
+button[data-testid="collapsedControl"] svg {
+    color: #4a5568 !important;
+    width: 18px !important;
+    height: 18px !important;
 }
 
 /* 🔧 다른 가능한 토글 버튼 선택자들도 활성화 */
@@ -139,44 +147,11 @@ a[data-testid="stLinkButton"]:hover, a[data-testid="stLinkButton"]:focus,
     color: white !important;
 }
 
-/* 🔧 사이드바 버튼들만 기본 스타일로 덮어쓰기 */
-section[data-testid="stSidebar"] button,
-section[data-testid="stSidebar"] .stButton button,
-section[data-testid="stSidebar"] div.stButton > button {
-    background: transparent !important;
-    background-color: transparent !important;
-    border: 1px solid #ddd !important;
-    color: #333 !important;
-    padding: 10px 15px !important;
-    font-size: 14px !important;
-    font-weight: 500 !important;
-    border-radius: 8px !important;
-}
+/* 🔧 사이드바 버튼들만 기본 스타일로 덮어쓰기 - 삭제됨 */
 
-/* 🔧 사이드바 버튼 호버 효과 제거 */
-section[data-testid="stSidebar"] button:hover,
-section[data-testid="stSidebar"] button:focus,
-section[data-testid="stSidebar"] .stButton button:hover,
-section[data-testid="stSidebar"] .stButton button:focus,
-section[data-testid="stSidebar"] div.stButton > button:hover,
-section[data-testid="stSidebar"] div.stButton > button:focus {
-    outline: none !important;
-    box-shadow: none !important;
-    border: 1px solid #ddd !important;
-    background: transparent !important;
-    background-color: transparent !important;
-    color: #333 !important;
-}
+/* 🔧 사이드바 버튼 호버 효과 제거 - 삭제됨 */
 
-/* 🔧 선택된 사이드바 버튼 (primary) 스타일 */
-section[data-testid="stSidebar"] button[kind="primary"],
-section[data-testid="stSidebar"] .stButton button[kind="primary"],
-section[data-testid="stSidebar"] div.stButton > button[kind="primary"] {
-    background: #e3f2fd !important;
-    background-color: #e3f2fd !important;
-    border: 1px solid #1976d2 !important;
-    color: #1976d2 !important;
-}
+/* 🔧 선택된 사이드바 버튼 (primary) 스타일 - 삭제됨 */
 
 /* 🔧 네비게이션 버튼 - primary(활성) 스타일 - 보라색 배경 */
 button[kind="primary"][data-testid*="nav_"],
@@ -230,20 +205,159 @@ button[data-testid="nav_plans"][kind="secondary"]:hover {
     box-shadow: none !important;
 }
 
+/* 🔧 사이드바 완전 개선 - 진한 회색 버튼에 흰 글자, 흰 테두리 */
+section[data-testid="stSidebar"] button,
+section[data-testid="stSidebar"] .stButton button,
+section[data-testid="stSidebar"] div.stButton > button {
+    background: #374151 !important;
+    background-color: #374151 !important;
+    border: 1px solid white !important;
+    color: white !important;
+    padding: 10px 15px !important;
+    font-size: 14px !important;
+    font-weight: 500 !important;
+    border-radius: 8px !important;
+}
+
+/* 사이드바 버튼 호버 효과 */
+section[data-testid="stSidebar"] button:hover,
+section[data-testid="stSidebar"] button:focus,
+section[data-testid="stSidebar"] .stButton button:hover,
+section[data-testid="stSidebar"] .stButton button:focus,
+section[data-testid="stSidebar"] div.stButton > button:hover,
+section[data-testid="stSidebar"] div.stButton > button:focus {
+    background: #4b5563 !important;
+    background-color: #4b5563 !important;
+    border: 1px solid white !important;
+    color: white !important;
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+/* 선택된 사이드바 버튼 (primary) - 더 진한 회색, 흰 테두리 */
+section[data-testid="stSidebar"] button[kind="primary"],
+section[data-testid="stSidebar"] .stButton button[kind="primary"],
+section[data-testid="stSidebar"] div.stButton > button[kind="primary"] {
+    background: #1f2937 !important;
+    background-color: #1f2937 !important;
+    border: 2px solid white !important;
+    color: white !important;
+}
+
+/* 사이드바 모든 텍스트 흰색 */
+[data-testid="stSidebar"] *,
+[data-testid="stSidebar"] .stMarkdown h1,
+[data-testid="stSidebar"] .stMarkdown h2,
+[data-testid="stSidebar"] .stMarkdown h3,
+[data-testid="stSidebar"] .stMarkdown h4,
+[data-testid="stSidebar"] .stMarkdown p,
+[data-testid="stSidebar"] .stMarkdown span,
+[data-testid="stSidebar"] .stText,
+[data-testid="stSidebar"] label,
+section[data-testid="stSidebar"] *,
+section[data-testid="stSidebar"] h1,
+section[data-testid="stSidebar"] h2,
+section[data-testid="stSidebar"] h3,
+section[data-testid="stSidebar"] h4,
+section[data-testid="stSidebar"] p,
+section[data-testid="stSidebar"] span,
+section[data-testid="stSidebar"] label,
+section[data-testid="stSidebar"] div {
+    color: white !important;
+}
+
+/* 🔧 날짜 박스 완전 개선 - 연한 회색 배경에 흰 글자 */
+.news-date, .plans-date {
+    background-color: #6b7280 !important;
+    color: white !important;
+    border: 1px solid #9ca3af !important;
+}
+
+/* 날짜 관련 모든 요소들 강제 적용 */
+div[style*="text-align: right"],
+div[style*="background-color: rgba(0,0,0,0.1)"],
+div[style*="color: #333"] {
+    background-color: #6b7280 !important;
+    color: white !important;
+    border: 1px solid #9ca3af !important;
+}
+
+/* 🔧 반응형 디자인 개선 */
+/* 데스크톱 (기본) */
+.stColumn {
+    padding: 0 0.3rem;
+    min-width: 250px;
+}
+
+/* 태블릿 */
+@media (max-width: 1024px) {
+    .stColumn {
+        min-width: 300px;
+        padding: 0 0.5rem;
+    }
+}
+
+/* 모바일 */
+@media (max-width: 768px) {
+    .stColumn {
+        min-width: 100% !important;
+        padding: 0 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    /* 모바일에서 카드 높이 조정 */
+    .news-title-box {
+        min-height: 80px !important;
+        font-size: 16px !important;
+    }
+    
+    .news-summary {
+        height: 60px !important;
+        font-size: 12px !important;
+    }
+}
+
+/* 작은 모바일 */
+@media (max-width: 480px) {
+    .news-title-box {
+        min-height: 60px !important;
+        font-size: 14px !important;
+        padding: 10px !important;
+    }
+    
+    .news-summary {
+        height: 50px !important;
+        font-size: 11px !important;
+        padding: 10px !important;
+    }
+}
+
+.stColumn > div {
+    height: 100%;
+}
+
+/* 🔧 사이드바 배경색 멋진 그라데이션으로 설정 */
+section[data-testid="stSidebar"],
+[data-testid="stSidebar"],
+.css-1d391kg,
+.css-1lcbmhc {
+    background: linear-gradient(180deg, #4b5563 0%, #6b7280 50%, #9ca3af 100%) !important;
+}
+
+/* 사이드바 내부 요소들도 배경 투명하게 */
+section[data-testid="stSidebar"] > div,
+[data-testid="stSidebar"] > div {
+    background-color: transparent !important;
+}
+
 /* 사이드바 넓이 증가 */
 .css-1d391kg {
     width: 300px;
+    background: linear-gradient(180deg, #4b5563 0%, #6b7280 50%, #9ca3af 100%) !important;
 }
 .css-1lcbmhc {
     width: 300px;
-}
-
-/* 그리드 스타일링 */
-.stColumn {
-    padding: 0 0.3rem;
-}
-.stColumn > div {
-    height: 100%;
+    background: linear-gradient(180deg, #4b5563 0%, #6b7280 50%, #9ca3af 100%) !important;
 }
 
 /* 태그 색상 기반 제목 박스 스타일 */
@@ -271,7 +385,7 @@ button[data-testid="nav_plans"][kind="secondary"]:hover {
 
 /* 상세 페이지 전용 CSS */
 .detail-page {
-    font-size: 18px !important;
+    font-size: 22px !important;
     line-height: 1.8 !important;
 }
 .detail-page h1 {
@@ -290,17 +404,17 @@ button[data-testid="nav_plans"][kind="secondary"]:hover {
     margin: 20px 0 10px 0 !important;
 }
 .detail-page p {
-    font-size: 18px !important;
+    font-size: 22px !important;
     line-height: 1.8 !important;
     margin-bottom: 15px !important;
 }
 .detail-page li {
-    font-size: 18px !important;
+    font-size: 22px !important;
     line-height: 1.8 !important;
     margin-bottom: 8px !important;
 }
 .detail-page strong, .detail-page b {
-    font-size: 19px !important;
+    font-size: 22px !important;
     font-weight: 700 !important;
 }
 </style>
@@ -583,7 +697,7 @@ def render_header():
         - 왼쪽 사이드바에서 **분야를 선택**하면 해당 분야의 보도자료를 확인할 수 있습니다
         - **검색어**를 입력하여 원하는 내용을 빠르게 찾아보세요 **(검색어 모두 지우신 후 엔터 치면 전체보기 가능)**
         - 각 카드를 클릭하면 **상세 내용**을 볼 수 있습니다 (보도자료 원문 링크 포함)
-        - **(주의) AI 요약이라 세부내용, 부서 연락처 오류가 있을 수 있으니 정확한 정보는 원문링크 참고하세요!**
+        - (주의) AI 요약이라 세부내용, 부서 연락처 오류가 있을 수 있으니 정확한 정보는 원문링크 참고하세요!
         """)
     else:
         st.markdown("### 2025년 부산시 각 부서별 주요 업무계획을 확인하세요")
@@ -594,7 +708,7 @@ def render_header():
         - 왼쪽 사이드바에서 **부서별 분류**를 선택하여 원하는 분야의 업무계획을 확인할 수 있습니다
         - **검색어**를 입력하여 특정 부서나 사업명을 빠르게 찾아보세요
         - 각 카드를 클릭하면 **상세 업무계획**을 볼 수 있습니다 (기본현황, 추진과제, 예산 등)
-        - **(주의) AI 요약이라 세부내용, 부서 연락처 오류가 있을 수 있으니 정확한 정보는 원문링크 참고하세요!**
+        - 2025년 부산시 각 부서의 주요 정책과 사업을 한눈에 파악하실 수 있습니다!
         """)
 
 def render_news_sidebar(portal: BusanNewsPortal):
@@ -765,57 +879,50 @@ def render_plans_sidebar(plans_portal: BusanPlansPortal):
     
     return search_query, selected_categories
 
+def get_responsive_columns():
+    """화면 크기에 따른 컬럼 수 결정"""
+    # JavaScript로 화면 크기 감지 (기본값 사용)
+    # 실제로는 CSS 미디어 쿼리로 반응형 처리
+    return 4  # 기본 4열, CSS에서 반응형으로 조정
+
 def render_news_card_aligned(news_item: Dict):
-    """보도자료 카드 렌더링"""
+    """보도자료 카드 렌더링 (반응형 개선)"""
     with st.container():
-        # 태그와 날짜 표시
-        col_tag, col_date = st.columns(2)
+        # 🔧 태그와 날짜를 한 줄에 배치
+        if news_item['tags']:
+            main_tag = news_item['tags'][0]
+            tag_color = TAG_COLORS.get(main_tag, "#6B7280")
+        else:
+            main_tag = "전체"
+            tag_color = "#6B7280"
         
-        with col_tag:
-            if news_item['tags']:
-                main_tag = news_item['tags'][0]
-                tag_color = TAG_COLORS.get(main_tag, "#6B7280")
-                st.markdown(
-                    f"""
-                    <div style="
-                        background-color: {tag_color}; 
-                        color: white; 
-                        padding: 8px 12px; 
-                        border-radius: 12px; 
-                        font-size: 16px; 
-                        font-weight: bold;
-                        display: inline-block;
-                        margin-bottom: 8px;
-                    ">
-                        🏷️ #{main_tag}
-                    </div>
-                    """, 
-                    unsafe_allow_html=True
-                )
-            else:
-                main_tag = "전체"
-                tag_color = "#6B7280"
-        
-        with col_date:
-            st.markdown(
-                f"""
-                <div style="
-                    text-align: right; 
-                    background-color: rgba(0,0,0,0.1); 
-                    color: #333; 
-                    padding: 8px 12px; 
-                    border-radius: 12px; 
-                    font-size: 16px; 
-                    font-weight: bold;
-                    margin-bottom: 8px;
-                    width: fit-content;
-                    margin-left: auto;
-                ">
-                    📅 {news_item['date']}
-                </div>
-                """, 
-                unsafe_allow_html=True
-            )
+        st.markdown(f"""
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; gap: 8px;">
+            <div style="
+                background-color: {tag_color}; 
+                color: white; 
+                padding: 8px 12px; 
+                border-radius: 12px; 
+                font-size: 16px; 
+                font-weight: bold;
+                flex-shrink: 0;
+            ">
+                🏷️ #{main_tag}
+            </div>
+            <div style="
+                background-color: #6b7280; 
+                color: white; 
+                padding: 8px 12px; 
+                border-radius: 12px; 
+                font-size: 16px; 
+                font-weight: bold;
+                border: 1px solid #9ca3af;
+                flex-shrink: 0;
+            ">
+                📅 {news_item['date']}
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
         
         # 태그별 파스텔 색상 매핑
         pastel_colors = {
@@ -861,7 +968,7 @@ def render_news_card_aligned(news_item: Dict):
         # 제목 박스
         st.markdown(
             f"""
-            <div style="
+            <div class="news-title-box" style="
                 background-color: {pastel_color};
                 color: #374151;
                 padding: 15px;
@@ -903,7 +1010,7 @@ def render_news_card_aligned(news_item: Dict):
         
         st.markdown(
             f"""
-            <div style="
+            <div class="news-summary" style="
                 margin: 0rem 0 0.5rem 0;
                 padding: 15px;
                 background-color: #f8f9fa;
@@ -937,53 +1044,39 @@ def render_news_card_aligned(news_item: Dict):
         st.markdown("<div style='margin-bottom: 1.5rem;'></div>", unsafe_allow_html=True)
 
 def render_plans_card(plan_item: Dict):
-    """업무계획 카드 렌더링"""
+    """업무계획 카드 렌더링 (반응형 개선)"""
     with st.container():
-        # 부서명과 분류 표시
-        col_dept, col_category = st.columns(2)
+        # 🔧 부서명과 분류를 한 줄에 배치
+        department = plan_item.get('department', '미분류')
+        category = plan_item.get('tags', ['전체'])[0] if plan_item.get('tags') else '전체'
+        category_color = PLAN_TAG_COLORS.get(category, "#6B7280")
         
-        with col_dept:
-            department = plan_item.get('department', '미분류')
-            st.markdown(
-                f"""
-                <div style="
-                    background-color: #4A148C; 
-                    color: white; 
-                    padding: 8px 12px; 
-                    border-radius: 12px; 
-                    font-size: 16px; 
-                    font-weight: bold;
-                    display: inline-block;
-                    margin-bottom: 8px;
-                ">
-                    🏛️ {department}
-                </div>
-                """, 
-                unsafe_allow_html=True
-            )
-        
-        with col_category:
-            category = plan_item.get('tags', ['전체'])[0] if plan_item.get('tags') else '전체'
-            category_color = PLAN_TAG_COLORS.get(category, "#6B7280")
-            st.markdown(
-                f"""
-                <div style="
-                    text-align: right; 
-                    background-color: {category_color}; 
-                    color: white; 
-                    padding: 8px 12px; 
-                    border-radius: 12px; 
-                    font-size: 16px; 
-                    font-weight: bold;
-                    margin-bottom: 8px;
-                    width: fit-content;
-                    margin-left: auto;
-                ">
-                    📋 {category}
-                </div>
-                """, 
-                unsafe_allow_html=True
-            )
+        st.markdown(f"""
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; gap: 8px;">
+            <div style="
+                background-color: #4A148C; 
+                color: white; 
+                padding: 8px 12px; 
+                border-radius: 12px; 
+                font-size: 16px; 
+                font-weight: bold;
+                flex-shrink: 0;
+            ">
+                🏛️ {department}
+            </div>
+            <div style="
+                background-color: {category_color}; 
+                color: white; 
+                padding: 8px 12px; 
+                border-radius: 12px; 
+                font-size: 16px; 
+                font-weight: bold;
+                flex-shrink: 0;
+            ">
+                📋 {category}
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
         
         # 분류별 파스텔 색상 매핑
         pastel_colors = {
@@ -1027,7 +1120,7 @@ def render_plans_card(plan_item: Dict):
         # 제목 박스
         st.markdown(
             f"""
-            <div style="
+            <div class="news-title-box" style="
                 background-color: {pastel_color};
                 color: #374151;
                 padding: 15px;
@@ -1069,7 +1162,7 @@ def render_plans_card(plan_item: Dict):
         
         st.markdown(
             f"""
-            <div style="
+            <div class="news-summary" style="
                 margin: 0rem 0 0.5rem 0;
                 padding: 20px;
                 background-color: #f8f9fa;
@@ -1104,7 +1197,7 @@ def render_plans_card(plan_item: Dict):
         st.markdown("<div style='margin-bottom: 1.5rem;'></div>", unsafe_allow_html=True)
 
 def render_news_grid_with_scroll(news_list: List[Dict]):
-    """보도자료 그리드 렌더링"""
+    """보도자료 그리드 렌더링 (반응형 개선)"""
     if not news_list:
         st.info("🔍 조건에 맞는 보도자료가 없습니다.")
         return
@@ -1116,11 +1209,13 @@ def render_news_grid_with_scroll(news_list: List[Dict]):
     
     current_news = news_list[:st.session_state.items_to_show]
     
-    # 4열 그리드
-    for i in range(0, len(current_news), 4):
-        cols = st.columns(4, gap="small")
+    # 🔧 반응형 그리드 - 기본 4열, CSS에서 자동 조정
+    cols_per_row = get_responsive_columns()
+    
+    for i in range(0, len(current_news), cols_per_row):
+        cols = st.columns(cols_per_row, gap="small")
         
-        for j in range(4):
+        for j in range(cols_per_row):
             if i + j < len(current_news):
                 with cols[j]:
                     render_news_card_aligned(current_news[i + j])
@@ -1138,7 +1233,7 @@ def render_news_grid_with_scroll(news_list: List[Dict]):
                 st.rerun()
 
 def render_plans_grid_with_scroll(plans_list: List[Dict]):
-    """업무계획 그리드 렌더링"""
+    """업무계획 그리드 렌더링 (반응형 개선)"""
     if not plans_list:
         st.info("🔍 조건에 맞는 업무계획이 없습니다.")
         return
@@ -1150,11 +1245,13 @@ def render_plans_grid_with_scroll(plans_list: List[Dict]):
     
     current_plans = plans_list[:st.session_state.plans_items_to_show]
     
-    # 4열 그리드
-    for i in range(0, len(current_plans), 4):
-        cols = st.columns(4, gap="small")
+    # 🔧 반응형 그리드 - 기본 4열, CSS에서 자동 조정
+    cols_per_row = get_responsive_columns()
+    
+    for i in range(0, len(current_plans), cols_per_row):
+        cols = st.columns(cols_per_row, gap="small")
         
-        for j in range(4):
+        for j in range(cols_per_row):
             if i + j < len(current_plans):
                 with cols[j]:
                     render_plans_card(current_plans[i + j])
@@ -1177,7 +1274,7 @@ def render_news_detail(news_item: Dict):
         scroll_to_here(0, key='news_detail_top')
         st.session_state.scroll_to_top = False
     
-    # 🔧 상단 네비게이션 버튼 추가 (일관된 크기와 스타일)
+    # 🔧 상단 네비게이션 버튼 (뒤로가기만)
     col1, col2, col3 = st.columns([2, 4, 2])
     
     with col1:
@@ -1185,22 +1282,7 @@ def render_news_detail(news_item: Dict):
             st.session_state.show_detail = False
             st.session_state.selected_news = None
             st.rerun()
-    
-    with col3:
-        if news_item.get('source_url'):
-            st.markdown(
-                f'''
-                <a href="{news_item["source_url"]}" target="_blank" style="text-decoration:none;">
-                    <button style="width:100%; padding:12px 14px; background:#fff; color:#4A148C; border:2px solid #4A148C; border-radius:8px; font-weight:300; font-size:10px;">
-                        🏛️ 부산시청 원문
-                    </button>
-                </a>
-                ''',
-                unsafe_allow_html=True
-            )
-    
-    st.markdown('<div class="detail-page">', unsafe_allow_html=True)
-    
+        
     st.markdown(f'<h1>{news_item["title"]}</h1>', unsafe_allow_html=True)
     
     # 메타 정보 (4개 컬럼)
@@ -1229,7 +1311,7 @@ def render_news_detail(news_item: Dict):
     with col4:
         if news_item.get('source_url'):
             st.markdown(
-                f'<p style="font-size: 18px;"><strong>🔗 <a href="{news_item["source_url"]}" target="_blank" style="color: #4A148C; text-decoration: none;">부산시청 원문</a></strong></p>',
+                f'<p style="font-size: 18px;"><strong>🔗 <a href="{news_item["source_url"]}" target="_blank" style="color: #white; text-decoration: none;">부산시청 원문</a></strong></p>',
                 unsafe_allow_html=True
             )
     
@@ -1239,18 +1321,16 @@ def render_news_detail(news_item: Dict):
     try:
         with open(news_item['file_path'], 'r', encoding='utf-8') as f:
             md_content = f.read()
-        
+    
         if md_content.startswith('---'):
             frontmatter_end = md_content.find('---', 3)
             if frontmatter_end > 0:
                 md_content = md_content[frontmatter_end + 3:].strip()
-        
-        st.markdown(md_content)
-        
+    
+        st.markdown(f'<div style="font-size: 20px; line-height: 1.8;">{md_content}</div>', unsafe_allow_html=True)
+    
     except Exception as e:
         st.error(f"파일을 읽을 수 없습니다: {e}")
-    
-    st.markdown('</div>', unsafe_allow_html=True)
     
     st.divider()
     
@@ -1266,7 +1346,7 @@ def render_plans_detail(plan_item: Dict):
         scroll_to_here(0, key='plans_detail_top')
         st.session_state.scroll_to_top = False
     
-    # 🔧 상단 네비게이션 버튼 추가 (일관된 크기와 스타일)
+    # 🔧 상단 네비게이션 버튼 (뒤로가기만)
     col1, col2, col3 = st.columns([2, 4, 2])
     
     with col1:
@@ -1274,9 +1354,6 @@ def render_plans_detail(plan_item: Dict):
             st.session_state.show_plan_detail = False
             st.session_state.selected_plan = None
             st.rerun()
-    
-    with col3:
-        st.markdown('<a href="https://www.busan.go.kr/gbplan" target="_blank" style="text-decoration:none;"><button style="width:100%; padding:12px 14px; background:#fff; color:#4A148C; border:2px solid #4A148C; border-radius:8px; font-weight:300; font-size:10px;">🏛️ 부산시청 원문</button></a>', unsafe_allow_html=True)
     
     st.markdown('<div class="detail-page">', unsafe_allow_html=True)
     
@@ -1293,7 +1370,7 @@ def render_plans_detail(plan_item: Dict):
         st.markdown(f'<p style="font-size: 18px;"><strong>📅 기준년도</strong>: 2025년</p>', unsafe_allow_html=True)
     with col4:
         st.markdown(
-            f'<p style="font-size: 18px;"><strong>🔗 <a href="https://www.busan.go.kr/gbplan" target="_blank" style="color: #4A148C; text-decoration: none;">부산시청 원문</a></strong></p>',
+            f'<p style="font-size: 18px;"><strong>🔗 <a href="https://www.busan.go.kr/gbplan" target="_blank" style="color: #white; text-decoration: none;">부산시청 원문</a></strong></p>',
             unsafe_allow_html=True
         )
     
