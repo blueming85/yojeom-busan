@@ -24,401 +24,18 @@ from config import (
     IS_LOCAL, get_env_info, MESSAGES
 )
 from plans_portal import BusanPlansPortal
+from styles import apply_all_styles  # 🔧 CSS 모듈 import
 
 # 페이지 설정
 st.set_page_config(
     page_title="요즘 부산",
     page_icon="🏢",
     layout="wide",
-    initial_sidebar_state="expanded"  # 🔧 항상 펼쳐진 상태로 시작해서 접기/펴기 둘 다 작동
+    initial_sidebar_state="expanded"
 )
 
-# 🔧 완전 개선된 CSS - 반응형 + 다크테마 완벽 대응
-st.markdown("""
-<style>
-/* 🔧 Deploy 버튼과 세 줄 메뉴 강력하게 숨기기 */
-[data-testid="stToolbar"],
-[data-testid="stHeader"],
-header[data-testid="stHeader"],
-.stDeployButton,
-button[title*="Deploy"],
-button[aria-label*="Deploy"],
-a[href*="deploy"],
-button[kind="header"],
-iframe[title="streamlit_app"],
-div[data-testid="stToolbar"],
-section[data-testid="stToolbar"] {
-    display: none !important;
-    visibility: hidden !important;
-    opacity: 0 !important;
-    height: 0 !important;
-    width: 0 !important;
-    overflow: hidden !important;
-    position: absolute !important;
-    left: -9999px !important;
-}
-
-/* 🔧 상단 공간 제거 */
-.stApp > header {
-    display: none !important;
-}
-
-/* 🔧 모든 Deploy 관련 텍스트까지 숨기기 */
-*[class*="deploy" i],
-*[id*="deploy" i],
-*[data-testid*="deploy" i] {
-    display: none !important;
-}
-
-/* 🔧 토글 버튼 CSS 완전 제거 - 스트림릿 기본 동작 사용 */
-
-/* 🔧 다른 가능한 토글 버튼 선택자들도 활성화 */
-button[aria-label*="Open"],
-button[title*="Open"],
-button[aria-label*="sidebar"],
-button[title*="sidebar"] {
-    display: flex !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-    pointer-events: auto !important;
-}
-
-/* 🔧 사이드바 토글 버튼 아이콘 스타일 */
-[data-testid="collapsedControl"] svg,
-button[data-testid="collapsedControl"] svg {
-    color: #4a5568 !important;
-    width: 18px !important;
-    height: 18px !important;
-}
-
-/* 🔧 다른 가능한 토글 버튼 선택자들도 활성화 */
-button[aria-label*="Open"],
-button[title*="Open"],
-button[aria-label*="sidebar"],
-button[title*="sidebar"] {
-    display: flex !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-    pointer-events: auto !important;
-}
-
-/* 🔧 모든 호버 효과 완전 제거 */
-*, *:hover {
-    transition: none !important;
-}
-
-/* 🔧 모든 버튼 기본 스타일 (흰색 바탕 + 보라 테두리로 통일) */
-button, 
-.stButton button,
-div.stButton > button,
-[data-testid="baseButton-primary"],
-[data-testid="baseButton-secondary"],
-a[data-testid="stLinkButton"],
-.stLinkButton > a {
-    height: auto !important;
-    padding: 20px 18px !important;
-    font-size: 22px !important;
-    font-weight: 700 !important;
-    background: #fff !important;
-    background-color: #fff !important;
-    color: #4A148C !important;
-    border: 2px solid #4A148C !important;
-    border-radius: 15px !important;
-    outline: none !important;
-    box-shadow: none !important;
-    text-decoration: none !important;
-    display: block !important;
-    text-align: center !important;
-}
-
-/* 🔧 호버시 찐보라색 배경 */
-button:hover, button:focus,
-.stButton button:hover, .stButton button:focus,
-div.stButton > button:hover, div.stButton > button:focus,
-[data-testid="baseButton-primary"]:hover, [data-testid="baseButton-primary"]:focus,
-[data-testid="baseButton-secondary"]:hover, [data-testid="baseButton-secondary"]:focus,
-a[data-testid="stLinkButton"]:hover, a[data-testid="stLinkButton"]:focus,
-.stLinkButton > a:hover, .stLinkButton > a:focus {
-    outline: none !important;
-    box-shadow: none !important;
-    border: 2px solid #4A148C !important;
-    background: #4A148C !important;
-    background-color: #4A148C !important;
-    color: white !important;
-}
-
-/* 🔧 사이드바 버튼들만 기본 스타일로 덮어쓰기 - 삭제됨 */
-
-/* 🔧 사이드바 버튼 호버 효과 제거 - 삭제됨 */
-
-/* 🔧 선택된 사이드바 버튼 (primary) 스타일 - 삭제됨 */
-
-/* 🔧 네비게이션 버튼 - primary(활성) 스타일 - 보라색 배경 */
-button[kind="primary"][data-testid*="nav_"],
-button[data-testid="nav_news"][kind="primary"],
-button[data-testid="nav_plans"][kind="primary"] {
-    background: #4A148C !important;
-    background-color: #4A148C !important;
-    color: white !important;
-    border: 2px solid #4A148C !important;
-    font-weight: 700 !important;
-    padding: 12px 16px !important;
-    font-size: 14px !important;
-    border-radius: 8px !important;
-    box-shadow: none !important;
-}
-
-/* 🔧 네비게이션 버튼 - primary 호버 효과 */
-button[kind="primary"][data-testid*="nav_"]:hover,
-button[data-testid="nav_news"][kind="primary"]:hover,
-button[data-testid="nav_plans"][kind="primary"]:hover {
-    background: #6B21A8 !important;
-    background-color: #6B21A8 !important;
-    color: white !important;
-    border: 2px solid #6B21A8 !important;
-    box-shadow: none !important;
-}
-
-/* 🔧 네비게이션 버튼 - secondary(비활성) 스타일 - 흰색 배경 */
-button[kind="secondary"][data-testid*="nav_"],
-button[data-testid="nav_news"][kind="secondary"],
-button[data-testid="nav_plans"][kind="secondary"] {
-    background: #fff !important;
-    background-color: #fff !important;
-    color: #4A148C !important;
-    border: 2px solid #4A148C !important;
-    font-weight: 700 !important;
-    padding: 12px 16px !important;
-    font-size: 14px !important;
-    border-radius: 8px !important;
-    box-shadow: none !important;
-}
-
-/* 🔧 네비게이션 버튼 - secondary 호버 효과 */
-button[kind="secondary"][data-testid*="nav_"]:hover,
-button[data-testid="nav_news"][kind="secondary"]:hover,
-button[data-testid="nav_plans"][kind="secondary"]:hover {
-    background: #4A148C !important;
-    background-color: #4A148C !important;
-    color: white !important;
-    border: 2px solid #4A148C !important;
-    box-shadow: none !important;
-}
-
-/* 🔧 사이드바 완전 개선 - 진한 회색 버튼에 흰 글자, 흰 테두리 */
-section[data-testid="stSidebar"] button,
-section[data-testid="stSidebar"] .stButton button,
-section[data-testid="stSidebar"] div.stButton > button {
-    background: #374151 !important;
-    background-color: #374151 !important;
-    border: 1px solid white !important;
-    color: white !important;
-    padding: 10px 15px !important;
-    font-size: 14px !important;
-    font-weight: 500 !important;
-    border-radius: 8px !important;
-}
-
-/* 사이드바 버튼 호버 효과 */
-section[data-testid="stSidebar"] button:hover,
-section[data-testid="stSidebar"] button:focus,
-section[data-testid="stSidebar"] .stButton button:hover,
-section[data-testid="stSidebar"] .stButton button:focus,
-section[data-testid="stSidebar"] div.stButton > button:hover,
-section[data-testid="stSidebar"] div.stButton > button:focus {
-    background: #4b5563 !important;
-    background-color: #4b5563 !important;
-    border: 1px solid white !important;
-    color: white !important;
-    outline: none !important;
-    box-shadow: none !important;
-}
-
-/* 선택된 사이드바 버튼 (primary) - 더 진한 회색, 흰 테두리 */
-section[data-testid="stSidebar"] button[kind="primary"],
-section[data-testid="stSidebar"] .stButton button[kind="primary"],
-section[data-testid="stSidebar"] div.stButton > button[kind="primary"] {
-    background: #1f2937 !important;
-    background-color: #1f2937 !important;
-    border: 2px solid white !important;
-    color: white !important;
-}
-
-/* 사이드바 모든 텍스트 흰색 */
-[data-testid="stSidebar"] *,
-[data-testid="stSidebar"] .stMarkdown h1,
-[data-testid="stSidebar"] .stMarkdown h2,
-[data-testid="stSidebar"] .stMarkdown h3,
-[data-testid="stSidebar"] .stMarkdown h4,
-[data-testid="stSidebar"] .stMarkdown p,
-[data-testid="stSidebar"] .stMarkdown span,
-[data-testid="stSidebar"] .stText,
-[data-testid="stSidebar"] label,
-section[data-testid="stSidebar"] *,
-section[data-testid="stSidebar"] h1,
-section[data-testid="stSidebar"] h2,
-section[data-testid="stSidebar"] h3,
-section[data-testid="stSidebar"] h4,
-section[data-testid="stSidebar"] p,
-section[data-testid="stSidebar"] span,
-section[data-testid="stSidebar"] label,
-section[data-testid="stSidebar"] div {
-    color: white !important;
-}
-
-/* 🔧 날짜 박스 완전 개선 - 연한 회색 배경에 흰 글자 */
-.news-date, .plans-date {
-    background-color: #6b7280 !important;
-    color: white !important;
-    border: 1px solid #9ca3af !important;
-}
-
-/* 날짜 관련 모든 요소들 강제 적용 */
-div[style*="text-align: right"],
-div[style*="background-color: rgba(0,0,0,0.1)"],
-div[style*="color: #333"] {
-    background-color: #6b7280 !important;
-    color: white !important;
-    border: 1px solid #9ca3af !important;
-}
-
-/* 🔧 반응형 디자인 개선 */
-/* 데스크톱 (기본) */
-.stColumn {
-    padding: 0 0.3rem;
-    min-width: 250px;
-}
-
-/* 태블릿 */
-@media (max-width: 1024px) {
-    .stColumn {
-        min-width: 300px;
-        padding: 0 0.5rem;
-    }
-}
-
-/* 모바일 */
-@media (max-width: 768px) {
-    .stColumn {
-        min-width: 100% !important;
-        padding: 0 1rem;
-        margin-bottom: 1rem;
-    }
-    
-    /* 모바일에서 카드 높이 조정 */
-    .news-title-box {
-        min-height: 80px !important;
-        font-size: 16px !important;
-    }
-    
-    .news-summary {
-        height: 60px !important;
-        font-size: 12px !important;
-    }
-}
-
-/* 작은 모바일 */
-@media (max-width: 480px) {
-    .news-title-box {
-        min-height: 60px !important;
-        font-size: 14px !important;
-        padding: 10px !important;
-    }
-    
-    .news-summary {
-        height: 50px !important;
-        font-size: 11px !important;
-        padding: 10px !important;
-    }
-}
-
-.stColumn > div {
-    height: 100%;
-}
-
-/* 🔧 사이드바 배경색 멋진 그라데이션으로 설정 */
-section[data-testid="stSidebar"],
-[data-testid="stSidebar"],
-.css-1d391kg,
-.css-1lcbmhc {
-    background: linear-gradient(180deg, #4b5563 0%, #6b7280 50%, #9ca3af 100%) !important;
-}
-
-/* 사이드바 내부 요소들도 배경 투명하게 */
-section[data-testid="stSidebar"] > div,
-[data-testid="stSidebar"] > div {
-    background-color: transparent !important;
-}
-
-/* 사이드바 넓이 증가 */
-.css-1d391kg {
-    width: 300px;
-    background: linear-gradient(180deg, #4b5563 0%, #6b7280 50%, #9ca3af 100%) !important;
-}
-.css-1lcbmhc {
-    width: 300px;
-    background: linear-gradient(180deg, #4b5563 0%, #6b7280 50%, #9ca3af 100%) !important;
-}
-
-/* 태그 색상 기반 제목 박스 스타일 */
-.news-title-box {
-    padding: 20px;
-    border-radius: 12px;
-    margin: 10px 0;
-    color: white;
-    text-align: center;
-    font-weight: bold;
-    min-height: 120px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.news-summary {
-    margin: 1rem 0;
-    padding: 15px;
-    background-color: #f8f9fa;
-    border-radius: 8px;
-    border-left: 4px solid #dee2e6;
-    line-height: 1.6;
-}
-
-/* 상세 페이지 전용 CSS */
-.detail-page {
-    font-size: 22px !important;
-    line-height: 1.8 !important;
-}
-.detail-page h1 {
-    font-size: 36px !important;
-    line-height: 1.4 !important;
-    margin-bottom: 20px !important;
-}
-.detail-page h2 {
-    font-size: 28px !important;
-    line-height: 1.5 !important;
-    margin: 25px 0 15px 0 !important;
-}
-.detail-page h3 {
-    font-size: 24px !important;
-    line-height: 1.5 !important;
-    margin: 20px 0 10px 0 !important;
-}
-.detail-page p {
-    font-size: 22px !important;
-    line-height: 1.8 !important;
-    margin-bottom: 15px !important;
-}
-.detail-page li {
-    font-size: 22px !important;
-    line-height: 1.8 !important;
-    margin-bottom: 8px !important;
-}
-.detail-page strong, .detail-page b {
-    font-size: 22px !important;
-    font-weight: 700 !important;
-}
-</style>
-""", unsafe_allow_html=True)
+# 🔧 CSS 스타일 적용 (기존 길었던 CSS 코드가 한 줄로!)
+apply_all_styles()
 
 class BusanNewsPortal:
     """부산시청 보도자료 포털 메인 클래스"""
@@ -632,46 +249,10 @@ def render_header():
         # 탭 스타일 네비게이션
         current_page = st.session_state.get('page', 'news')
         
-        # 탭 스타일 CSS와 함께 버튼 생성
-        st.markdown("""
-        <style>
-        .tab-container {
-            display: flex;
-            border-bottom: 2px solid #e0e0e0;
-            margin-top: 20px;
-            margin-bottom: 0px;
-        }
-        .tab-button {
-            padding: 12px 24px;
-            background: #f5f5f5;
-            border: none;
-            border-top-left-radius: 8px;
-            border-top-right-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            margin-right: 4px;
-            color: #666;
-            border-bottom: 3px solid transparent;
-        }
-        .tab-button.active {
-            background: white;
-            color: #4A148C;
-            border-bottom: 3px solid #4A148C;
-        }
-        .tab-button:hover {
-            background: #e9e9e9;
-        }
-        .tab-button.active:hover {
-            background: white;
-        }
-        </style>
-        """, unsafe_allow_html=True)
-        
         # 컬럼으로 탭 버튼 배치
         tab_col1, tab_col2 = st.columns(2)
         
         with tab_col1:
-            news_active = "active" if current_page == 'news' else ""
             if st.button("📰 보도자료 바로가기", key="nav_news", use_container_width=True, 
                         type="primary" if current_page == 'news' else "secondary"):
                 st.session_state.page = 'news'
@@ -679,7 +260,6 @@ def render_header():
                 st.rerun()
         
         with tab_col2:
-            plans_active = "active" if current_page == 'plans' else ""
             if st.button("📋 업무계획 바로가기", key="nav_plans", use_container_width=True,
                         type="primary" if current_page == 'plans' else "secondary"):
                 st.session_state.page = 'plans'
@@ -691,7 +271,6 @@ def render_header():
     if current_page == 'news':
         st.markdown("### 부산시 최신 보도자료를 알려드립니다")
         
-        # 🔧 사용 안내 추가
         st.info("""
         **📖 이용 방법**
         - 왼쪽 사이드바에서 **분야를 선택**하면 해당 분야의 보도자료를 확인할 수 있습니다
@@ -708,7 +287,7 @@ def render_header():
         - 왼쪽 사이드바에서 **부서별 분류**를 선택하여 원하는 분야의 업무계획을 확인할 수 있습니다
         - **검색어**를 입력하여 특정 부서나 사업명을 빠르게 찾아보세요
         - 각 카드를 클릭하면 **상세 업무계획**을 볼 수 있습니다 (기본현황, 추진과제, 예산 등)
-        - 2025년 부산시 각 부서의 주요 정책과 사업을 한눈에 파악하실 수 있습니다!
+        - (주의) AI 요약이라 세부내용 오류가 있을 수 있으니 정확한 정보는 원문링크 참고하세요!
         """)
 
 def render_news_sidebar(portal: BusanNewsPortal):
@@ -881,14 +460,12 @@ def render_plans_sidebar(plans_portal: BusanPlansPortal):
 
 def get_responsive_columns():
     """화면 크기에 따른 컬럼 수 결정"""
-    # JavaScript로 화면 크기 감지 (기본값 사용)
-    # 실제로는 CSS 미디어 쿼리로 반응형 처리
     return 4  # 기본 4열, CSS에서 반응형으로 조정
 
 def render_news_card_aligned(news_item: Dict):
     """보도자료 카드 렌더링 (반응형 개선)"""
     with st.container():
-        # 🔧 태그와 날짜를 한 줄에 배치
+        # 태그와 날짜를 한 줄에 배치
         if news_item['tags']:
             main_tag = news_item['tags'][0]
             tag_color = TAG_COLORS.get(main_tag, "#6B7280")
@@ -1030,7 +607,7 @@ def render_news_card_aligned(news_item: Dict):
             unsafe_allow_html=True
         )
         
-        # 클릭 버튼 (간격 줄이고 글자 크게)
+        # 클릭 버튼
         if st.button(
             "📄 클릭하여 내용 보기",
             key=f"news_detail_btn_{hash(news_item['file_path'])}",
@@ -1046,7 +623,7 @@ def render_news_card_aligned(news_item: Dict):
 def render_plans_card(plan_item: Dict):
     """업무계획 카드 렌더링 (반응형 개선)"""
     with st.container():
-        # 🔧 부서명과 분류를 한 줄에 배치
+        # 부서명과 분류를 한 줄에 배치
         department = plan_item.get('department', '미분류')
         category = plan_item.get('tags', ['전체'])[0] if plan_item.get('tags') else '전체'
         category_color = PLAN_TAG_COLORS.get(category, "#6B7280")
@@ -1155,7 +732,7 @@ def render_plans_card(plan_item: Dict):
             unsafe_allow_html=True
         )
         
-        # 요약 텍스트 (thumbnail_summary만 간단하게)
+        # 요약 텍스트
         summary = plan_item.get('thumbnail_summary', '')
         if not summary:
             summary = "2025년 주요업무계획"
@@ -1183,7 +760,7 @@ def render_plans_card(plan_item: Dict):
             unsafe_allow_html=True
         )
         
-        # 클릭 버튼 (간격 줄이고 글자 크게)
+        # 클릭 버튼
         if st.button(
             "📋 클릭하여 계획 보기",
             key=f"plans_detail_btn_{hash(plan_item['file_path'])}",
@@ -1205,11 +782,10 @@ def render_news_grid_with_scroll(news_list: List[Dict]):
     if 'items_to_show' not in st.session_state:
         st.session_state.items_to_show = 12
     
-    st.success(f"📊 총 **{len(news_list)}개**의 보도자료")
     
     current_news = news_list[:st.session_state.items_to_show]
     
-    # 🔧 반응형 그리드 - 기본 4열, CSS에서 자동 조정
+    # 반응형 그리드 - 기본 4열, CSS에서 자동 조정
     cols_per_row = get_responsive_columns()
     
     for i in range(0, len(current_news), cols_per_row):
@@ -1241,11 +817,9 @@ def render_plans_grid_with_scroll(plans_list: List[Dict]):
     if 'plans_items_to_show' not in st.session_state:
         st.session_state.plans_items_to_show = 12
     
-    st.success(f"📊 총 **{len(plans_list)}개**의 업무계획")
-    
     current_plans = plans_list[:st.session_state.plans_items_to_show]
     
-    # 🔧 반응형 그리드 - 기본 4열, CSS에서 자동 조정
+    # 반응형 그리드 - 기본 4열, CSS에서 자동 조정
     cols_per_row = get_responsive_columns()
     
     for i in range(0, len(current_plans), cols_per_row):
@@ -1274,7 +848,7 @@ def render_news_detail(news_item: Dict):
         scroll_to_here(0, key='news_detail_top')
         st.session_state.scroll_to_top = False
     
-    # 🔧 상단 네비게이션 버튼 (뒤로가기만)
+    # 상단 네비게이션 버튼 (뒤로가기만)
     col1, col2, col3 = st.columns([2, 4, 2])
     
     with col1:
@@ -1346,7 +920,7 @@ def render_plans_detail(plan_item: Dict):
         scroll_to_here(0, key='plans_detail_top')
         st.session_state.scroll_to_top = False
     
-    # 🔧 상단 네비게이션 버튼 (뒤로가기만)
+    # 상단 네비게이션 버튼 (뒤로가기만)
     col1, col2, col3 = st.columns([2, 4, 2])
     
     with col1:
@@ -1445,47 +1019,26 @@ def main():
                     render_plans_grid_with_scroll(filtered_plans)
                 else:
                     st.info("📋 업무계획 데이터를 로드하는 중입니다...")
-                
-                # 제작자 정보
-                st.markdown(
-                    """
-                    <div style="
-                        text-align: center; 
-                        margin: 20px 0; 
-                        padding: 15px; 
-                        background: linear-gradient(90deg, #f8f9fa 0%, #e9ecef 50%, #f8f9fa 100%);
-                        border-radius: 10px;
-                    ">
-                        <p style="margin: 0; color: #495057; font-size: 14px;">
-                            🏛️ <strong>Made by 부산시청 매니저</strong> | 
-                            ⭐ <strong>즐겨찾기: Ctrl+D (Windows) / Cmd+D (Mac)</strong> | 
-                            🌐 <strong><a href="https://www.busan.go.kr" target="_blank" style="color: #0d6efd; text-decoration: none;">부산시청 바로가기</a></strong>
-                        </p>
-                    </div>
-                    """, 
-                    unsafe_allow_html=True
-                )
             
-            # 보도자료 페이지에도 제작자 정보 추가
-            if st.session_state.page == 'news':
-                st.markdown(
-                    """
-                    <div style="
-                        text-align: center; 
-                        margin: 20px 0; 
-                        padding: 15px; 
-                        background: linear-gradient(90deg, #f8f9fa 0%, #e9ecef 50%, #f8f9fa 100%);
-                        border-radius: 10px;
-                    ">
-                        <p style="margin: 0; color: #495057; font-size: 14px;">
-                            🏛️ <strong>Made by 부산시청 매니저</strong> | 
-                            ⭐ <strong>즐겨찾기: Ctrl+D (Windows) / Cmd+D (Mac)</strong> | 
-                            🌐 <strong><a href="https://www.busan.go.kr" target="_blank" style="color: #0d6efd; text-decoration: none;">부산시청 바로가기</a></strong>
-                        </p>
-                    </div>
-                    """, 
-                    unsafe_allow_html=True
-                )
+            # 제작자 정보 (공통)
+            st.markdown(
+                """
+                <div style="
+                    text-align: center; 
+                    margin: 20px 0; 
+                    padding: 15px; 
+                    background: linear-gradient(90deg, #f8f9fa 0%, #e9ecef 50%, #f8f9fa 100%);
+                    border-radius: 10px;
+                ">
+                    <p style="margin: 0; color: #495057; font-size: 14px;">
+                        🏛️ <strong>Made by 부산시청 매니저</strong> | 
+                        ⭐ <strong>즐겨찾기: Ctrl+D (Windows) / Cmd+D (Mac)</strong> | 
+                        🌐 <strong><a href="https://www.busan.go.kr" target="_blank" style="color: #0d6efd; text-decoration: none;">부산시청 바로가기</a></strong>
+                    </p>
+                </div>
+                """, 
+                unsafe_allow_html=True
+            )
                 
     except Exception as e:
         st.error(f"❌ 앱 실행 중 오류: {e}")
