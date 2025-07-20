@@ -1030,7 +1030,7 @@ def main():
                     background: linear-gradient(90deg, #f8f9fa 0%, #e9ecef 50%, #f8f9fa 100%);
                     border-radius: 10px;
                 ">
-                    <p style="margin: 0; color: #495057; font-size: 14px;">
+                    <p style="margin: 0; color: #black; font-size: 14px;">
                         🏛️ <strong>Made by 부산시청 매니저</strong> | 
                         ⭐ <strong>즐겨찾기: Ctrl+D (Windows) / Cmd+D (Mac)</strong> | 
                         🌐 <strong><a href="https://www.busan.go.kr" target="_blank" style="color: #0d6efd; text-decoration: none;">부산시청 바로가기</a></strong>
