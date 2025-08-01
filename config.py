@@ -27,6 +27,10 @@ PLANS_DIR = DATA_DIR / "plans"
 PLANS_PDF_DIR = PLANS_DIR / "pdfs"
 PLANS_MD_DIR = PLANS_DIR / "md"
 
+# 🔧 맛집 관련 (신규 추가)
+RESTAURANT_DIR = DATA_DIR / "restaurants"
+RESTAURANT_MD_DIR = RESTAURANT_DIR / "md"
+
 TEMPLATE_DIR = ROOT_DIR / "templates"
 
 # 🔧 LOG_FILE 추가
@@ -46,7 +50,8 @@ else:
 # 필요한 디렉토리들 자동 생성
 directories_to_create = [
     DATA_DIR, PDF_DIR, MD_DIR, TEMPLATE_DIR, UTILITY_DIR,
-    PLANS_DIR, PLANS_PDF_DIR, PLANS_MD_DIR  # 🔧 추가
+    PLANS_DIR, PLANS_PDF_DIR, PLANS_MD_DIR,  # 🔧 추가
+    RESTAURANT_DIR, RESTAURANT_MD_DIR  # 🔧 맛집 디렉토리 추가
 ]
 if IS_LOCAL and FONTS_DIR:
     directories_to_create.append(FONTS_DIR)
@@ -56,6 +61,8 @@ for directory in directories_to_create:
 
 # ===== API 설정 =====
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY") if IS_LOCAL else None
+KAKAO_REST_API_KEY = os.getenv("KAKAO_REST_API_KEY")  # 🔧 카카오 API 키 추가
+
 OPENAI_MODEL = "gpt-4o-mini"
 MAX_TOKENS = 3000  # 🔧 1500 → 3000으로 늘려서 상세한 요약
 TEMPERATURE = 0.2  # 🔧 일관된 응답을 위해 낮춤
@@ -129,6 +136,69 @@ PLAN_DEPARTMENTS = [
     ("🎭 문화교육", ["문화체육국", "관광마이스국", "청년산학국", "인재개발원"]),
 ]
 
+# ===== 맛집 관련 설정 (🔧 신규 추가) =====
+
+# 맛집 지역 분류 (4권역)
+RESTAURANT_REGIONS = {
+    "원도심권": ["중구", "동구", "영도구", "서구"],
+    "동부산권": ["해운대구", "수영구", "남구", "기장군"],  
+    "서부산권": ["사하구", "강서구", "사상구"],
+    "북부산권": ["북구", "금정구", "동래구", "연제구", "부산진구"]
+}
+
+AVAILABLE_RESTAURANT_REGIONS = ["전체", "원도심권", "동부산권", "서부산권", "북부산권"]
+
+# 맛집 음식 유형 (기타 → 아시아분식으로 변경, 횟집 추가)
+RESTAURANT_FOOD_TYPES = [
+    "전체",
+    "한식", 
+    "중식", 
+    "일식", 
+    "양식", 
+    "아시아분식",  # 기타에서 변경
+    "횟집",        # 새로 추가
+    "카페",
+    "베이커리"
+]
+
+# 맛집 카테고리
+AVAILABLE_RESTAURANT_CATEGORIES = [
+    "전체",
+    "미슐랭", 
+    "부산의맛", 
+    "현지인"
+]
+
+# 맛집 지역별 색상
+RESTAURANT_REGION_COLORS = {
+    "전체": "#6B7280",      # 회색
+    "원도심권": "#EF4444",  # 빨강
+    "동부산권": "#3B82F6",  # 파랑  
+    "서부산권": "#10B981",  # 초록
+    "북부산권": "#F59E0B"   # 주황
+}
+
+# 맛집 음식유형별 색상 (아시아분식으로 변경)
+RESTAURANT_FOOD_TYPE_COLORS = {
+    "전체": "#6B7280",      # 회색
+    "한식": "#EF4444",      # 빨강
+    "중식": "#F59E0B",      # 주황  
+    "일식": "#3B82F6",      # 파랑
+    "양식": "#8B5CF6",      # 보라
+    "아시아분식": "#10B981", # 초록 (기타 → 아시아분식)
+    "카페": "#EC4899",      # 핑크
+    "베이커리": "#84CC16"   # 라임
+}
+
+# 맛집 카테고리별 색상 (횟집 추가)
+RESTAURANT_CATEGORY_COLORS = {
+    "전체": "#6B7280",      # 회색
+    "미슐랭": "#FFD700",    # 금색
+    "부산의맛": "#EF4444",  # 빨강
+    "현지인": "#10B981",    # 초록
+    "횟집": "#06B6D4"       # 청록색 (새로 추가)
+}
+
 # ===== GPT 프롬프트 템플릿 (🔧 상세한 요약으로 복원 + 원문 링크) =====
 SUMMARY_PROMPT = """
 다음 부산시청 보도자료를 자연스럽게 상세히 요약해주세요.
@@ -192,6 +262,40 @@ department: "{department}"
 반드시 ---로 감싸진 frontmatter 형식을 지켜주세요.
 """
 
+# 🔧 맛집용 GPT 프롬프트 템플릿 (아시아분식과 횟집 반영)
+RESTAURANT_SUMMARY_PROMPT = """
+다음 부산 맛집 정보를 자연스럽게 요약해주세요.
+
+맛집 정보:
+{content}
+
+아래 형식으로 작성해주세요:
+
+---
+title: "맛집 이름"
+region: "지역권"
+district: "구/군"
+category: "카테고리"
+food_type: "음식유형"
+representative_menu: "대표메뉴 가격"
+phone: "전화번호"
+address: "주소"
+hours: "영업시간"
+closed_days: "휴무일"
+date: "YYYY-MM-DD"
+---
+
+# 맛집 상세 정보
+
+## 📍 이용안내
+## 🍽️ 메뉴 정보
+## 📞 연락처 정보
+
+사용 가능한 지역: {available_regions}
+사용 가능한 음식유형: {available_food_types}
+사용 가능한 카테고리: {available_categories}
+"""
+
 # ===== 개발/운영 환경 설정 =====
 DEBUG = os.getenv("DEBUG", "False").lower() == "true"
 PORT = int(os.getenv("PORT", 8501))
@@ -229,7 +333,9 @@ def get_env_info() -> dict:
         "root_dir": str(ROOT_DIR),
         "data_dir": str(DATA_DIR),
         "plans_dir": str(PLANS_DIR),  # 🔧 추가
+        "restaurant_dir": str(RESTAURANT_DIR),  # 🔧 맛집 디렉토리 추가
         "api_available": OPENAI_API_KEY is not None,
+        "kakao_api_available": KAKAO_REST_API_KEY is not None,  # 🔧 카카오 API 추가
         "font_available": CUSTOM_FONT_PATH is not None and CUSTOM_FONT_PATH.exists() if CUSTOM_FONT_PATH else False,
         "debug_mode": DEBUG,
         "max_pages": MAX_PAGES
@@ -246,12 +352,15 @@ def validate_config() -> dict:
         if not OPENAI_API_KEY:
             issues.append("OpenAI API 키가 설정되지 않음 (요약 기능 비활성화)")
         
+        if not KAKAO_REST_API_KEY:
+            issues.append("Kakao API 키가 설정되지 않음 (지도 기능 비활성화)")
+        
         # 폰트 파일 체크
         if CUSTOM_FONT_PATH and not CUSTOM_FONT_PATH.exists():
             issues.append(f"폰트 파일 없음: {CUSTOM_FONT_PATH}")
     
     # 디렉토리 체크
-    required_dirs = [DATA_DIR, PDF_DIR, MD_DIR, PLANS_DIR, PLANS_PDF_DIR, PLANS_MD_DIR]  # 🔧 추가
+    required_dirs = [DATA_DIR, PDF_DIR, MD_DIR, PLANS_DIR, PLANS_PDF_DIR, PLANS_MD_DIR, RESTAURANT_DIR, RESTAURANT_MD_DIR]  # 🔧 맛집 디렉토리 추가
     for dir_path in required_dirs:
         if not dir_path.exists():
             issues.append(f"필수 디렉토리 없음: {dir_path}")
@@ -320,7 +429,9 @@ if __name__ == "__main__":
     print(f"루트 디렉토리: {env_info['root_dir']}")
     print(f"데이터 디렉토리: {env_info['data_dir']}")
     print(f"업무계획 디렉토리: {env_info['plans_dir']}")  # 🔧 추가
+    print(f"맛집 디렉토리: {env_info['restaurant_dir']}")  # 🔧 맛집 디렉토리 추가
     print(f"API 사용 가능: {env_info['api_available']}")
+    print(f"카카오 API 사용 가능: {env_info['kakao_api_available']}")  # 🔧 카카오 API 추가
     print(f"폰트 사용 가능: {env_info['font_available']}")
     print(f"디버그 모드: {env_info['debug_mode']}")
     print(f"최대 크롤링 페이지: {env_info['max_pages']}")
