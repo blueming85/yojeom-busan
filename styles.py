@@ -202,7 +202,7 @@ def get_navigation_css():
     """
 
 def get_sidebar_css():
-    """사이드바 스타일 CSS - 회색 기본, 보라색 호버 및 선택, 텍스트 크기 증가"""
+    """사이드바 스타일 CSS - 회색 기본, 보라색 호버 및 선택, 텍스트 크기 증가, 맛집 사이드바 간격 극도로 타이트하게"""
     return """
     <style>
     /* 사이드바 입력창 텍스트 */
@@ -214,16 +214,72 @@ def get_sidebar_css():
         font-size: 18px !important;          /* 입력창 텍스트도 증가 */
     }
 
-    /* 사이드바 버튼 기본 상태 - 회색, 텍스트만 크게, 패딩은 원래대로 */
+    /* 사이드바 필터 제목들 숨기기 */
+    section[data-testid="stSidebar"] h1:contains("필터"),
+    section[data-testid="stSidebar"] h2:contains("필터"),
+    section[data-testid="stSidebar"] h3:contains("필터"),
+    section[data-testid="stSidebar"] .stMarkdown:has(h1:contains("필터")),
+    section[data-testid="stSidebar"] .stMarkdown:has(h2:contains("필터")),
+    section[data-testid="stSidebar"] .stMarkdown:has(h3:contains("필터")) {
+        display: none !important;
+        visibility: hidden !important;
+        height: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    /* 특정 필터 제목들 직접 숨기기 */
+    section[data-testid="stSidebar"] h1[data-testid*="filter"],
+    section[data-testid="stSidebar"] h2[data-testid*="filter"],
+    section[data-testid="stSidebar"] h1:first-of-type,
+    section[data-testid="stSidebar"] .stMarkdown:first-of-type {
+        display: none !important;
+        visibility: hidden !important;
+        height: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    /* 사이드바 첫 번째 마크다운 요소(필터 제목) 숨기기 */
+    section[data-testid="stSidebar"] > div > div:first-child .stMarkdown:first-child {
+        display: none !important;
+    }
+
+    /* "필터" 텍스트가 포함된 모든 요소 숨기기 */
+    section[data-testid="stSidebar"] *[class*="stMarkdown"] h1,
+    section[data-testid="stSidebar"] *[class*="stMarkdown"] h2 {
+        display: none !important;
+    }
+
+    /* 사이드바 최상단 패딩 제거 */
+    section[data-testid="stSidebar"] {
+        padding-top: 0 !important;
+    }
+
+    section[data-testid="stSidebar"] > div {
+        background-color: transparent !important;
+        padding: 0 8px 8px 8px !important;   /* 상단 패딩 완전 제거, 좌우하단만 최소 패딩 */
+        margin-top: 0 !important;
+    }
+
+    /* 사이드바 첫 번째 요소 상단 마진 제거 */
+    section[data-testid="stSidebar"] > div > div:first-child {
+        margin-top: 0 !important;
+        padding-top: 0 !important;
+    }
+
+    /* 사이드바 버튼 기본 상태 - 회색, 텍스트만 크게, 패딩은 원래대로, 간격 극도로 타이트하게 */
     section[data-testid="stSidebar"] button,
     section[data-testid="stSidebar"] .stButton button {
         background: #6B7280 !important;
         border: 2px solid #6B7280 !important;
         color: white !important;
-        padding: 5px 7px !important;         /* 원래 패딩 유지 */
+        padding: 4px 6px !important;         /* 패딩 더 줄임 */
         font-size: 32px !important;          /* 20px → 32px (텍스트만 더 크게) */
         font-weight: 1000 !important;
-        border-radius: 10px !important;
+        border-radius: 8px !important;       /* 둥근 모서리도 줄임 */
+        margin-bottom: 1px !important;       /* 버튼 간격 극도로 타이트하게 */
+        margin-top: 0 !important;
     }
 
     /* 사이드바 버튼 호버 효과 - 보라색 */
@@ -242,6 +298,7 @@ def get_sidebar_css():
         border: 2px solid #8B5CF6 !important;
         color: white !important;
         font-weight: 700 !important;
+        margin-bottom: 1px !important;       /* 선택된 버튼도 간격 극도로 타이트하게 */
     }
 
     /* 선택된 사이드바 버튼 호버 효과 */
@@ -252,19 +309,48 @@ def get_sidebar_css():
         color: white !important;
     }
 
-    /* 맛집 음식종류 버튼만 2열 유지 - 텍스트만 크게, 패딩은 원래대로 */
+    /* 맛집 음식종류 버튼만 2열 유지 - 텍스트만 크게, 패딩은 원래대로, 간격 극도로 타이트하게 */
     section[data-testid="stSidebar"] button[data-testid*="restaurant_food_"] {
-        font-size: 20px !important;          /* 11px → 20px (텍스트만 더 크게) */
-        padding: 6px 4px !important;         /* 원래 패딩 유지 */
+        font-size: 18px !important;          /* 20px → 18px (조금 줄임) */
+        padding: 4px 3px !important;         /* 패딩 더 줄임 */
         zoom: 0.8 !important;                /* 줌은 원래대로 */
+        margin-bottom: 1px !important;       /* 음식종류 버튼 간격 극도로 타이트하게 */
     }
 
-    /* 긴 텍스트 버튼만 더 작게 - 텍스트만 크게, 패딩은 원래대로 */
+    /* 긴 텍스트 버튼만 더 작게 - 텍스트만 크게, 패딩은 원래대로, 간격 극도로 타이트하게 */
     section[data-testid="stSidebar"] button[data-testid*="restaurant_food_아시아분식"],
     section[data-testid="stSidebar"] button[data-testid*="restaurant_food_베이커리"] {
-        font-size: 18px !important;          /* 8px → 18px (텍스트만 더 크게) */
+        font-size: 16px !important;          /* 18px → 16px (조금 줄임) */
         zoom: 0.7 !important;                /* 줌은 원래대로 */
-        padding: 4px 2px !important;         /* 원래 패딩 유지 */
+        padding: 3px 2px !important;         /* 패딩 더 줄임 */
+        margin-bottom: 1px !important;       /* 간격 극도로 타이트하게 */
+    }
+
+    /* 사이드바 섹션 간격 극도로 줄이기 */
+    section[data-testid="stSidebar"] .stMarkdown {
+        margin-bottom: 4px !important;       /* 8px → 4px (더 줄임) */
+        margin-top: 4px !important;          /* 8px → 4px (더 줄임) */
+        padding-top: 0 !important;
+        padding-bottom: 0 !important;
+    }
+
+    /* 사이드바 제목들 간격 극도로 줄이기 */
+    section[data-testid="stSidebar"] h1,
+    section[data-testid="stSidebar"] h2,
+    section[data-testid="stSidebar"] h3 {
+        margin-bottom: 8px !important;       /* 4px → 8px (제목 아래만 살짝 띄워줌) */
+        margin-top: 6px !important;         /* 12px → 6px (더 줄임) */
+        padding-top: 0 !important;
+        padding-bottom: 0 !important;
+        line-height: 1.2 !important;        /* 줄간격도 줄임 */
+    }
+
+    /* 첫 번째 제목은 상단 마진 완전 제거 */
+    section[data-testid="stSidebar"] h1:first-child,
+    section[data-testid="stSidebar"] h2:first-child,
+    section[data-testid="stSidebar"] h3:first-child {
+        margin-top: 0 !important;
+        padding-top: 0 !important;
     }
 
     /* 사이드바 텍스트 색상 및 크기 */
@@ -278,19 +364,34 @@ def get_sidebar_css():
     section[data-testid="stSidebar"] .stMarkdown * {
         color: white !important;
         font-size: 18px !important;          /* 사이드바 일반 텍스트도 증가 */
+        margin-top: 0 !important;
+        margin-bottom: 2px !important;       /* 텍스트 간격도 줄임 */
     }
 
     /* 사이드바 제목들 더 크게 */
     section[data-testid="stSidebar"] h1 {
-        font-size: 28px !important;
+        font-size: 26px !important;         /* 28px → 26px (조금 줄임) */
     }
 
     section[data-testid="stSidebar"] h2 {
-        font-size: 24px !important;
+        font-size: 22px !important;         /* 24px → 22px (조금 줄임) */
     }
 
     section[data-testid="stSidebar"] h3 {
-        font-size: 22px !important;
+        font-size: 20px !important;         /* 22px → 20px (조금 줄임) */
+    }
+
+    /* 사이드바 컬럼 간격 극도로 줄이기 (2열 배치용) */
+    section[data-testid="stSidebar"] .stColumn {
+        min-width: unset !important;
+        width: 50% !important;
+        padding: 0 1px !important;           /* 2px → 1px (더 줄임) */
+        margin: 0 !important;
+    }
+
+    /* 입력창과 첫 번째 섹션 사이 간격 줄이기 */
+    section[data-testid="stSidebar"] .stTextInput {
+        margin-bottom: 8px !important;      /* 입력창 하단 간격 줄임 */
     }
 
     /* 사이드바 배경 그라데이션 */
@@ -310,17 +411,6 @@ def get_sidebar_css():
         pointer-events: none !important;   /* 클릭 무시 */
         opacity: 0.5 !important;           /* 시각적 비활성화 표시 */
         cursor: default !important;        /* 커서 변화 제거 */
-    }
-
-    /* 사이드바 내부 요소 배경 투명 */
-    section[data-testid="stSidebar"] > div {
-        background-color: transparent !important;
-    }
-
-    /* 사이드바 내부 컬럼 2열 허용을 위해 최소폭 제거 */
-    section[data-testid="stSidebar"] .stColumn {
-        min-width: unset !important;
-        width: 50% !important;
     }
 
     /* 네비 영역을 화면 전체 너비의 70%로 확장 */
