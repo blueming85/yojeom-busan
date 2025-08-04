@@ -269,8 +269,8 @@ def extract_contact_from_content(md_content: str) -> str:
 
 def render_header():
     """🔧 헤더 렌더링 (3개 탭 네비게이션 포함)"""
-    # 제목과 탭을 나란히 배치
-    col1, col2 = st.columns([3, 2])
+    # 왼쪽 제목 영역보다 오른쪽 네비 영역에 더 많은 공간 할당
+    col1, col2 = st.columns([2, 3])
     
     with col1:
         st.title("🏢 요즘 부산")
@@ -442,6 +442,14 @@ def render_restaurant_sidebar(restaurant_portal: BusanRestaurantPortal):
     """🔧 맛집정보 전용 사이드바"""
     st.sidebar.header("🍽️ 맛집 필터")
     
+    # 🔧 세션 변수 초기화 (함수 최상단에 추가)
+    if 'selected_restaurant_category' not in st.session_state:
+        st.session_state.selected_restaurant_category = "전체"
+    if 'selected_restaurant_region' not in st.session_state:
+        st.session_state.selected_restaurant_region = "전체"
+    if 'selected_restaurant_food_type' not in st.session_state:
+        st.session_state.selected_restaurant_food_type = "전체"
+    
     # 검색어 입력
     search_query = st.sidebar.text_input(
         "🔎 검색어",
@@ -454,16 +462,13 @@ def render_restaurant_sidebar(restaurant_portal: BusanRestaurantPortal):
     st.sidebar.subheader("⭐ 카테고리")
     category_stats = restaurant_portal.get_category_stats()
     
-    if 'selected_restaurant_category' not in st.session_state:
-        st.session_state.selected_restaurant_category = "전체"
-    
     # 전체 버튼 (전체 너비)
     is_selected = st.session_state.selected_restaurant_category == "전체"
     button_type = "primary" if is_selected else "secondary"
     
     if st.sidebar.button(
         f"🏠 전체 ({category_stats.get('전체', 0)}개)", 
-        key=f"restaurant_category_전체",
+        key="restaurant_category_all",
         use_container_width=True,
         type=button_type
     ):
@@ -488,7 +493,7 @@ def render_restaurant_sidebar(restaurant_portal: BusanRestaurantPortal):
         
         if st.sidebar.button(
             f"{emoji} {category} ({count}개)", 
-            key=f"restaurant_category_{category}",
+            key=f"restaurant_category_{category.replace(' ', '_')}",
             use_container_width=True,
             type=button_type
         ):
@@ -500,16 +505,13 @@ def render_restaurant_sidebar(restaurant_portal: BusanRestaurantPortal):
     st.sidebar.subheader("🗺️ 지역별")
     region_stats = restaurant_portal.get_region_stats()
     
-    if 'selected_restaurant_region' not in st.session_state:
-        st.session_state.selected_restaurant_region = "전체"
-    
     # 전체 버튼 (전체 너비)
     is_selected = st.session_state.selected_restaurant_region == "전체"
     button_type = "primary" if is_selected else "secondary"
     
     if st.sidebar.button(
         f"🏠 전체 ({region_stats.get('전체', 0)}개)", 
-        key=f"restaurant_region_전체",
+        key="restaurant_region_all",
         use_container_width=True,
         type=button_type
     ):
@@ -539,64 +541,41 @@ def render_restaurant_sidebar(restaurant_portal: BusanRestaurantPortal):
             st.session_state.restaurant_items_to_show = 12
             st.rerun()
     
-    # 🔧 3. 음식종류별 필터 - 전체 1줄, 나머지 2줄 배치
+    # 🔧 3. 음식종류별 필터 - 전체 1줄, 나머지 2줄 배치 (들여쓰기 수정)
     st.sidebar.subheader("🍜 음식종류")
     food_type_stats = restaurant_portal.get_food_type_stats()
-    
-    if 'selected_restaurant_food_type' not in st.session_state:
-        st.session_state.selected_restaurant_food_type = "전체"
-    
-    # 전체 버튼 (전체 너비)
+
+    # 1) 전체 버튼: 한 줄 꽉 채우기
     is_selected = st.session_state.selected_restaurant_food_type == "전체"
     button_type = "primary" if is_selected else "secondary"
-    
     if st.sidebar.button(
-        f"🏠 전체 ({food_type_stats.get('전체', 0)}개)", 
-        key=f"restaurant_food_전체",
+        f"🏠 전체 ({food_type_stats.get('전체', 0)}개)",
+        key="restaurant_food_all",
         use_container_width=True,
         type=button_type
     ):
         st.session_state.selected_restaurant_food_type = "전체"
         st.session_state.restaurant_items_to_show = 12
         st.rerun()
-    
-    # 나머지 음식종류 버튼들 (2열 배치)
-    other_food_types = [food for food in RESTAURANT_FOOD_TYPES if food != "전체"]
+
+    # 2) 나머지 음식종류: 2열로 묶어서 반복
+    other_food_types = [ft for ft in RESTAURANT_FOOD_TYPES if ft != "전체"]
     for i in range(0, len(other_food_types), 2):
-        col1, col2 = st.sidebar.columns(2)
-        
-        # 첫 번째 음식종류
-        food_type1 = other_food_types[i]
-        count1 = food_type_stats.get(food_type1, 0)
-        is_selected1 = st.session_state.selected_restaurant_food_type == food_type1
-        button_type1 = "primary" if is_selected1 else "secondary"
-        
-        with col1:
-            if st.button(
-                f"{food_type1}\n({count1}개)", 
-                key=f"restaurant_food_{food_type1}",
-                use_container_width=True,
-                type=button_type1
-            ):
-                st.session_state.selected_restaurant_food_type = food_type1
-                st.session_state.restaurant_items_to_show = 12
-                st.rerun()
-        
-        # 두 번째 음식종류 (있는 경우)
-        if i + 1 < len(other_food_types):
-            food_type2 = other_food_types[i + 1]
-            count2 = food_type_stats.get(food_type2, 0)
-            is_selected2 = st.session_state.selected_restaurant_food_type == food_type2
-            button_type2 = "primary" if is_selected2 else "secondary"
-            
-            with col2:
-                if st.button(
-                    f"{food_type2}\n({count2}개)", 
-                    key=f"restaurant_food_{food_type2}",
+        cols = st.sidebar.columns(2)
+        for j, col in enumerate(cols):
+            idx = i + j
+            if idx < len(other_food_types):
+                ft = other_food_types[idx]
+                count = food_type_stats.get(ft, 0)
+                is_sel = st.session_state.selected_restaurant_food_type == ft
+                btn_type = "primary" if is_sel else "secondary"
+                if col.button(
+                    f"{ft} ({count}개)",
+                    key=f"food_{ft.replace(' ', '_')}",
                     use_container_width=True,
-                    type=button_type2
+                    type=btn_type
                 ):
-                    st.session_state.selected_restaurant_food_type = food_type2
+                    st.session_state.selected_restaurant_food_type = ft
                     st.session_state.restaurant_items_to_show = 12
                     st.rerun()
     

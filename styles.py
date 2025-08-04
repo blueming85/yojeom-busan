@@ -15,7 +15,6 @@ def apply_all_styles():
     st.markdown(get_responsive_css(), unsafe_allow_html=True)
     st.markdown(get_card_styles_css(), unsafe_allow_html=True)
     st.markdown(get_detail_page_css(), unsafe_allow_html=True)
-    st.markdown(get_sidebar_layout_css(), unsafe_allow_html=True)
 
 def get_deploy_hide_css():
     """Deploy 버튼과 헤더 숨기기 CSS"""
@@ -56,7 +55,7 @@ def get_deploy_hide_css():
     """
 
 def get_base_button_css():
-    """기본 버튼 스타일 및 호버 효과 CSS"""
+    """기본 버튼 스타일 및 호버 효과 CSS - 텍스트 크기 증가"""
     return """
     <style>
     /* 사이드바 토글 버튼 활성화 */
@@ -82,17 +81,23 @@ def get_base_button_css():
         transition: none !important;
     }
 
-    /* 메인 콘텐츠 버튼 기본 스타일 */
+    /* 메인 콘텐츠 버튼 기본 스타일 - 텍스트만 크게, 패딩은 원래대로 */
     button, 
     .stButton button,
     div.stButton > button,
     [data-testid="baseButton-primary"],
     [data-testid="baseButton-secondary"],
     a[data-testid="stLinkButton"],
-    .stLinkButton > a {
+    .stLinkButton > a,
+    button[key*="detail_btn"],
+    button[key*="news_detail_btn"],
+    button[key*="restaurant_detail_btn"],
+    button[key*="plans_detail_btn"],
+    button[key*="back_btn"],
+    button[key*="load_more"] {
         height: auto !important;
-        padding: 20px 18px !important;
-        font-size: 22px !important;
+        padding: 20px 18px !important;        /* 원래 패딩 유지 */
+        font-size: 45px !important;           /* 30px → 45px (텍스트만 더 크게) */
         font-weight: 700 !important;
         background: #fff !important;
         color: #4A148C !important;
@@ -112,7 +117,13 @@ def get_base_button_css():
     [data-testid="baseButton-primary"]:hover, [data-testid="baseButton-primary"]:focus,
     [data-testid="baseButton-secondary"]:hover, [data-testid="baseButton-secondary"]:focus,
     a[data-testid="stLinkButton"]:hover, a[data-testid="stLinkButton"]:focus,
-    .stLinkButton > a:hover, .stLinkButton > a:focus {
+    .stLinkButton > a:hover, .stLinkButton > a:focus,
+    button[key*="detail_btn"]:hover, button[key*="detail_btn"]:focus,
+    button[key*="news_detail_btn"]:hover, button[key*="news_detail_btn"]:focus,
+    button[key*="restaurant_detail_btn"]:hover, button[key*="restaurant_detail_btn"]:focus,
+    button[key*="plans_detail_btn"]:hover, button[key*="plans_detail_btn"]:focus,
+    button[key*="back_btn"]:hover, button[key*="back_btn"]:focus,
+    button[key*="load_more"]:hover, button[key*="load_more"]:focus {
         background: #4A148C !important;
         color: white !important;
         border: 2px solid #4A148C !important;
@@ -123,37 +134,59 @@ def get_base_button_css():
     """
 
 def get_navigation_css():
-    """네비게이션 버튼 스타일 CSS"""
+    """네비게이션 버튼 스타일 CSS - 텍스트 크기 증가"""
     return """
     <style>
-    /* 네비게이션 버튼 - primary(활성) 스타일 */
+    /* 네비게이션 버튼 - 모든 경우에 대해 강력하게 적용 */
+    button[data-testid="nav_news"],
+    button[data-testid="nav_restaurants"], 
+    button[data-testid="nav_plans"],
+    button[key="nav_news"],
+    button[key="nav_restaurants"],
+    button[key="nav_plans"],
+    button[kind="primary"][data-testid*="nav_"],
+    button[kind="secondary"][data-testid*="nav_"] {
+        background: #4A148C !important;
+        color: white !important;
+        border: 2px solid #4A148C !important;
+        font-weight: 700 !important;
+        padding: 16px 24px !important;
+        font-size: 45px !important;          /* 강력하게 45px 적용 */
+        border-radius: 8px !important;
+        box-shadow: none !important;
+    }
+
+    /* 네비게이션 버튼 - primary(활성) 스타일 - 텍스트만 크게, 패딩은 원래대로 */
     button[kind="primary"][data-testid*="nav_"] {
         background: #4A148C !important;
         color: white !important;
         border: 2px solid #4A148C !important;
         font-weight: 700 !important;
-        padding: 12px 16px !important;
-        font-size: 14px !important;
+        padding: 16px 24px !important;       /* 원래 패딩 유지 */
+        font-size: 45px !important;          /* 32px → 45px (텍스트만 더 크게) */
         border-radius: 8px !important;
         box-shadow: none !important;
     }
 
     /* 네비게이션 버튼 - primary 호버 효과 */
-    button[kind="primary"][data-testid*="nav_"]:hover {
+    button[kind="primary"][data-testid*="nav_"]:hover,
+    button[data-testid="nav_news"]:hover,
+    button[data-testid="nav_restaurants"]:hover,
+    button[data-testid="nav_plans"]:hover {
         background: #6B21A8 !important;
         color: white !important;
         border: 2px solid #6B21A8 !important;
         box-shadow: none !important;
     }
 
-    /* 네비게이션 버튼 - secondary(비활성) 스타일 */
+    /* 네비게이션 버튼 - secondary(비활성) 스타일 - 텍스트만 크게, 패딩은 원래대로 */
     button[kind="secondary"][data-testid*="nav_"] {
         background: #fff !important;
         color: #4A148C !important;
         border: 2px solid #4A148C !important;
         font-weight: 700 !important;
-        padding: 12px 16px !important;
-        font-size: 14px !important;
+        padding: 16px 24px !important;       /* 원래 패딩 유지 */
+        font-size: 45px !important;          /* 32px → 45px (텍스트만 더 크게) */
         border-radius: 8px !important;
         box-shadow: none !important;
     }
@@ -169,7 +202,7 @@ def get_navigation_css():
     """
 
 def get_sidebar_css():
-    """사이드바 스타일 CSS - 회색 기본, 보라색 호버 및 선택"""
+    """사이드바 스타일 CSS - 회색 기본, 보라색 호버 및 선택, 텍스트 크기 증가"""
     return """
     <style>
     /* 사이드바 입력창 텍스트 */
@@ -178,18 +211,19 @@ def get_sidebar_css():
     section[data-testid="stSidebar"] textarea {
         color: black !important;
         background-color: white !important;
+        font-size: 18px !important;          /* 입력창 텍스트도 증가 */
     }
 
-    /* 사이드바 버튼 기본 상태 - 회색 */
+    /* 사이드바 버튼 기본 상태 - 회색, 텍스트만 크게, 패딩은 원래대로 */
     section[data-testid="stSidebar"] button,
     section[data-testid="stSidebar"] .stButton button {
         background: #6B7280 !important;
         border: 2px solid #6B7280 !important;
         color: white !important;
-        padding: 10px 15px !important;
-        font-size: 14px !important;
-        font-weight: 600 !important;
-        border-radius: 8px !important;
+        padding: 5px 7px !important;         /* 원래 패딩 유지 */
+        font-size: 32px !important;          /* 20px → 32px (텍스트만 더 크게) */
+        font-weight: 1000 !important;
+        border-radius: 10px !important;
     }
 
     /* 사이드바 버튼 호버 효과 - 보라색 */
@@ -218,7 +252,22 @@ def get_sidebar_css():
         color: white !important;
     }
 
-    /* 사이드바 텍스트 색상 */
+    /* 맛집 음식종류 버튼만 2열 유지 - 텍스트만 크게, 패딩은 원래대로 */
+    section[data-testid="stSidebar"] button[data-testid*="restaurant_food_"] {
+        font-size: 20px !important;          /* 11px → 20px (텍스트만 더 크게) */
+        padding: 6px 4px !important;         /* 원래 패딩 유지 */
+        zoom: 0.8 !important;                /* 줌은 원래대로 */
+    }
+
+    /* 긴 텍스트 버튼만 더 작게 - 텍스트만 크게, 패딩은 원래대로 */
+    section[data-testid="stSidebar"] button[data-testid*="restaurant_food_아시아분식"],
+    section[data-testid="stSidebar"] button[data-testid*="restaurant_food_베이커리"] {
+        font-size: 18px !important;          /* 8px → 18px (텍스트만 더 크게) */
+        zoom: 0.7 !important;                /* 줌은 원래대로 */
+        padding: 4px 2px !important;         /* 원래 패딩 유지 */
+    }
+
+    /* 사이드바 텍스트 색상 및 크기 */
     section[data-testid="stSidebar"] h1,
     section[data-testid="stSidebar"] h2,
     section[data-testid="stSidebar"] h3,
@@ -228,6 +277,20 @@ def get_sidebar_css():
     section[data-testid="stSidebar"] label,
     section[data-testid="stSidebar"] .stMarkdown * {
         color: white !important;
+        font-size: 18px !important;          /* 사이드바 일반 텍스트도 증가 */
+    }
+
+    /* 사이드바 제목들 더 크게 */
+    section[data-testid="stSidebar"] h1 {
+        font-size: 28px !important;
+    }
+
+    section[data-testid="stSidebar"] h2 {
+        font-size: 24px !important;
+    }
+
+    section[data-testid="stSidebar"] h3 {
+        font-size: 22px !important;
     }
 
     /* 사이드바 배경 그라데이션 */
@@ -235,45 +298,35 @@ def get_sidebar_css():
     .css-1d391kg,
     .css-1lcbmhc {
         background: linear-gradient(180deg, #4b5563 0%, #6b7280 50%, #9ca3af 100%) !important;
-        width: 350px;
+        width: 400px !important;
+        min-width: 400px !important;
+        max-width: 400px !important;
+    }
+
+    /* 사이드바 접기/펼치기 토글 버튼 비활성화 (보이지만 클릭 안 됨) */
+    button[data-testid="collapsedControl"],
+    button[aria-label="Collapse sidebar"],
+    button[aria-label="Expand sidebar"] {
+        pointer-events: none !important;   /* 클릭 무시 */
+        opacity: 0.5 !important;           /* 시각적 비활성화 표시 */
+        cursor: default !important;        /* 커서 변화 제거 */
     }
 
     /* 사이드바 내부 요소 배경 투명 */
     section[data-testid="stSidebar"] > div {
         background-color: transparent !important;
     }
-    </style>
-    """
 
-def get_sidebar_layout_css():
-    """사이드바 레이아웃 및 자동 열림 CSS"""
-    return """
-    <style>
-    /* 사이드바 기본적으로 열려있도록 설정 */
-    section[data-testid="stSidebar"] {
-        transform: translateX(0) !important;
-        visibility: visible !important;
-        width: 350px !important;
-        min-width: 350px !important;
+    /* 사이드바 내부 컬럼 2열 허용을 위해 최소폭 제거 */
+    section[data-testid="stSidebar"] .stColumn {
+        min-width: unset !important;
+        width: 50% !important;
     }
-    
-    /* 사이드바가 닫혀있을 때 강제로 열기 */
-    section[data-testid="stSidebar"][aria-expanded="false"] {
-        transform: translateX(0) !important;
-        visibility: visible !important;
-        width: 350px !important;
-        min-width: 350px !important;
-    }
-    
-    /* 메인 콘텐츠 영역이 사이드바 공간 확보 */
-    .main .block-container {
-        margin-left: 0 !important;
-        padding-left: 1rem !important;
-    }
-    
-    /* 사이드바 컨테이너 정리 */
-    section[data-testid="stSidebar"] > div > div {
-        padding: 1rem !important;
+
+    /* 네비 영역을 화면 전체 너비의 70%로 확장 */
+    section[data-testid="stToolbar"] + div > div:first-child > div:nth-child(2) {
+        flex: 0 0 70% !important;
+        max-width: 70% !important;
     }
     </style>
     """
@@ -295,10 +348,13 @@ def get_responsive_css():
             padding: 0 0.5rem;
         }
         
-        /* 태블릿에서도 사이드바 2열 유지 */
-        section[data-testid="stSidebar"] .stButton:not(:first-of-type) {
-            width: calc(50% - 3px) !important;
-            margin-right: 3px !important;
+        /* 태블릿에서 버튼 텍스트만 크게 */
+        button, .stButton button {
+            font-size: 40px !important;
+        }
+        
+        section[data-testid="stSidebar"] button {
+            font-size: 28px !important;
         }
     }
 
@@ -320,18 +376,13 @@ def get_responsive_css():
             font-size: 12px !important;
         }
         
-        /* 모바일에서는 사이드바 버튼 1열로 변경 */
-        section[data-testid="stSidebar"] .stButton:not(:first-of-type) {
-            width: 100% !important;
-            display: block !important;
-            margin-right: 0 !important;
-            margin-bottom: 8px !important;
+        /* 모바일에서 버튼 텍스트만 크게 */
+        button, .stButton button {
+            font-size: 35px !important;
         }
         
-        /* 사이드바 너비 조정 */
-        section[data-testid="stSidebar"] {
-            width: 280px !important;
-            min-width: 280px !important;
+        section[data-testid="stSidebar"] button {
+            font-size: 24px !important;
         }
     }
 
@@ -349,10 +400,13 @@ def get_responsive_css():
             padding: 10px !important;
         }
         
-        /* 작은 모바일에서 사이드바 더 좁게 */
-        section[data-testid="stSidebar"] {
-            width: 250px !important;
-            min-width: 250px !important;
+        /* 작은 모바일에서 버튼 텍스트만 크게 */
+        button, .stButton button {
+            font-size: 30px !important;
+        }
+        
+        section[data-testid="stSidebar"] button {
+            font-size: 20px !important;
         }
     }
 
