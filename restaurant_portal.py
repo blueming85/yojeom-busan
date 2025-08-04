@@ -69,7 +69,7 @@ class BusanRestaurantPortal:
        return restaurants_list
    
    def _parse_markdown_file(self, md_file: Path) -> Optional[Dict]:
-       """맛집 MD 파일에서 메타데이터와 내용 추출"""
+       """🔧 맛집 MD 파일에서 메타데이터와 내용 추출 (YAML 리스트 처리 포함)"""
        try:
            with open(md_file, 'r', encoding='utf-8') as f:
                content = f.read()
@@ -85,15 +85,43 @@ class BusanRestaurantPortal:
            frontmatter = content[3:frontmatter_end]
            body = content[frontmatter_end + 3:].strip()
            
-           # 메타데이터 추출
+           # 🔧 YAML 스타일 메타데이터 추출 (리스트 처리 포함)
            metadata = {}
+           current_key = None
+           current_list = []
+           
            for line in frontmatter.split('\n'):
                line = line.strip()
+               if not line:
+                   continue
+                   
+               # 리스트 아이템 처리
+               if line.startswith('- '):
+                   if current_key:
+                       current_list.append(line[2:].strip())
+                   continue
+               
+               # 이전 리스트 완료 처리
+               if current_key and current_list:
+                   metadata[current_key] = current_list
+                   current_key = None
+                   current_list = []
+               
+               # 일반 키:값 처리
                if ':' in line:
                    key, value = line.split(':', 1)
                    key = key.strip()
                    value = value.strip().strip('"\'')
-                   metadata[key] = value
+                   
+                   if not value:  # 값이 없으면 리스트 시작
+                       current_key = key
+                       current_list = []
+                   else:
+                       metadata[key] = value
+           
+           # 마지막 리스트 처리
+           if current_key and current_list:
+               metadata[current_key] = current_list
            
            # 필수 필드 검증
            required_fields = ['title', 'region', 'district', 'category', 'food_type']
@@ -109,6 +137,11 @@ class BusanRestaurantPortal:
                logger.warning(f"⚠️ 지역권 불일치: {metadata.get('region')} → {region} ({district})")
                metadata['region'] = region
            
+           # 🔧 representative_menu 리스트 처리
+           representative_menu = metadata.get('representative_menu', [])
+           if isinstance(representative_menu, list):
+               representative_menu = ', '.join(representative_menu)
+           
            # 상세 정보 추출
            detailed_info = self._extract_detailed_info_from_body(body)
            
@@ -118,12 +151,15 @@ class BusanRestaurantPortal:
                'district': metadata.get('district', ''),
                'category': metadata.get('category', '현지인'),
                'food_type': metadata.get('food_type', '한식'),
-               'representative_menu': metadata.get('representative_menu', ''),
+               'representative_menu': representative_menu,  # 🔧 리스트 → 문자열 변환
                'phone': metadata.get('phone', ''),
                'address': metadata.get('address', ''),
                'hours': metadata.get('hours', ''),
                'closed_days': metadata.get('closed_days', ''),
                'date': metadata.get('date', datetime.now().strftime("%Y-%m-%d")),
+               'uc_seq': metadata.get('uc_seq', ''),  # 🔧 추가
+               'source_url': metadata.get('source_url', ''),  # 🔧 추가
+               'extraction_date': metadata.get('extraction_date', ''),  # 🔧 추가
                'detailed_info': detailed_info,
                'file_path': str(md_file)
            }
@@ -145,7 +181,7 @@ class BusanRestaurantPortal:
        info_lines = []
        
        # "## 📍 이용안내" 또는 "## 🍽️ 메뉴 정보" 부분 찾기
-       target_sections = ['## 📍 이용안내', '## 🍽️ 메뉴', '## 📞 연락처']
+       target_sections = ['## 📍 이용안내', '## 🍽️ 메뉴', '## 📞 연락처', '## 📝 상세']
        
        for section in target_sections:
            in_target_section = False
@@ -256,6 +292,7 @@ class BusanRestaurantPortal:
                    search_query in restaurant.get('district', '').lower() or
                    search_query in restaurant.get('food_type', '').lower() or
                    search_query in restaurant.get('address', '').lower() or
+                   search_query in restaurant.get('representative_menu', '').lower() or
                    search_query in restaurant.get('detailed_info', '').lower())
            ]
        
@@ -313,6 +350,10 @@ class BusanRestaurantPortal:
            # 지역/주소 매칭 (가중치 2)
            if (query_lower in restaurant.get('district', '').lower() or 
                query_lower in restaurant.get('address', '').lower()):
+               score += 2
+           
+           # 대표메뉴 매칭 (가중치 2) - 🔧 추가
+           if query_lower in restaurant.get('representative_menu', '').lower():
                score += 2
            
            # 내용 매칭 (가중치 1)
@@ -464,13 +505,18 @@ def test_restaurant_portal():
        # 필터링 테스트
        filtered = portal.filter_restaurants(
            selected_regions=["동부산권"], 
-           selected_food_types=["한식"]
+           selected_food_types=["양식"]
        )
-       print(f"🏷️ 동부산권 한식 필터링: {len(filtered)}개")
+       print(f"🏷️ 동부산권 양식 필터링: {len(filtered)}개")
        
        # 추천 맛집 테스트
        featured = portal.get_featured_restaurants(6)
        print(f"⭐ 추천 맛집: {len(featured)}개")
+       
+       # 🔧 representative_menu 리스트 처리 테스트
+       if portal.restaurants_data:
+           sample = portal.restaurants_data[0]
+           print(f"📋 샘플 대표메뉴: {sample.get('representative_menu', 'N/A')}")
        
    except Exception as e:
        print(f"❌ 테스트 실패: {e}")

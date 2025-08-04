@@ -164,7 +164,7 @@ RESTAURANT_FOOD_TYPES = [
 # 맛집 카테고리
 AVAILABLE_RESTAURANT_CATEGORIES = [
     "전체",
-    "미슐랭", 
+    "미쉐린가이드", 
     "부산의맛", 
     "현지인"
 ]
@@ -193,7 +193,7 @@ RESTAURANT_FOOD_TYPE_COLORS = {
 # 맛집 카테고리별 색상 (횟집 추가)
 RESTAURANT_CATEGORY_COLORS = {
     "전체": "#6B7280",      # 회색
-    "미슐랭": "#FFD700",    # 금색
+    "미쉐린가이드": "#FF8C00",  # 🔧 주황색으로 변경
     "부산의맛": "#EF4444",  # 빨강
     "현지인": "#10B981",    # 초록
     "횟집": "#06B6D4"       # 청록색 (새로 추가)

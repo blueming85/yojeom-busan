@@ -20,7 +20,7 @@ def get_deploy_hide_css():
     """Deploy 버튼과 헤더 숨기기 CSS"""
     return """
     <style>
-    /* 🔧 Deploy 버튼과 세 줄 메뉴 강력하게 숨기기 */
+    /* Deploy 버튼과 세 줄 메뉴 숨기기 */
     [data-testid="stToolbar"],
     [data-testid="stHeader"],
     header[data-testid="stHeader"],
@@ -42,12 +42,10 @@ def get_deploy_hide_css():
         left: -9999px !important;
     }
 
-    /* 🔧 상단 공간 제거 */
     .stApp > header {
         display: none !important;
     }
 
-    /* 🔧 모든 Deploy 관련 텍스트까지 숨기기 */
     *[class*="deploy" i],
     *[id*="deploy" i],
     *[data-testid*="deploy" i] {
@@ -60,7 +58,7 @@ def get_base_button_css():
     """기본 버튼 스타일 및 호버 효과 CSS"""
     return """
     <style>
-    /* 🔧 사이드바 토글 버튼 활성화 */
+    /* 사이드바 토글 버튼 활성화 */
     button[aria-label*="Open"],
     button[title*="Open"],
     button[aria-label*="sidebar"],
@@ -71,7 +69,6 @@ def get_base_button_css():
         pointer-events: auto !important;
     }
 
-    /* 🔧 사이드바 토글 버튼 아이콘 스타일 */
     [data-testid="collapsedControl"] svg,
     button[data-testid="collapsedControl"] svg {
         color: #4a5568 !important;
@@ -79,12 +76,12 @@ def get_base_button_css():
         height: 18px !important;
     }
 
-    /* 🔧 모든 호버 효과 완전 제거 */
+    /* 호버 효과 제거 */
     *, *:hover {
         transition: none !important;
     }
 
-    /* 🔧 모든 버튼 기본 스타일 (흰색 바탕 + 보라 테두리로 통일) */
+    /* 메인 콘텐츠 버튼 기본 스타일 */
     button, 
     .stButton button,
     div.stButton > button,
@@ -97,7 +94,6 @@ def get_base_button_css():
         font-size: 22px !important;
         font-weight: 700 !important;
         background: #fff !important;
-        background-color: #fff !important;
         color: #4A148C !important;
         border: 2px solid #4A148C !important;
         border-radius: 15px !important;
@@ -108,7 +104,7 @@ def get_base_button_css():
         text-align: center !important;
     }
 
-    /* 🔧 호버시 찐보라색 배경 */
+    /* 메인 콘텐츠 버튼 호버 효과 */
     button:hover, button:focus,
     .stButton button:hover, .stButton button:focus,
     div.stButton > button:hover, div.stButton > button:focus,
@@ -116,12 +112,11 @@ def get_base_button_css():
     [data-testid="baseButton-secondary"]:hover, [data-testid="baseButton-secondary"]:focus,
     a[data-testid="stLinkButton"]:hover, a[data-testid="stLinkButton"]:focus,
     .stLinkButton > a:hover, .stLinkButton > a:focus {
+        background: #4A148C !important;
+        color: white !important;
+        border: 2px solid #4A148C !important;
         outline: none !important;
         box-shadow: none !important;
-        border: 2px solid #4A148C !important;
-        background: #4A148C !important;
-        background-color: #4A148C !important;
-        color: white !important;
     }
     </style>
     """
@@ -130,12 +125,9 @@ def get_navigation_css():
     """네비게이션 버튼 스타일 CSS"""
     return """
     <style>
-    /* 🔧 네비게이션 버튼 - primary(활성) 스타일 - 보라색 배경 */
-    button[kind="primary"][data-testid*="nav_"],
-    button[data-testid="nav_news"][kind="primary"],
-    button[data-testid="nav_plans"][kind="primary"] {
+    /* 네비게이션 버튼 - primary(활성) 스타일 */
+    button[kind="primary"][data-testid*="nav_"] {
         background: #4A148C !important;
-        background-color: #4A148C !important;
         color: white !important;
         border: 2px solid #4A148C !important;
         font-weight: 700 !important;
@@ -145,23 +137,17 @@ def get_navigation_css():
         box-shadow: none !important;
     }
 
-    /* 🔧 네비게이션 버튼 - primary 호버 효과 */
-    button[kind="primary"][data-testid*="nav_"]:hover,
-    button[data-testid="nav_news"][kind="primary"]:hover,
-    button[data-testid="nav_plans"][kind="primary"]:hover {
+    /* 네비게이션 버튼 - primary 호버 효과 */
+    button[kind="primary"][data-testid*="nav_"]:hover {
         background: #6B21A8 !important;
-        background-color: #6B21A8 !important;
         color: white !important;
         border: 2px solid #6B21A8 !important;
         box-shadow: none !important;
     }
 
-    /* 🔧 네비게이션 버튼 - secondary(비활성) 스타일 - 흰색 배경 */
-    button[kind="secondary"][data-testid*="nav_"],
-    button[data-testid="nav_news"][kind="secondary"],
-    button[data-testid="nav_plans"][kind="secondary"] {
+    /* 네비게이션 버튼 - secondary(비활성) 스타일 */
+    button[kind="secondary"][data-testid*="nav_"] {
         background: #fff !important;
-        background-color: #fff !important;
         color: #4A148C !important;
         border: 2px solid #4A148C !important;
         font-weight: 700 !important;
@@ -171,12 +157,9 @@ def get_navigation_css():
         box-shadow: none !important;
     }
 
-    /* 🔧 네비게이션 버튼 - secondary 호버 효과 */
-    button[kind="secondary"][data-testid*="nav_"]:hover,
-    button[data-testid="nav_news"][kind="secondary"]:hover,
-    button[data-testid="nav_plans"][kind="secondary"]:hover {
+    /* 네비게이션 버튼 - secondary 호버 효과 */
+    button[kind="secondary"][data-testid*="nav_"]:hover {
         background: #4A148C !important;
-        background-color: #4A148C !important;
         color: white !important;
         border: 2px solid #4A148C !important;
         box-shadow: none !important;
@@ -185,129 +168,87 @@ def get_navigation_css():
     """
 
 def get_sidebar_css():
-   """🔧 수정된 사이드바 스타일 CSS - 입력창과 메인 콘텐츠 텍스트 색상 분리"""
-   return """
-   <style>
-   /* 🔧 사이드바 입력창 텍스트는 검은색으로 예외 처리 */
-   [data-testid="stSidebar"] input,
-   [data-testid="stSidebar"] .stTextInput input,
-   [data-testid="stSidebar"] textarea,
-   section[data-testid="stSidebar"] input,
-   section[data-testid="stSidebar"] .stTextInput input,
-   section[data-testid="stSidebar"] textarea {
-       color: black !important;
-       background-color: white !important;
-   }
+    """사이드바 스타일 CSS - 회색 기본, 보라색 호버 및 선택"""
+    return """
+    <style>
+    /* 사이드바 입력창 텍스트 */
+    section[data-testid="stSidebar"] input,
+    section[data-testid="stSidebar"] .stTextInput input,
+    section[data-testid="stSidebar"] textarea {
+        color: black !important;
+        background-color: white !important;
+    }
 
-   /* 🔧 사이드바 완전 개선 - 진한 회색 버튼에 흰 글자, 흰 테두리 */
-   section[data-testid="stSidebar"] button,
-   section[data-testid="stSidebar"] .stButton button,
-   section[data-testid="stSidebar"] div.stButton > button {
-       background: #374151 !important;
-       background-color: #374151 !important;
-       border: 1px solid white !important;
-       color: white !important;
-       padding: 10px 15px !important;
-       font-size: 14px !important;
-       font-weight: 500 !important;
-       border-radius: 8px !important;
-   }
+    /* 사이드바 버튼 기본 상태 - 회색 */
+    section[data-testid="stSidebar"] button,
+    section[data-testid="stSidebar"] .stButton button {
+        background: #6B7280 !important;
+        border: 2px solid #6B7280 !important;
+        color: white !important;
+        padding: 10px 15px !important;
+        font-size: 14px !important;
+        font-weight: 600 !important;
+        border-radius: 8px !important;
+    }
 
-   /* 사이드바 버튼 호버 효과 */
-   section[data-testid="stSidebar"] button:hover,
-   section[data-testid="stSidebar"] button:focus,
-   section[data-testid="stSidebar"] .stButton button:hover,
-   section[data-testid="stSidebar"] .stButton button:focus,
-   section[data-testid="stSidebar"] div.stButton > button:hover,
-   section[data-testid="stSidebar"] div.stButton > button:focus {
-       background: #4b5563 !important;
-       background-color: #4b5563 !important;
-       border: 1px solid white !important;
-       color: white !important;
-       outline: none !important;
-       box-shadow: none !important;
-   }
+    /* 사이드바 버튼 호버 효과 - 보라색 */
+    section[data-testid="stSidebar"] button:hover,
+    section[data-testid="stSidebar"] button:focus {
+        background: #8B5CF6 !important;
+        border: 2px solid #8B5CF6 !important;
+        color: white !important;
+        outline: none !important;
+        box-shadow: none !important;
+    }
 
-   /* 선택된 사이드바 버튼 (primary) - 더 진한 회색, 흰 테두리 */
-   section[data-testid="stSidebar"] button[kind="primary"],
-   section[data-testid="stSidebar"] .stButton button[kind="primary"],
-   section[data-testid="stSidebar"] div.stButton > button[kind="primary"] {
-       background: #1f2937 !important;
-       background-color: #1f2937 !important;
-       border: 2px solid white !important;
-       color: white !important;
-   }
+    /* 선택된 사이드바 버튼 (primary) - 보라색 */
+    section[data-testid="stSidebar"] button[kind="primary"] {
+        background: #8B5CF6 !important;
+        border: 2px solid #8B5CF6 !important;
+        color: white !important;
+        font-weight: 700 !important;
+    }
 
-   /* 🔧 사이드바 라벨과 제목만 흰색 (input 제외) */
-   [data-testid="stSidebar"] h1,
-   [data-testid="stSidebar"] h2,
-   [data-testid="stSidebar"] h3,
-   [data-testid="stSidebar"] h4,
-   [data-testid="stSidebar"] .stMarkdown h1,
-   [data-testid="stSidebar"] .stMarkdown h2,
-   [data-testid="stSidebar"] .stMarkdown h3,
-   [data-testid="stSidebar"] .stMarkdown h4,
-   [data-testid="stSidebar"] .stMarkdown p,
-   [data-testid="stSidebar"] .stMarkdown span,
-   [data-testid="stSidebar"] label,
-   section[data-testid="stSidebar"] h1,
-   section[data-testid="stSidebar"] h2,
-   section[data-testid="stSidebar"] h3,
-   section[data-testid="stSidebar"] h4,
-   section[data-testid="stSidebar"] p,
-   section[data-testid="stSidebar"] span,
-   section[data-testid="stSidebar"] label {
-       color: white !important;
-   }
+    /* 선택된 사이드바 버튼 호버 효과 */
+    section[data-testid="stSidebar"] button[kind="primary"]:hover,
+    section[data-testid="stSidebar"] button[kind="primary"]:focus {
+        background: #7C3AED !important;
+        border: 2px solid #7C3AED !important;
+        color: white !important;
+    }
 
-   /* 🔧 사이드바 배경색 멋진 그라데이션으로 설정 */
-   section[data-testid="stSidebar"],
-   [data-testid="stSidebar"],
-   .css-1d391kg,
-   .css-1lcbmhc {
-       background: linear-gradient(180deg, #4b5563 0%, #6b7280 50%, #9ca3af 100%) !important;
-   }
+    /* 사이드바 텍스트 색상 */
+    section[data-testid="stSidebar"] h1,
+    section[data-testid="stSidebar"] h2,
+    section[data-testid="stSidebar"] h3,
+    section[data-testid="stSidebar"] h4,
+    section[data-testid="stSidebar"] p,
+    section[data-testid="stSidebar"] span,
+    section[data-testid="stSidebar"] label,
+    section[data-testid="stSidebar"] .stMarkdown * {
+        color: white !important;
+    }
 
-   /* 사이드바 내부 요소들도 배경 투명하게 */
-   section[data-testid="stSidebar"] > div,
-   [data-testid="stSidebar"] > div {
-       background-color: transparent !important;
-   }
+    /* 사이드바 배경 그라데이션 */
+    section[data-testid="stSidebar"],
+    .css-1d391kg,
+    .css-1lcbmhc {
+        background: linear-gradient(180deg, #4b5563 0%, #6b7280 50%, #9ca3af 100%) !important;
+        width: 300px;
+    }
 
-   /* 사이드바 넓이 증가 */
-   .css-1d391kg {
-       width: 300px;
-       background: linear-gradient(180deg, #4b5563 0%, #6b7280 50%, #9ca3af 100%) !important;
-   }
-   .css-1lcbmhc {
-       width: 300px;
-       background: linear-gradient(180deg, #4b5563 0%, #6b7280 50%, #9ca3af 100%) !important;
-   }
-
-   /* 🔧 날짜 박스 완전 개선 - 연한 회색 배경에 흰 글자 */
-   .news-date, .plans-date {
-       background-color: #6b7280 !important;
-       color: white !important;
-       border: 1px solid #9ca3af !important;
-   }
-
-   /* 날짜 관련 모든 요소들 강제 적용 */
-   div[style*="text-align: right"],
-   div[style*="background-color: rgba(0,0,0,0.1)"],
-   div[style*="color: #333"] {
-       background-color: #6b7280 !important;
-       color: white !important;
-       border: 1px solid #9ca3af !important;
-   }
-   </style>
-   """
+    /* 사이드바 내부 요소 배경 투명 */
+    section[data-testid="stSidebar"] > div {
+        background-color: transparent !important;
+    }
+    </style>
+    """
 
 def get_responsive_css():
     """반응형 디자인 CSS"""
     return """
     <style>
-    /* 🔧 반응형 디자인 개선 */
-    /* 데스크톱 (기본) */
+    /* 데스크톱 기본 */
     .stColumn {
         padding: 0 0.3rem;
         min-width: 250px;
@@ -329,7 +270,6 @@ def get_responsive_css():
             margin-bottom: 1rem;
         }
         
-        /* 모바일에서 카드 높이 조정 */
         .news-title-box {
             min-height: 80px !important;
             font-size: 16px !important;
@@ -366,12 +306,12 @@ def get_card_styles_css():
     """카드 스타일 CSS"""
     return """
     <style>
-    /* 🔧 메인 페이지 다크모드 배경 */
+    /* 메인 페이지 다크모드 배경 */
     .stApp {
         background: linear-gradient(180deg, #374151 0%, #4b5563 50%, #6b7280 100%) !important;
     }
     
-    /* 🔧 상단 여백 줄이기 */
+    /* 상단 여백 줄이기 */
     .stApp > div:first-child {
         padding-top: 1rem !important;
     }
@@ -381,12 +321,16 @@ def get_card_styles_css():
         padding-bottom: 1rem !important;
     }
     
-    /* 일반 텍스트만 흰색 (버튼, 제목박스 제외) */
-    .stApp > div, .stMarkdown p, .stMarkdown h1, .stMarkdown h2, .stMarkdown h3 {
+    /* 일반 텍스트 흰색 */
+    .stApp > div, 
+    .stMarkdown p, 
+    .stMarkdown h1, 
+    .stMarkdown h2, 
+    .stMarkdown h3 {
         color: white !important;
     }
     
-    /* 🔧 이용방법 박스 다시 표시하고 흰색 텍스트 */
+    /* 이용방법 박스 흰색 텍스트 */
     [data-testid="stAlert"] {
         display: block !important;
         visibility: visible !important;
@@ -398,7 +342,7 @@ def get_card_styles_css():
         color: white !important;
     }
     
-    /* 태그 색상 기반 제목 박스 스타일 (원래 색상 유지) */
+    /* 제목 박스 스타일 */
     .news-title-box {
         padding: 20px;
         border-radius: 12px;
@@ -411,11 +355,16 @@ def get_card_styles_css():
         justify-content: center;
     }
 
-    /* 제목박스 내 텍스트는 원래 색상 유지 */
-    .news-title-box span, .news-title-box div {
-        color: inherit !important;
+    /* 제목박스 내 텍스트 검은색 */
+    .news-title-box span, 
+    .news-title-box div, 
+    .news-title-box * {
+        color: #000000 !important;
+        font-size: 22px !important;
+        font-weight: bold !important;
     }
 
+    /* 요약 박스 스타일 */
     .news-summary {
         margin: 1rem 0;
         padding: 15px;
@@ -432,49 +381,83 @@ def get_detail_page_css():
     """상세 페이지 전용 CSS"""
     return """
     <style>
-    /* 🔧 상세 페이지 다크모드 배경 */
+    /* 상세 페이지 다크모드 배경 */
     .detail-page {
         background: linear-gradient(180deg, #374151 0%, #4b5563 50%, #6b7280 100%) !important;
         color: white !important;
-        font-size: 22px !important;
+        font-size: 20px !important;
         line-height: 1.8 !important;
         padding: 20px !important;
         border-radius: 10px !important;
     }
+    
+    /* 상세 페이지 내 모든 텍스트 20px */
+    .detail-page *,
+    .detail-page p,
+    .detail-page div,
+    .detail-page span,
+    .detail-page li,
+    .detail-page td,
+    .detail-page th {
+        font-size: 20px !important;
+        line-height: 1.8 !important;
+        color: white !important;
+    }
+    
     .detail-page h1 {
         color: white !important;
         font-size: 36px !important;
         line-height: 1.4 !important;
         margin-bottom: 20px !important;
     }
+    
     .detail-page h2 {
         color: white !important;
         font-size: 28px !important;
         line-height: 1.5 !important;
         margin: 25px 0 15px 0 !important;
     }
+    
     .detail-page h3 {
         color: white !important;
         font-size: 24px !important;
         line-height: 1.5 !important;
         margin: 20px 0 10px 0 !important;
     }
-    .detail-page p {
+    
+    .detail-page strong, 
+    .detail-page b {
         color: white !important;
-        font-size: 22px !important;
-        line-height: 1.8 !important;
-        margin-bottom: 15px !important;
-    }
-    .detail-page li {
-        color: white !important;
-        font-size: 22px !important;
-        line-height: 1.8 !important;
-        margin-bottom: 8px !important;
-    }
-    .detail-page strong, .detail-page b {
-        color: white !important;
-        font-size: 22px !important;
+        font-size: 20px !important;
         font-weight: 700 !important;
+    }
+    
+    /* 일반 마크다운도 20px */
+    div[style*="font-size: 20px"] {
+        font-size: 20px !important;
+        line-height: 1.8 !important;
+        color: white !important;
+    }
+    
+    div[style*="font-size: 20px"] * {
+        font-size: 20px !important;
+        line-height: 1.8 !important;
+        color: white !important;
+    }
+    
+    div[style*="font-size: 20px"] h1 {
+        font-size: 36px !important;
+        line-height: 1.4 !important;
+    }
+    
+    div[style*="font-size: 20px"] h2 {
+        font-size: 28px !important;
+        line-height: 1.5 !important;
+    }
+    
+    div[style*="font-size: 20px"] h3 {
+        font-size: 24px !important;
+        line-height: 1.5 !important;
     }
     </style>
     """
