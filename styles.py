@@ -217,6 +217,21 @@ def get_sidebar_css():
         color: white !important;
     }
 
+    /* 맛집 음식종류 버튼만 2열 유지 - 작은 크기 */
+    section[data-testid="stSidebar"] button[data-testid*="restaurant_food_"] {
+        font-size: 11px !important;
+        padding: 6px 4px !important;
+        zoom: 0.8 !important;
+    }
+
+    /* 긴 텍스트 버튼만 더 작게 */
+    section[data-testid="stSidebar"] button[data-testid*="restaurant_food_아시아분식"],
+    section[data-testid="stSidebar"] button[data-testid*="restaurant_food_베이커리"] {
+        font-size: 8px !important;
+        zoom: 0.7 !important;
+        padding: 4px 2px !important;
+    }
+
     /* 사이드바 텍스트 색상 */
     section[data-testid="stSidebar"] h1,
     section[data-testid="stSidebar"] h2,
@@ -234,7 +249,7 @@ def get_sidebar_css():
     .css-1d391kg,
     .css-1lcbmhc {
         background: linear-gradient(180deg, #4b5563 0%, #6b7280 50%, #9ca3af 100%) !important;
-        width: 300px;
+        width: 350px;
     }
 
     /* 사이드바 내부 요소 배경 투명 */
