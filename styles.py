@@ -418,6 +418,11 @@ def get_sidebar_css():
         flex: 0 0 70% !important;
         max-width: 70% !important;
     }
+
+    /* 접힌 상태에서 Open sidebar 버튼 뒤의 모든 요소 숨기기 */
+    section[data-testid="stSidebar"] > button[aria-label*="Open sidebar"] ~ * {
+        display: none !important;
+    }
     </style>
     """
 
