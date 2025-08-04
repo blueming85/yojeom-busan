@@ -189,6 +189,9 @@ def get_sidebar_css():
         font-size: 14px !important;
         font-weight: 600 !important;
         border-radius: 8px !important;
+        width: 100% !important;
+        display: block !important;
+        margin-bottom: 5px !important;
     }
 
     /* 사이드바 버튼 호버 효과 - 보라색 */
@@ -222,6 +225,17 @@ def get_sidebar_css():
         font-size: 11px !important;
         padding: 6px 4px !important;
         zoom: 0.8 !important;
+        width: 45% !important;
+        display: inline-block !important;
+        margin: 2px 1% !important;
+        box-sizing: border-box !important;
+    }
+
+    /* 음식종류 컨테이너 2열 강제 */
+    section[data-testid="stSidebar"] div:has(button[data-testid*="restaurant_food_"]) {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        justify-content: space-between !important;
     }
 
     /* 긴 텍스트 버튼만 더 작게 */
@@ -250,6 +264,45 @@ def get_sidebar_css():
     .css-1lcbmhc {
         background: linear-gradient(180deg, #4b5563 0%, #6b7280 50%, #9ca3af 100%) !important;
         width: 350px;
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        position: relative !important;
+        left: 0 !important;
+        transform: translateX(0) !important;
+    }
+
+    /* 사이드바 강제 표시 */
+    .css-1544g2n,
+    [data-testid="stSidebar"],
+    section[data-testid="stSidebar"],
+    .stSidebar,
+    div[class*="sidebar"],
+    div[class*="Sidebar"] {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        position: relative !important;
+        left: 0 !important;
+        transform: translateX(0) !important;
+    }
+
+    /* 사이드바 컨테이너 강제 표시 */
+    .css-1d391kg,
+    .css-1lcbmhc,
+    div[class*="css-1d391kg"],
+    div[class*="css-1lcbmhc"] {
+        min-width: 350px !important;
+        max-width: 350px !important;
+        width: 350px !important;
+        display: block !important;
+    }
+
+    /* 모든 가능한 사이드바 클래스 강제 표시 */
+    *[class*="sidebar" i],
+    *[data-testid*="sidebar" i] {
+        display: block !important;
+        visibility: visible !important;
     }
 
     /* 사이드바 내부 요소 배경 투명 */
