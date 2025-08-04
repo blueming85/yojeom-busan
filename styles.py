@@ -15,6 +15,7 @@ def apply_all_styles():
     st.markdown(get_responsive_css(), unsafe_allow_html=True)
     st.markdown(get_card_styles_css(), unsafe_allow_html=True)
     st.markdown(get_detail_page_css(), unsafe_allow_html=True)
+    st.markdown(get_sidebar_layout_css(), unsafe_allow_html=True)
 
 def get_deploy_hide_css():
     """Deploy 버튼과 헤더 숨기기 CSS"""
@@ -189,9 +190,6 @@ def get_sidebar_css():
         font-size: 14px !important;
         font-weight: 600 !important;
         border-radius: 8px !important;
-        width: 100% !important;
-        display: block !important;
-        margin-bottom: 5px !important;
     }
 
     /* 사이드바 버튼 호버 효과 - 보라색 */
@@ -220,32 +218,6 @@ def get_sidebar_css():
         color: white !important;
     }
 
-    /* 맛집 음식종류 버튼만 2열 유지 - 작은 크기 */
-    section[data-testid="stSidebar"] button[data-testid*="restaurant_food_"] {
-        font-size: 11px !important;
-        padding: 6px 4px !important;
-        zoom: 0.8 !important;
-        width: 45% !important;
-        display: inline-block !important;
-        margin: 2px 1% !important;
-        box-sizing: border-box !important;
-    }
-
-    /* 음식종류 컨테이너 2열 강제 */
-    section[data-testid="stSidebar"] div:has(button[data-testid*="restaurant_food_"]) {
-        display: flex !important;
-        flex-wrap: wrap !important;
-        justify-content: space-between !important;
-    }
-
-    /* 긴 텍스트 버튼만 더 작게 */
-    section[data-testid="stSidebar"] button[data-testid*="restaurant_food_아시아분식"],
-    section[data-testid="stSidebar"] button[data-testid*="restaurant_food_베이커리"] {
-        font-size: 8px !important;
-        zoom: 0.7 !important;
-        padding: 4px 2px !important;
-    }
-
     /* 사이드바 텍스트 색상 */
     section[data-testid="stSidebar"] h1,
     section[data-testid="stSidebar"] h2,
@@ -264,50 +236,44 @@ def get_sidebar_css():
     .css-1lcbmhc {
         background: linear-gradient(180deg, #4b5563 0%, #6b7280 50%, #9ca3af 100%) !important;
         width: 350px;
-        display: block !important;
-        visibility: visible !important;
-        opacity: 1 !important;
-        position: relative !important;
-        left: 0 !important;
-        transform: translateX(0) !important;
-    }
-
-    /* 사이드바 강제 표시 */
-    .css-1544g2n,
-    [data-testid="stSidebar"],
-    section[data-testid="stSidebar"],
-    .stSidebar,
-    div[class*="sidebar"],
-    div[class*="Sidebar"] {
-        display: block !important;
-        visibility: visible !important;
-        opacity: 1 !important;
-        position: relative !important;
-        left: 0 !important;
-        transform: translateX(0) !important;
-    }
-
-    /* 사이드바 컨테이너 강제 표시 */
-    .css-1d391kg,
-    .css-1lcbmhc,
-    div[class*="css-1d391kg"],
-    div[class*="css-1lcbmhc"] {
-        min-width: 350px !important;
-        max-width: 350px !important;
-        width: 350px !important;
-        display: block !important;
-    }
-
-    /* 모든 가능한 사이드바 클래스 강제 표시 */
-    *[class*="sidebar" i],
-    *[data-testid*="sidebar" i] {
-        display: block !important;
-        visibility: visible !important;
     }
 
     /* 사이드바 내부 요소 배경 투명 */
     section[data-testid="stSidebar"] > div {
         background-color: transparent !important;
+    }
+    </style>
+    """
+
+def get_sidebar_layout_css():
+    """사이드바 레이아웃 및 자동 열림 CSS"""
+    return """
+    <style>
+    /* 사이드바 기본적으로 열려있도록 설정 */
+    section[data-testid="stSidebar"] {
+        transform: translateX(0) !important;
+        visibility: visible !important;
+        width: 350px !important;
+        min-width: 350px !important;
+    }
+    
+    /* 사이드바가 닫혀있을 때 강제로 열기 */
+    section[data-testid="stSidebar"][aria-expanded="false"] {
+        transform: translateX(0) !important;
+        visibility: visible !important;
+        width: 350px !important;
+        min-width: 350px !important;
+    }
+    
+    /* 메인 콘텐츠 영역이 사이드바 공간 확보 */
+    .main .block-container {
+        margin-left: 0 !important;
+        padding-left: 1rem !important;
+    }
+    
+    /* 사이드바 컨테이너 정리 */
+    section[data-testid="stSidebar"] > div > div {
+        padding: 1rem !important;
     }
     </style>
     """
@@ -328,6 +294,12 @@ def get_responsive_css():
             min-width: 300px;
             padding: 0 0.5rem;
         }
+        
+        /* 태블릿에서도 사이드바 2열 유지 */
+        section[data-testid="stSidebar"] .stButton:not(:first-of-type) {
+            width: calc(50% - 3px) !important;
+            margin-right: 3px !important;
+        }
     }
 
     /* 모바일 */
@@ -347,6 +319,20 @@ def get_responsive_css():
             height: 60px !important;
             font-size: 12px !important;
         }
+        
+        /* 모바일에서는 사이드바 버튼 1열로 변경 */
+        section[data-testid="stSidebar"] .stButton:not(:first-of-type) {
+            width: 100% !important;
+            display: block !important;
+            margin-right: 0 !important;
+            margin-bottom: 8px !important;
+        }
+        
+        /* 사이드바 너비 조정 */
+        section[data-testid="stSidebar"] {
+            width: 280px !important;
+            min-width: 280px !important;
+        }
     }
 
     /* 작은 모바일 */
@@ -361,6 +347,12 @@ def get_responsive_css():
             height: 50px !important;
             font-size: 11px !important;
             padding: 10px !important;
+        }
+        
+        /* 작은 모바일에서 사이드바 더 좁게 */
+        section[data-testid="stSidebar"] {
+            width: 250px !important;
+            min-width: 250px !important;
         }
     }
 
