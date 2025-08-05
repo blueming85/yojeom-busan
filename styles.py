@@ -60,7 +60,7 @@ def get_deploy_hide_css():
         margin-top: 0 !important;
     }
 
-    /* 토글 버튼을 작고 상단 좌측에 고정 */
+    /* 토글 버튼을 작고 상단 좌측에 고정 - 크기 증가 (웹 배포 환경 대응) */
     button[data-testid="collapsedControl"],
     button[data-testid="stSidebarCollapseButton"],
     [data-testid="collapsedControl"],
@@ -68,7 +68,15 @@ def get_deploy_hide_css():
     button[aria-label*="sidebar"],
     button[title*="sidebar"],
     button[aria-label*="Collapse"],
-    button[aria-label*="Expand"] {
+    button[aria-label*="Expand"],
+    button[aria-label*="Open"],
+    button[aria-label*="Close"],
+    button[title*="Open"],
+    button[title*="Close"],
+    [class*="sidebar" i][role="button"],
+    [class*="collapse" i][role="button"],
+    div[role="button"][aria-label*="sidebar"],
+    div[role="button"][title*="sidebar"] {
         display: flex !important;
         visibility: visible !important;
         opacity: 1 !important;
@@ -77,40 +85,92 @@ def get_deploy_hide_css():
         top: 10px !important;
         left: 10px !important;
         z-index: 999999 !important;
-        width: 40px !important;
-        height: 40px !important;
-        min-width: 40px !important;
-        min-height: 40px !important;
+        width: 50px !important;
+        height: 50px !important;
+        min-width: 50px !important;
+        min-height: 50px !important;
         overflow: visible !important;
         background: rgba(139, 92, 246, 0.9) !important;
-        border: 1px solid #8B5CF6 !important;
-        border-radius: 8px !important;
-        padding: 8px !important;
+        border: 2px solid #8B5CF6 !important;
+        border-radius: 10px !important;
+        padding: 0 !important;
         margin: 0 !important;
         color: white !important;
-        font-size: 16px !important;
+        font-size: 24px !important;
+        font-weight: bold !important;
         align-items: center !important;
         justify-content: center !important;
         cursor: pointer !important;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.2) !important;
+        box-shadow: 0 3px 10px rgba(0,0,0,0.3) !important;
     }
 
     /* 토글 버튼 호버 효과 */
     button[data-testid="collapsedControl"]:hover,
     button[data-testid="stSidebarCollapseButton"]:hover,
-    button[aria-label*="sidebar"]:hover {
+    button[aria-label*="sidebar"]:hover,
+    button[aria-label*="Collapse"]:hover,
+    button[aria-label*="Expand"]:hover,
+    button[aria-label*="Open"]:hover,
+    button[aria-label*="Close"]:hover,
+    [class*="sidebar" i][role="button"]:hover,
+    [class*="collapse" i][role="button"]:hover,
+    div[role="button"][aria-label*="sidebar"]:hover {
         background: rgba(139, 92, 246, 1) !important;
         border-color: #7C3AED !important;
-        transform: scale(1.05) !important;
+        transform: scale(1.1) !important;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.4) !important;
     }
 
-    /* 토글 버튼 아이콘 크기 조정 */
+    /* 기존 아이콘 숨기고 텍스트로 대체 */
     button[data-testid="collapsedControl"] svg,
     button[data-testid="stSidebarCollapseButton"] svg,
-    button[aria-label*="sidebar"] svg {
-        width: 20px !important;
-        height: 20px !important;
+    button[aria-label*="sidebar"] svg,
+    button[aria-label*="Collapse"] svg,
+    button[aria-label*="Expand"] svg,
+    button[aria-label*="Open"] svg,
+    button[aria-label*="Close"] svg,
+    [class*="sidebar" i][role="button"] svg,
+    [class*="collapse" i][role="button"] svg,
+    div[role="button"][aria-label*="sidebar"] svg {
+        display: none !important;
+    }
+
+    /* 사이드바 열린 상태일 때 >> 표시 */
+    button[data-testid="collapsedControl"]::after,
+    button[data-testid="stSidebarCollapseButton"]::after,
+    button[aria-label*="Collapse"]::after,
+    button[aria-label*="Close"]::after,
+    [class*="collapse" i][role="button"]::after {
+        content: "»" !important;
+        font-size: 28px !important;
         color: white !important;
+        font-weight: bold !important;
+    }
+
+    /* 사이드바 닫힌 상태일 때 << 표시 */
+    button[aria-label*="Expand"]::after,
+    button[aria-label*="Open"]::after,
+    [class*="sidebar" i][role="button"]::after,
+    div[role="button"][aria-label*="sidebar"]::after {
+        content: "«" !important;
+        font-size: 28px !important;
+        color: white !important;
+        font-weight: bold !important;
+    }
+
+    /* 사이드바가 완전히 접힌 상태에서도 토글 버튼 강제 표시 */
+    body button[aria-label*="Open"],
+    body button[aria-label*="Expand"],
+    body [role="button"][aria-label*="Open"],
+    body [role="button"][aria-label*="Expand"] {
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        pointer-events: auto !important;
+        position: fixed !important;
+        top: 10px !important;
+        left: 10px !important;
+        z-index: 999999 !important;
     }
     </style>
     """
