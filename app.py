@@ -519,27 +519,30 @@ def render_restaurant_sidebar(restaurant_portal: BusanRestaurantPortal):
         st.session_state.restaurant_items_to_show = 12
         st.rerun()
     
-    # 🔧 4개 권역 버튼 (구 이름만 표시, 이모지 제거)
+    # 🔧 4개 권역 버튼: 2열로 묶어서 배치
     regions_display = [
-        ("원도심권", "중구 동구 영도구 서구"),
-        ("동부산권", "해운대구 수영구 남구 기장군"),
-        ("서부산권", "사하구 강서구 사상구"),
+        ("원도심권", "중구 동구 영도구\n서구"),
+        ("동부산권", "해운대구 수영구\n남구 기장군"),
+        ("서부산권", "사하구 강서구\n사상구"),
         ("북부산권", "북구 금정구 동래구 연제구 부산진구")
     ]
-    
-    for region_key, district_names in regions_display:
-        is_selected = st.session_state.selected_restaurant_region == region_key
-        button_type = "primary" if is_selected else "secondary"
-        
-        if st.sidebar.button(
-            f"{district_names}", 
-            key=f"restaurant_region_{region_key}",
-            use_container_width=True,
-            type=button_type
-        ):
-            st.session_state.selected_restaurant_region = region_key
-            st.session_state.restaurant_items_to_show = 12
-            st.rerun()
+    for i in range(0, len(regions_display), 2):
+        cols = st.sidebar.columns(2)
+        for j, col in enumerate(cols):
+            idx = i + j
+            if idx < len(regions_display):
+                region_key, district_names = regions_display[idx]
+                is_sel = st.session_state.selected_restaurant_region == region_key
+                btn_type = "primary" if is_sel else "secondary"
+                if col.button(
+                    f"{district_names}",
+                    key=f"restaurant_region_{region_key}",
+                    use_container_width=True,
+                    type=btn_type
+                ):
+                    st.session_state.selected_restaurant_region = region_key
+                    st.session_state.restaurant_items_to_show = 12
+                    st.rerun()
     
     # 🔧 3. 음식종류별 필터 - 전체 1줄, 나머지 2줄 배치 (들여쓰기 수정)
     st.sidebar.subheader("🍜 음식종류")
