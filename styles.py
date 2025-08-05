@@ -17,21 +17,24 @@ def apply_all_styles():
     st.markdown(get_detail_page_css(), unsafe_allow_html=True)
 
 def get_deploy_hide_css():
-    """Deploy 버튼과 헤더 숨기기 CSS - 토글 버튼은 제외"""
+    """Deploy 버튼과 헤더 숨기기 CSS - 토글 버튼도 숨김"""
     return """
     <style>
-    /* Deploy 버튼과 세 줄 메뉴 숨기기 - 토글 버튼은 제외 */
-    [data-testid="stToolbar"]:not(:has(button[data-testid="collapsedControl"])),
-    [data-testid="stHeader"]:not(:has(button[data-testid="collapsedControl"])),
-    header[data-testid="stHeader"]:not(:has(button[data-testid="collapsedControl"])),
+    /* Deploy 버튼과 모든 헤더 요소 숨기기 - 토글 버튼도 포함 */
+    [data-testid="stToolbar"],
+    [data-testid="stHeader"],
+    header[data-testid="stHeader"],
     .stDeployButton,
     button[title*="Deploy"],
     button[aria-label*="Deploy"],
     a[href*="deploy"],
-    button[kind="header"]:not([data-testid="collapsedControl"]),
+    button[kind="header"],
+    button[data-testid="collapsedControl"],
+    button[aria-label*="sidebar"],
+    button[title*="sidebar"],
     iframe[title="streamlit_app"],
-    div[data-testid="stToolbar"]:not(:has(button[data-testid="collapsedControl"])),
-    section[data-testid="stToolbar"]:not(:has(button[data-testid="collapsedControl"])) {
+    div[data-testid="stToolbar"],
+    section[data-testid="stToolbar"] {
         display: none !important;
         visibility: hidden !important;
         opacity: 0 !important;
@@ -42,23 +45,10 @@ def get_deploy_hide_css():
         left: -9999px !important;
     }
 
-    /* 토글 버튼만 보이도록 */
-    button[data-testid="collapsedControl"],
-    [data-testid="collapsedControl"],
-    button[aria-label*="sidebar"],
-    button[title*="sidebar"] {
-        display: flex !important;
-        visibility: visible !important;
-        opacity: 1 !important;
-        pointer-events: auto !important;
-        position: relative !important;
-        z-index: 999999 !important;
-    }
-
     /* Deploy 관련 요소만 숨기기 */
-    *[class*="deploy" i]:not([data-testid="collapsedControl"]),
-    *[id*="deploy" i]:not([data-testid="collapsedControl"]),
-    *[data-testid*="deploy" i]:not([data-testid="collapsedControl"]) {
+    *[class*="deploy" i],
+    *[id*="deploy" i],
+    *[data-testid*="deploy" i] {
         display: none !important;
     }
     </style>
@@ -68,41 +58,6 @@ def get_base_button_css():
     """기본 버튼 스타일 및 호버 효과 CSS - 텍스트 크기 증가"""
     return """
     <style>
-    /* 사이드바 토글 버튼 완전 활성화 - 모든 가능한 선택자 포함 */
-    button[aria-label*="Open"],
-    button[title*="Open"],
-    button[aria-label*="sidebar"],
-    button[title*="sidebar"],
-    button[data-testid="collapsedControl"],
-    button[aria-label="Collapse sidebar"],
-    button[aria-label="Expand sidebar"],
-    button[aria-label*="Close"],
-    button[title*="Close"],
-    .css-vk3wp9,
-    .css-18ni7ap,
-    [class*="collapsedControl"],
-    [data-baseweb="button"][aria-label*="sidebar"] {
-        display: flex !important;
-        visibility: visible !important;
-        opacity: 1 !important;
-        pointer-events: auto !important;
-        cursor: pointer !important;
-        z-index: 999999 !important;
-        position: relative !important;
-    }
-
-    /* 토글 버튼 아이콘 스타일 */
-    [data-testid="collapsedControl"] svg,
-    button[data-testid="collapsedControl"] svg,
-    button[aria-label*="sidebar"] svg,
-    [class*="collapsedControl"] svg {
-        color: #4a5568 !important;
-        width: 18px !important;
-        height: 18px !important;
-        display: block !important;
-        visibility: visible !important;
-    }
-
     /* 호버 효과 제거 */
     *, *:hover {
         transition: none !important;
@@ -229,16 +184,72 @@ def get_navigation_css():
     """
 
 def get_sidebar_css():
-    """사이드바 스타일 CSS - 회색 기본, 보라색 호버 및 선택, 텍스트 크기 증가, 간격 극도로 타이트하게, 토글 버튼 활성화"""
+    """사이드바 스타일 CSS - 항상 펼쳐져 있고 토글 버튼 숨김"""
     return """
     <style>
+    /* 🔧 토글 버튼 완전 숨김 - 모든 가능한 선택자 포함 */
+    button[aria-label*="Open"],
+    button[title*="Open"],
+    button[aria-label*="sidebar"],
+    button[title*="sidebar"],
+    button[data-testid="collapsedControl"],
+    button[aria-label="Collapse sidebar"],
+    button[aria-label="Expand sidebar"],
+    button[aria-label*="Close"],
+    button[title*="Close"],
+    .css-vk3wp9,
+    .css-18ni7ap,
+    [class*="collapsedControl"],
+    [data-baseweb="button"][aria-label*="sidebar"],
+    .stApp [data-testid="collapsedControl"],
+    .stApp button[aria-label*="sidebar"],
+    .stApp button[title*="sidebar"],
+    .stApp header button[aria-label*="sidebar"] {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+        position: absolute !important;
+        left: -9999px !important;
+        width: 0 !important;
+        height: 0 !important;
+        overflow: hidden !important;
+    }
+
+    /* 🔧 사이드바 강제로 항상 펼쳐진 상태 유지 */
+    section[data-testid="stSidebar"] {
+        transform: translateX(0) !important;
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        width: 400px !important;
+        min-width: 400px !important;
+        max-width: 400px !important;
+        position: relative !important;
+        z-index: 1 !important;
+        background: linear-gradient(180deg, #4b5563 0%, #6b7280 50%, #9ca3af 100%) !important;
+    }
+
+    /* 🔧 사이드바가 접혀있는 상태 방지 */
+    .stApp[data-test-script-state="running"] section[data-testid="stSidebar"],
+    .stApp section[data-testid="stSidebar"] {
+        transform: translateX(0) !important;
+        margin-left: 0 !important;
+    }
+
+    /* 🔧 메인 콘텐츠가 사이드바를 고려하도록 조정 */
+    .stApp > div[data-testid="stAppViewContainer"] {
+        margin-left: 0 !important;
+        padding-left: 0 !important;
+    }
+
     /* 사이드바 입력창 텍스트 */
     section[data-testid="stSidebar"] input,
     section[data-testid="stSidebar"] .stTextInput input,
     section[data-testid="stSidebar"] textarea {
         color: black !important;
         background-color: white !important;
-        font-size: 18px !important;          /* 입력창 텍스트도 증가 */
+        font-size: 18px !important;
     }
 
     /* 사이드바 최상단 패딩 제거 */
@@ -248,7 +259,7 @@ def get_sidebar_css():
 
     section[data-testid="stSidebar"] > div {
         background-color: transparent !important;
-        padding: 0 8px 8px 8px !important;   /* 상단 패딩 완전 제거, 좌우하단만 최소 패딩 */
+        padding: 0 8px 8px 8px !important;
         margin-top: 0 !important;
     }
 
@@ -264,11 +275,11 @@ def get_sidebar_css():
         background: #6B7280 !important;
         border: 2px solid #6B7280 !important;
         color: white !important;
-        padding: 2px 4px !important;         /* 패딩 4px → 2px로 더 줄임 */
-        font-size: 32px !important;          /* 20px → 32px (텍스트만 더 크게) */
+        padding: 2px 4px !important;
+        font-size: 32px !important;
         font-weight: 1000 !important;
-        border-radius: 6px !important;       /* 둥근 모서리도 줄임 8px → 6px */
-        margin-bottom: 0px !important;       /* 버튼 간격 완전 제거 (1px → 0px) */
+        border-radius: 6px !important;
+        margin-bottom: 0px !important;
         margin-top: 0 !important;
     }
 
@@ -288,7 +299,7 @@ def get_sidebar_css():
         border: 2px solid #8B5CF6 !important;
         color: white !important;
         font-weight: 700 !important;
-        margin-bottom: 0px !important;       /* 선택된 버튼도 간격 완전 제거 */
+        margin-bottom: 0px !important;
     }
 
     /* 선택된 사이드바 버튼 호버 효과 */
@@ -301,25 +312,25 @@ def get_sidebar_css():
 
     /* 맛집 음식종류 버튼만 2열 유지 - 텍스트만 크게, 패딩은 원래대로, 간격 완전 제거 */
     section[data-testid="stSidebar"] button[data-testid*="restaurant_food_"] {
-        font-size: 16px !important;          /* 18px → 16px (조금 더 줄임) */
-        padding: 2px 2px !important;         /* 패딩 더 줄임 */
-        zoom: 0.8 !important;                /* 줌은 원래대로 */
-        margin-bottom: 0px !important;       /* 음식종류 버튼 간격 완전 제거 */
+        font-size: 16px !important;
+        padding: 2px 2px !important;
+        zoom: 0.8 !important;
+        margin-bottom: 0px !important;
     }
 
     /* 긴 텍스트 버튼만 더 작게 - 텍스트만 크게, 패딩은 원래대로, 간격 완전 제거 */
     section[data-testid="stSidebar"] button[data-testid*="restaurant_food_아시아분식"],
     section[data-testid="stSidebar"] button[data-testid*="restaurant_food_베이커리"] {
-        font-size: 14px !important;          /* 16px → 14px (조금 더 줄임) */
-        zoom: 0.7 !important;                /* 줌은 원래대로 */
-        padding: 1px 1px !important;         /* 패딩 더 줄임 */
-        margin-bottom: 0px !important;       /* 간격 완전 제거 */
+        font-size: 14px !important;
+        zoom: 0.7 !important;
+        padding: 1px 1px !important;
+        margin-bottom: 0px !important;
     }
 
     /* 사이드바 섹션 간격 더욱 줄이기 */
     section[data-testid="stSidebar"] .stMarkdown {
-        margin-bottom: 2px !important;       /* 4px → 2px (더욱 줄임) */
-        margin-top: 2px !important;          /* 4px → 2px (더욱 줄임) */
+        margin-bottom: 2px !important;
+        margin-top: 2px !important;
         padding-top: 0 !important;
         padding-bottom: 0 !important;
     }
@@ -328,11 +339,11 @@ def get_sidebar_css():
     section[data-testid="stSidebar"] h1,
     section[data-testid="stSidebar"] h2,
     section[data-testid="stSidebar"] h3 {
-        margin-bottom: 4px !important;       /* 8px → 4px (더욱 줄임) */
-        margin-top: 3px !important;          /* 6px → 3px (더욱 줄임) */
+        margin-bottom: 4px !important;
+        margin-top: 3px !important;
         padding-top: 0 !important;
         padding-bottom: 0 !important;
-        line-height: 1.1 !important;         /* 줄간격도 더 줄임 */
+        line-height: 1.1 !important;
     }
 
     /* 첫 번째 제목은 상단 마진 완전 제거 */
@@ -353,86 +364,59 @@ def get_sidebar_css():
     section[data-testid="stSidebar"] label,
     section[data-testid="stSidebar"] .stMarkdown * {
         color: white !important;
-        font-size: 18px !important;          /* 사이드바 일반 텍스트도 증가 */
+        font-size: 18px !important;
         margin-top: 0 !important;
-        margin-bottom: 1px !important;       /* 텍스트 간격도 더 줄임 */
+        margin-bottom: 1px !important;
     }
 
     /* 사이드바 제목들 더 크게 */
     section[data-testid="stSidebar"] h1 {
-        font-size: 24px !important;         /* 26px → 24px (조금 더 줄임) */
+        font-size: 24px !important;
     }
 
     section[data-testid="stSidebar"] h2 {
-        font-size: 20px !important;         /* 22px → 20px (조금 더 줄임) */
+        font-size: 20px !important;
     }
 
     section[data-testid="stSidebar"] h3 {
-        font-size: 18px !important;         /* 20px → 18px (조금 더 줄임) */
+        font-size: 18px !important;
     }
 
     /* 사이드바 컬럼 간격 극도로 줄이기 (2열 배치용) */
     section[data-testid="stSidebar"] .stColumn {
         min-width: unset !important;
         width: 50% !important;
-        padding: 0 0.5px !important;         /* 1px → 0.5px (더 줄임) */
+        padding: 0 0.5px !important;
         margin: 0 !important;
     }
 
     /* 입력창과 첫 번째 섹션 사이 간격 줄이기 */
     section[data-testid="stSidebar"] .stTextInput {
-        margin-bottom: 4px !important;      /* 입력창 하단 간격 더 줄임 */
+        margin-bottom: 4px !important;
     }
 
-    /* 사이드바 배경 그라데이션 */
-    section[data-testid="stSidebar"],
-    .css-1d391kg,
-    .css-1lcbmhc {
-        background: linear-gradient(180deg, #4b5563 0%, #6b7280 50%, #9ca3af 100%) !important;
-        width: 400px !important;
-        min-width: 400px !important;
-        max-width: 400px !important;
-    }
-
-    /* 토글 버튼 강제 활성화 - 추가 CSS */
-    .stApp [data-testid="collapsedControl"],
-    .stApp button[aria-label*="sidebar"],
-    .stApp button[title*="sidebar"] {
-        display: block !important;
-        visibility: visible !important;
-        opacity: 1 !important;
-        pointer-events: auto !important;
-        position: relative !important;
-        z-index: 999999 !important;
-    }
-
-    /* 토글 버튼이 숨겨지는 것을 방지 */
-    .stApp header button,
-    .stApp [data-testid="stHeader"] button {
-        display: block !important;
-        visibility: visible !important;
-        pointer-events: auto !important;
-    }
-
-    /* 네비 영역을 화면 전체 너비의 70%로 확장 */
-    section[data-testid="stToolbar"] + div > div:first-child > div:nth-child(2) {
-        flex: 0 0 70% !important;
-        max-width: 70% !important;
-    }
-
-    /* 접힌 상태에서 Open sidebar 버튼 뒤의 모든 요소 숨기기 */
-    section[data-testid="stSidebar"] > button[aria-label*="Open sidebar"] ~ * {
+    /* 🔧 접힌 상태 방지 - Open sidebar 버튼 관련 모든 요소 숨김 */
+    section[data-testid="stSidebar"] > button[aria-label*="Open sidebar"],
+    section[data-testid="stSidebar"] > button[aria-label*="Close sidebar"] {
         display: none !important;
+        visibility: hidden !important;
     }
 
     /* 버튼 안에서 '\n'이 개행으로 보이도록 */
     section[data-testid="stSidebar"] button {
         white-space: pre-line !important;
-        min-height: 2.5rem !important;      /* 최소 높이 조금 줄임 */
-        padding: 0.25rem 0.5rem !important; /* 위아래·좌우 패딩 더 줄임 */
+        min-height: 2.5rem !important;
+        padding: 0.25rem 0.5rem !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
+    }
+
+    /* 🔧 Streamlit 초기화 완료 후에도 사이드바 펼침 상태 유지 */
+    .stApp:not([data-testid="stDecoratedText"]) section[data-testid="stSidebar"] {
+        transform: translateX(0) !important;
+        margin-left: 0 !important;
+        width: 400px !important;
     }
     </style>
     """
