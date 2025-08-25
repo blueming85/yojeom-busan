@@ -1,667 +1,732 @@
 """
-부산시청 정보포털 - CSS 스타일 관리 모듈
-==========================================
-앱의 모든 CSS 스타일을 기능별로 분리하여 관리
+부산시청 정보포털 - Streamlit 앱 (보도자료 + 맛집정보 + 업무계획)
+=================================================================
+태그 색상 기반 카드형 UI로 보도자료, 맛집정보, 업무계획을 쉽게 검색하고 확인할 수 있는 통합 포털
+
+실행 방법:
+    streamlit run app.py
 """
 
 import streamlit as st
 
-def apply_all_styles():
-    """모든 CSS 스타일을 한 번에 적용"""
-    st.markdown(get_deploy_hide_css(), unsafe_allow_html=True)
-    st.markdown(get_base_button_css(), unsafe_allow_html=True)
-    st.markdown(get_navigation_css(), unsafe_allow_html=True)
-    st.markdown(get_sidebar_css(), unsafe_allow_html=True)
-    st.markdown(get_responsive_css(), unsafe_allow_html=True)
-    st.markdown(get_card_styles_css(), unsafe_allow_html=True)
-    st.markdown(get_detail_page_css(), unsafe_allow_html=True)
+# 🔧 페이지 설정 (반드시 첫 번째 Streamlit 명령이어야 함)
+st.set_page_config(
+    page_title="요즘 부산",
+    page_icon="🏢",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 
-def get_deploy_hide_css():
-    """Deploy 버튼과 헤더 숨기기 CSS - 토글 버튼도 숨김"""
-    return """
-    <style>
-    /* Deploy 버튼과 모든 헤더 요소 숨기기 - 토글 버튼도 포함 */
-    [data-testid="stToolbar"],
-    [data-testid="stHeader"],
-    header[data-testid="stHeader"],
-    .stDeployButton,
-    button[title*="Deploy"],
-    button[aria-label*="Deploy"],
-    a[href*="deploy"],
-    button[kind="header"],
-    button[data-testid="collapsedControl"],
-    button[aria-label*="sidebar"],
-    button[title*="sidebar"],
-    iframe[title="streamlit_app"],
-    div[data-testid="stToolbar"],
-    section[data-testid="stToolbar"] {
-        display: none !important;
-        visibility: hidden !important;
-        opacity: 0 !important;
-        height: 0 !important;
-        width: 0 !important;
-        overflow: hidden !important;
-        position: absolute !important;
-        left: -9999px !important;
-    }
+# 나머지 import들
+import json
+import re
+from datetime import datetime, timedelta
+from pathlib import Path
+from typing import List, Dict, Optional
+import streamlit.components.v1 as components
+import time
+from streamlit_scroll_to_top import scroll_to_here
 
-    /* Deploy 관련 요소만 숨기기 */
-    *[class*="deploy" i],
-    *[id*="deploy" i],
-    *[data-testid*="deploy" i] {
-        display: none !important;
-    }
-    </style>
-    """
+# 프로젝트 모듈 import
+from config import (
+    MD_DIR, AVAILABLE_TAGS, TAG_COLORS,
+    PLANS_MD_DIR, PLAN_DEPARTMENTS, AVAILABLE_PLAN_TAGS, PLAN_TAG_COLORS,
+    AVAILABLE_RESTAURANT_REGIONS, RESTAURANT_FOOD_TYPES, AVAILABLE_RESTAURANT_CATEGORIES,
+    RESTAURANT_REGION_COLORS, RESTAURANT_FOOD_TYPE_COLORS, RESTAURANT_CATEGORY_COLORS,
+    IS_LOCAL, get_env_info, MESSAGES
+)
+from plans_portal import BusanPlansPortal
+from restaurant_portal import BusanRestaurantPortal, get_restaurant_portal_stats
+from detail_pages import (
+    render_header, render_news_detail, render_restaurant_detail, render_plans_detail,
+    render_news_grid_with_scroll, render_restaurant_grid_with_scroll, render_plans_grid_with_scroll,
+    render_restaurant_map_with_sidebar,  # 🔧 지도 함수 추가
+    extract_contact_from_content
+)
 
-def get_base_button_css():
-    """기본 버튼 스타일 및 호버 효과 CSS - 텍스트 크기 증가"""
-    return """
-    <style>
-    /* 호버 효과 제거 */
-    *, *:hover {
-        transition: none !important;
-    }
-
-    /* 메인 콘텐츠 버튼 기본 스타일 - 텍스트만 크게, 패딩은 원래대로 */
-    button, 
-    .stButton button,
-    div.stButton > button,
-    [data-testid="baseButton-primary"],
-    [data-testid="baseButton-secondary"],
-    a[data-testid="stLinkButton"],
-    .stLinkButton > a,
-    button[key*="detail_btn"],
-    button[key*="news_detail_btn"],
-    button[key*="restaurant_detail_btn"],
-    button[key*="plans_detail_btn"],
-    button[key*="back_btn"],
-    button[key*="load_more"] {
-        height: auto !important;
-        padding: 20px 18px !important;        /* 원래 패딩 유지 */
-        font-size: 45px !important;           /* 30px → 45px (텍스트만 더 크게) */
-        font-weight: 700 !important;
-        background: #fff !important;
-        color: #4A148C !important;
-        border: 2px solid #4A148C !important;
-        border-radius: 15px !important;
-        outline: none !important;
-        box-shadow: none !important;
-        text-decoration: none !important;
-        display: block !important;
-        text-align: center !important;
-    }
-
-    /* 메인 콘텐츠 버튼 호버 효과 */
-    button:hover, button:focus,
-    .stButton button:hover, .stButton button:focus,
-    div.stButton > button:hover, div.stButton > button:focus,
-    [data-testid="baseButton-primary"]:hover, [data-testid="baseButton-primary"]:focus,
-    [data-testid="baseButton-secondary"]:hover, [data-testid="baseButton-secondary"]:focus,
-    a[data-testid="stLinkButton"]:hover, a[data-testid="stLinkButton"]:focus,
-    .stLinkButton > a:hover, .stLinkButton > a:focus,
-    button[key*="detail_btn"]:hover, button[key*="detail_btn"]:focus,
-    button[key*="news_detail_btn"]:hover, button[key*="news_detail_btn"]:focus,
-    button[key*="restaurant_detail_btn"]:hover, button[key*="restaurant_detail_btn"]:focus,
-    button[key*="plans_detail_btn"]:hover, button[key*="plans_detail_btn"]:focus,
-    button[key*="back_btn"]:hover, button[key*="back_btn"]:focus,
-    button[key*="load_more"]:hover, button[key*="load_more"]:focus {
-        background: #4A148C !important;
-        color: white !important;
-        border: 2px solid #4A148C !important;
-        outline: none !important;
-        box-shadow: none !important;
-    }
-    </style>
-    """
-
-def get_navigation_css():
-    """네비게이션 버튼 스타일 CSS - 텍스트 크기 증가"""
-    return """
-    <style>
-    /* 네비게이션 버튼 - 모든 경우에 대해 강력하게 적용 */
-    button[data-testid="nav_news"],
-    button[data-testid="nav_restaurants"], 
-    button[data-testid="nav_plans"],
-    button[key="nav_news"],
-    button[key="nav_restaurants"],
-    button[key="nav_plans"],
-    button[kind="primary"][data-testid*="nav_"],
-    button[kind="secondary"][data-testid*="nav_"] {
-        background: #4A148C !important;
-        color: white !important;
-        border: 2px solid #4A148C !important;
-        font-weight: 700 !important;
-        padding: 16px 24px !important;
-        font-size: 45px !important;          /* 강력하게 45px 적용 */
-        border-radius: 8px !important;
-        box-shadow: none !important;
-    }
-
-    /* 네비게이션 버튼 - primary(활성) 스타일 - 텍스트만 크게, 패딩은 원래대로 */
-    button[kind="primary"][data-testid*="nav_"] {
-        background: #4A148C !important;
-        color: white !important;
-        border: 2px solid #4A148C !important;
-        font-weight: 700 !important;
-        padding: 16px 24px !important;       /* 원래 패딩 유지 */
-        font-size: 45px !important;          /* 32px → 45px (텍스트만 더 크게) */
-        border-radius: 8px !important;
-        box-shadow: none !important;
-    }
-
-    /* 네비게이션 버튼 - primary 호버 효과 */
-    button[kind="primary"][data-testid*="nav_"]:hover,
-    button[data-testid="nav_news"]:hover,
-    button[data-testid="nav_restaurants"]:hover,
-    button[data-testid="nav_plans"]:hover {
-        background: #6B21A8 !important;
-        color: white !important;
-        border: 2px solid #6B21A8 !important;
-        box-shadow: none !important;
-    }
-
-    /* 네비게이션 버튼 - secondary(비활성) 스타일 - 텍스트만 크게, 패딩은 원래대로 */
-    button[kind="secondary"][data-testid*="nav_"] {
-        background: #fff !important;
-        color: #4A148C !important;
-        border: 2px solid #4A148C !important;
-        font-weight: 700 !important;
-        padding: 16px 24px !important;       /* 원래 패딩 유지 */
-        font-size: 45px !important;          /* 32px → 45px (텍스트만 더 크게) */
-        border-radius: 8px !important;
-        box-shadow: none !important;
-    }
-
-    /* 네비게이션 버튼 - secondary 호버 효과 */
-    button[kind="secondary"][data-testid*="nav_"]:hover {
-        background: #4A148C !important;
-        color: white !important;
-        border: 2px solid #4A148C !important;
-        box-shadow: none !important;
-    }
-    </style>
-    """
-
-def get_sidebar_css():
-    """사이드바 스타일 CSS - 항상 펼쳐져 있고 토글 버튼 숨김"""
-    return """
-    <style>
-    /* 🔧 토글 버튼 완전 숨김 - 모든 가능한 선택자 포함 */
-    button[aria-label*="Open"],
-    button[title*="Open"],
-    button[aria-label*="sidebar"],
-    button[title*="sidebar"],
-    button[data-testid="collapsedControl"],
-    button[aria-label="Collapse sidebar"],
-    button[aria-label="Expand sidebar"],
-    button[aria-label*="Close"],
-    button[title*="Close"],
-    .css-vk3wp9,
-    .css-18ni7ap,
-    [class*="collapsedControl"],
-    [data-baseweb="button"][aria-label*="sidebar"],
-    .stApp [data-testid="collapsedControl"],
-    .stApp button[aria-label*="sidebar"],
-    .stApp button[title*="sidebar"],
-    .stApp header button[aria-label*="sidebar"] {
-        display: none !important;
-        visibility: hidden !important;
-        opacity: 0 !important;
-        pointer-events: none !important;
-        position: absolute !important;
-        left: -9999px !important;
-        width: 0 !important;
-        height: 0 !important;
-        overflow: hidden !important;
-    }
-
-    /* 🔧 사이드바 강제로 항상 펼쳐진 상태 유지 */
-    section[data-testid="stSidebar"] {
-        transform: translateX(0) !important;
-        display: block !important;
-        visibility: visible !important;
-        opacity: 1 !important;
-        width: 400px !important;
-        min-width: 400px !important;
-        max-width: 400px !important;
-        position: relative !important;
-        z-index: 1 !important;
-        background: linear-gradient(180deg, #4b5563 0%, #6b7280 50%, #9ca3af 100%) !important;
-    }
-
-    /* 🔧 사이드바가 접혀있는 상태 방지 */
-    .stApp[data-test-script-state="running"] section[data-testid="stSidebar"],
-    .stApp section[data-testid="stSidebar"] {
-        transform: translateX(0) !important;
-        margin-left: 0 !important;
-    }
-
-    /* 🔧 메인 콘텐츠가 사이드바를 고려하도록 조정 */
-    .stApp > div[data-testid="stAppViewContainer"] {
-        margin-left: 0 !important;
-        padding-left: 0 !important;
-    }
-
-    /* 사이드바 입력창 텍스트 */
-    section[data-testid="stSidebar"] input,
-    section[data-testid="stSidebar"] .stTextInput input,
-    section[data-testid="stSidebar"] textarea {
-        color: black !important;
-        background-color: white !important;
-        font-size: 18px !important;
-    }
-
-    /* 사이드바 최상단 패딩 제거 */
-    section[data-testid="stSidebar"] {
-        padding-top: 0 !important;
-    }
-
-    section[data-testid="stSidebar"] > div {
-        background-color: transparent !important;
-        padding: 0 8px 8px 8px !important;
-        margin-top: 0 !important;
-    }
-
-    /* 사이드바 첫 번째 요소 상단 마진 제거 */
-    section[data-testid="stSidebar"] > div > div:first-child {
-        margin-top: 0 !important;
-        padding-top: 0 !important;
-    }
-
-    /* 사이드바 버튼 기본 상태 - 회색, 텍스트만 크게, 패딩은 원래대로, 간격 극극극도로 타이트하게 */
-    section[data-testid="stSidebar"] button,
-    section[data-testid="stSidebar"] .stButton button {
-        background: #6B7280 !important;
-        border: 2px solid #6B7280 !important;
-        color: white !important;
-        padding: 2px 4px !important;
-        font-size: 32px !important;
-        font-weight: 1000 !important;
-        border-radius: 6px !important;
-        margin-bottom: 0px !important;
-        margin-top: 0 !important;
-    }
-
-    /* 사이드바 버튼 호버 효과 - 보라색 */
-    section[data-testid="stSidebar"] button:hover,
-    section[data-testid="stSidebar"] button:focus {
-        background: #8B5CF6 !important;
-        border: 2px solid #8B5CF6 !important;
-        color: white !important;
-        outline: none !important;
-        box-shadow: none !important;
-    }
-
-    /* 선택된 사이드바 버튼 (primary) - 보라색 */
-    section[data-testid="stSidebar"] button[kind="primary"] {
-        background: #8B5CF6 !important;
-        border: 2px solid #8B5CF6 !important;
-        color: white !important;
-        font-weight: 700 !important;
-        margin-bottom: 0px !important;
-    }
-
-    /* 선택된 사이드바 버튼 호버 효과 */
-    section[data-testid="stSidebar"] button[kind="primary"]:hover,
-    section[data-testid="stSidebar"] button[kind="primary"]:focus {
-        background: #7C3AED !important;
-        border: 2px solid #7C3AED !important;
-        color: white !important;
-    }
-
-    /* 맛집 음식종류 버튼만 2열 유지 - 텍스트만 크게, 패딩은 원래대로, 간격 완전 제거 */
-    section[data-testid="stSidebar"] button[data-testid*="restaurant_food_"] {
-        font-size: 16px !important;
-        padding: 2px 2px !important;
-        zoom: 0.8 !important;
-        margin-bottom: 0px !important;
-    }
-
-    /* 긴 텍스트 버튼만 더 작게 - 텍스트만 크게, 패딩은 원래대로, 간격 완전 제거 */
-    section[data-testid="stSidebar"] button[data-testid*="restaurant_food_아시아분식"],
-    section[data-testid="stSidebar"] button[data-testid*="restaurant_food_베이커리"] {
-        font-size: 14px !important;
-        zoom: 0.7 !important;
-        padding: 1px 1px !important;
-        margin-bottom: 0px !important;
-    }
-
-    /* 사이드바 섹션 간격 더욱 줄이기 */
-    section[data-testid="stSidebar"] .stMarkdown {
-        margin-bottom: 2px !important;
-        margin-top: 2px !important;
-        padding-top: 0 !important;
-        padding-bottom: 0 !important;
-    }
-
-    /* 사이드바 제목들 간격 더욱 줄이기 */
-    section[data-testid="stSidebar"] h1,
-    section[data-testid="stSidebar"] h2,
-    section[data-testid="stSidebar"] h3 {
-        margin-bottom: 4px !important;
-        margin-top: 3px !important;
-        padding-top: 0 !important;
-        padding-bottom: 0 !important;
-        line-height: 1.1 !important;
-    }
-
-    /* 첫 번째 제목은 상단 마진 완전 제거 */
-    section[data-testid="stSidebar"] h1:first-child,
-    section[data-testid="stSidebar"] h2:first-child,
-    section[data-testid="stSidebar"] h3:first-child {
-        margin-top: 0 !important;
-        padding-top: 0 !important;
-    }
-
-    /* 사이드바 텍스트 색상 및 크기 */
-    section[data-testid="stSidebar"] h1,
-    section[data-testid="stSidebar"] h2,
-    section[data-testid="stSidebar"] h3,
-    section[data-testid="stSidebar"] h4,
-    section[data-testid="stSidebar"] p,
-    section[data-testid="stSidebar"] span,
-    section[data-testid="stSidebar"] label,
-    section[data-testid="stSidebar"] .stMarkdown * {
-        color: white !important;
-        font-size: 18px !important;
-        margin-top: 0 !important;
-        margin-bottom: 1px !important;
-    }
-
-    /* 사이드바 제목들 더 크게 */
-    section[data-testid="stSidebar"] h1 {
-        font-size: 24px !important;
-    }
-
-    section[data-testid="stSidebar"] h2 {
-        font-size: 20px !important;
-    }
-
-    section[data-testid="stSidebar"] h3 {
-        font-size: 18px !important;
-    }
-
-    /* 사이드바 컬럼 간격 극도로 줄이기 (2열 배치용) */
-    section[data-testid="stSidebar"] .stColumn {
-        min-width: unset !important;
-        width: 50% !important;
-        padding: 0 0.5px !important;
-        margin: 0 !important;
-    }
-
-    /* 입력창과 첫 번째 섹션 사이 간격 줄이기 */
-    section[data-testid="stSidebar"] .stTextInput {
-        margin-bottom: 4px !important;
-    }
-
-    /* 🔧 접힌 상태 방지 - Open sidebar 버튼 관련 모든 요소 숨김 */
-    section[data-testid="stSidebar"] > button[aria-label*="Open sidebar"],
-    section[data-testid="stSidebar"] > button[aria-label*="Close sidebar"] {
-        display: none !important;
-        visibility: hidden !important;
-    }
-
-    /* 버튼 안에서 '\n'이 개행으로 보이도록 */
-    section[data-testid="stSidebar"] button {
-        white-space: pre-line !important;
-        min-height: 2.5rem !important;
-        padding: 0.25rem 0.5rem !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-    }
-
-    /* 🔧 Streamlit 초기화 완료 후에도 사이드바 펼침 상태 유지 */
-    .stApp:not([data-testid="stDecoratedText"]) section[data-testid="stSidebar"] {
-        transform: translateX(0) !important;
-        margin-left: 0 !important;
-        width: 400px !important;
-    }
-    </style>
-    """
-
-def get_responsive_css():
-    """반응형 디자인 CSS"""
-    return """
-    <style>
-    /* 데스크톱 기본 */
-    .stColumn {
-        padding: 0 0.3rem;
-        min-width: 250px;
-    }
-
-    /* 태블릿 */
-    @media (max-width: 1024px) {
-        .stColumn {
-            min-width: 300px;
-            padding: 0 0.5rem;
-        }
+class BusanNewsPortal:
+    """부산시청 보도자료 포털 메인 클래스"""
+    
+    def __init__(self):
+        self.md_dir = MD_DIR
+        self.news_data = []
+        self.load_news_data()
+    
+    def load_news_data(self) -> List[Dict]:
+        """마크다운 파일들에서 뉴스 데이터 로드"""
+        news_list = []
         
-        /* 태블릿에서 버튼 텍스트만 크게 */
-        button, .stButton button {
-            font-size: 40px !important;
-        }
+        if not self.md_dir.exists():
+            st.error(f"📁 마크다운 디렉토리가 없습니다: {self.md_dir}")
+            return []
         
-        section[data-testid="stSidebar"] button {
-            font-size: 28px !important;
+        md_files = list(self.md_dir.glob("*.md"))
+        
+        if not md_files:
+            st.warning("📄 마크다운 파일이 없습니다. 크롤링을 먼저 실행해주세요.")
+            return []
+        
+        for md_file in md_files:
+            try:
+                news_item = self._parse_markdown_file(md_file)
+                if news_item:
+                    news_list.append(news_item)
+            except Exception as e:
+                st.error(f"파일 파싱 오류 {md_file.name}: {e}")
+                continue
+        
+        # 날짜순 정렬 (최신순)
+        news_list.sort(key=lambda x: x['date'], reverse=True)
+        self.news_data = news_list
+        
+        return news_list
+    
+    def _parse_markdown_file(self, md_file: Path) -> Optional[Dict]:
+        """마크다운 파일에서 메타데이터와 내용 추출"""
+        try:
+            with open(md_file, 'r', encoding='utf-8') as f:
+                content = f.read()
+            
+            # frontmatter 파싱
+            if not content.startswith('---'):
+                return None
+            
+            frontmatter_end = content.find('---', 3)
+            if frontmatter_end == -1:
+                return None
+            
+            frontmatter = content[3:frontmatter_end]
+            body = content[frontmatter_end + 3:].strip()
+            
+            # 메타데이터 추출
+            metadata = {}
+            for line in frontmatter.split('\n'):
+                line = line.strip()
+                if ':' in line:
+                    key, value = line.split(':', 1)
+                    key = key.strip()
+                    value = value.strip().strip('"\'')
+                    
+                    if key == 'tags':
+                        # JSON 형태의 태그 파싱
+                        try:
+                            metadata[key] = json.loads(value)
+                        except:
+                            # 간단한 형태 파싱
+                            tags = value.strip('[]').replace('"', '').split(',')
+                            metadata[key] = [tag.strip() for tag in tags if tag.strip()]
+                    else:
+                        metadata[key] = value
+            
+            # 본문에서 요약 추출
+            summary = self._extract_summary_from_body(body)
+            
+            return {
+                'title': metadata.get('title', '제목 없음'),
+                'date': metadata.get('date', '날짜 없음'),
+                'tags': metadata.get('tags', []),
+                'source_url': metadata.get('source_url', ''),
+                'thumbnail_summary': metadata.get('thumbnail_summary', ''),
+                'detailed_summary': summary,
+                'file_path': str(md_file)
+            }
+            
+        except Exception as e:
+            st.error(f"마크다운 파싱 오류: {e}")
+            return None
+    
+    def _extract_summary_from_body(self, body: str) -> str:
+        """본문에서 요약 추출"""
+        lines = body.split('\n')
+        summary_lines = []
+        
+        # "## 📋 주요 내용" 부분 찾기
+        in_main_content = False
+        
+        for line in lines:
+            line = line.strip()
+            if '## 📋 주요 내용' in line or '## 📋 핵심 내용' in line:
+                in_main_content = True
+                continue
+            elif line.startswith('##') and in_main_content:
+                break
+            elif in_main_content and line and not line.startswith('#'):
+                summary_lines.append(line)
+        
+        return '\n'.join(summary_lines).strip() if summary_lines else body[:200] + "..."
+    
+    def get_tag_stats(self) -> Dict:
+        """태그별 통계 계산"""
+        tag_counts = {}
+        
+        for news in self.news_data:
+            for tag in news['tags']:
+                tag_counts[tag] = tag_counts.get(tag, 0) + 1
+        
+        return tag_counts
+    
+    def get_recent_stats(self, days: int = 7) -> Dict:
+        """최근 통계 계산"""
+        cutoff_date = datetime.now() - timedelta(days=days)
+        recent_count = 0
+        
+        for news in self.news_data:
+            try:
+                news_date = datetime.strptime(news['date'], '%Y-%m-%d')
+                if news_date >= cutoff_date:
+                    recent_count += 1
+            except:
+                continue
+        
+        return {
+            'total': len(self.news_data),
+            'recent': recent_count,
+            'days': days
         }
-    }
+    
+    def filter_news(self, selected_tags: List[str] = None, 
+                   search_query: str = "", 
+                   date_range: tuple = None) -> List[Dict]:
+        """뉴스 필터링"""
+        filtered_news = self.news_data.copy()
+        
+        # 태그 필터링
+        if selected_tags and "전체" not in selected_tags:
+            filtered_news = [
+                news for news in filtered_news 
+                if any(tag in selected_tags for tag in news['tags'])
+            ]
+        
+        # 검색어 필터링
+        if search_query:
+            search_query = search_query.lower()
+            filtered_news = [
+                news for news in filtered_news
+                if (search_query in news['title'].lower() or 
+                    search_query in news.get('detailed_summary', '').lower())
+            ]
+        
+        # 날짜 필터링
+        if date_range:
+            start_date, end_date = date_range
+            filtered_news = [
+                news for news in filtered_news
+                if start_date <= datetime.strptime(news['date'], '%Y-%m-%d').date() <= end_date
+            ]
+        
+        return filtered_news
 
-    /* 모바일 */
-    @media (max-width: 768px) {
-        .stColumn {
-            min-width: 100% !important;
-            padding: 0 1rem;
-            margin-bottom: 1rem;
-        }
+def render_news_sidebar(portal: BusanNewsPortal):
+    """보도자료 전용 사이드바 - rerun 제거"""
+    st.sidebar.header("🔍 필터 및 검색")
+    
+    # 검색어 입력
+    search_query = st.sidebar.text_input(
+        "🔎 검색어",
+        placeholder="제목이나 내용 검색",
+        help="보도자료 제목이나 내용에서 검색합니다.",
+        key="news_search_input"
+    )
+    
+    # 태그 선택 버튼들
+    sidebar_tags = [
+        ("🏠 전체", "전체"),
+        ("👨‍🎓 청년·교육", "청년·교육"),
+        ("💼 일자리·경제", "일자리·경제"), 
+        ("❤️ 복지·건강", "복지·건강"),
+        ("🚌 교통·주거", "교통·주거"),
+        ("🎭 문화·관광", "문화·관광"),
+        ("🛡️ 안전·환경", "안전·환경"),
+        ("🏛️ 행정·소식", "행정·소식")
+    ]
+    
+    # 태그별 통계 계산
+    tag_stats = portal.get_tag_stats()
+    total_count = len(portal.news_data)
+    tag_stats["전체"] = total_count
+    
+    st.sidebar.subheader("🏷️ 분야 선택")
+    
+    # 세션 상태에서 선택된 태그 관리
+    if 'selected_news_tag' not in st.session_state:
+        st.session_state.selected_news_tag = "전체"
+    
+    selected_tags = []
+    
+    # 1열로 버튼 배치 - 🔧 rerun 제거
+    for display_name, tag_value in sidebar_tags:
+        count = tag_stats.get(tag_value, 0)
+        is_selected = st.session_state.selected_news_tag == tag_value
+        button_type = "primary" if is_selected else "secondary"
         
-        .news-title-box {
-            min-height: 80px !important;
-            font-size: 16px !important;
-        }
-        
-        .news-summary {
-            height: 60px !important;
-            font-size: 12px !important;
-        }
-        
-        /* 모바일에서 버튼 텍스트만 크게 */
-        button, .stButton button {
-            font-size: 35px !important;
-        }
-        
-        section[data-testid="stSidebar"] button {
-            font-size: 24px !important;
-        }
-    }
+        if st.sidebar.button(
+            f"{display_name} ({count}개)", 
+            key=f"news_tag_{tag_value}",
+            use_container_width=True,
+            type=button_type
+        ):
+            st.session_state.selected_news_tag = tag_value
+            st.session_state.items_to_show = 12
+            # 🔧 st.rerun() 제거 - 버튼 자체가 rerun을 발생시킴
+    
+    selected_tags = [st.session_state.selected_news_tag] if st.session_state.selected_news_tag != "전체" else ["전체"]
+    
+    # 날짜 범위 선택
+    st.sidebar.subheader("📅 날짜 범위")
+    date_filter = st.sidebar.radio(
+        "기간 선택",
+        ["전체", "최근 7일", "최근 30일", "사용자 정의"],
+        key="news_date_filter"
+    )
+    
+    date_range = None
+    if date_filter == "최근 7일":
+        end_date = datetime.now().date()
+        start_date = end_date - timedelta(days=7)
+        date_range = (start_date, end_date)
+    elif date_filter == "최근 30일":
+        end_date = datetime.now().date()
+        start_date = end_date - timedelta(days=30)
+        date_range = (start_date, end_date)
+    elif date_filter == "사용자 정의":
+        col1, col2 = st.sidebar.columns(2)
+        with col1:
+            start_date = st.sidebar.date_input("시작일", key="news_start_date")
+        with col2:
+            end_date = st.sidebar.date_input("종료일", key="news_end_date")
+        if start_date and end_date:
+            date_range = (start_date, end_date)
+    
+    # 통계 정보
+    st.sidebar.divider()
+    st.sidebar.subheader("📊 선택된 분야")
+    stats = portal.get_recent_stats()
+    
+    if st.session_state.selected_news_tag == "전체":
+        st.sidebar.success(f"🏠 **전체 보도자료**: {stats['total']}개")
+    else:
+        selected_count = tag_stats.get(st.session_state.selected_news_tag, 0)
+        emoji_tag = next((display for display, tag in sidebar_tags if tag == st.session_state.selected_news_tag), st.session_state.selected_news_tag)
+        st.sidebar.success(f"**{emoji_tag}**: {selected_count}개")
+    
+    col1, col2 = st.sidebar.columns(2)
+    with col1:
+        st.metric("전체", stats['total'])
+    with col2:
+        st.metric("최근 7일", stats['recent'])
+    
+    return search_query, selected_tags, date_range
 
-    /* 작은 모바일 */
-    @media (max-width: 480px) {
-        .news-title-box {
-            min-height: 60px !important;
-            font-size: 14px !important;
-            padding: 10px !important;
-        }
+def render_restaurant_sidebar(restaurant_portal: BusanRestaurantPortal):
+    """맛집정보 전용 사이드바 - 🔧 사이드바 버튼들에만 rerun 추가"""
+    st.sidebar.header("🍽️ 맛집 필터")
+    
+    # 세션 변수 초기화
+    if 'selected_restaurant_category' not in st.session_state:
+        st.session_state.selected_restaurant_category = "전체"
+    if 'selected_restaurant_region' not in st.session_state:
+        st.session_state.selected_restaurant_region = "전체"
+    if 'selected_restaurant_food_type' not in st.session_state:
+        st.session_state.selected_restaurant_food_type = "전체"
+    
+    # 검색어 입력
+    search_query = st.sidebar.text_input(
+        "🔎 검색어",
+        placeholder="맛집명, 지역, 음식종류 검색",
+        help="맛집명, 지역, 음식종류, 메뉴에서 검색합니다.",
+        key="restaurant_search_input"
+    )
+    
+    # 1. 카테고리별 필터 (제일 상단) - 1열 배치 - 🔧 rerun 추가
+    st.sidebar.subheader("⭐ 카테고리")
+    category_stats = restaurant_portal.get_category_stats()
+    
+    # 전체 버튼 (전체 너비)
+    is_selected = st.session_state.selected_restaurant_category == "전체"
+    button_type = "primary" if is_selected else "secondary"
+    
+    if st.sidebar.button(
+        f"🏠 전체 ({category_stats.get('전체', 0)}개)", 
+        key="restaurant_category_all",
+        use_container_width=True,
+        type=button_type
+    ):
+        st.session_state.selected_restaurant_category = "전체"
+        st.session_state.restaurant_items_to_show = 12
+        # 🔧 필터 변경 시그니처 초기화 + rerun 추가
+        st.session_state["_filter_sig"] = ""
+        st.rerun()
+    
+    # 나머지 카테고리 버튼들 (1열 배치) - 🔧 rerun 추가
+    other_categories = [cat for cat in AVAILABLE_RESTAURANT_CATEGORIES if cat != "전체"]
+    for category in other_categories:
+        count = category_stats.get(category, 0)
+        is_selected = st.session_state.selected_restaurant_category == category
+        button_type = "primary" if is_selected else "secondary"
         
-        .news-summary {
-            height: 50px !important;
-            font-size: 11px !important;
-            padding: 10px !important;
-        }
+        emoji = ""
+        if category == "미쉐린가이드":
+            emoji = "⭐"
+        elif category == "부산의맛":
+            emoji = "🍽️"
+        elif category == "현지인":
+            emoji = "👥"
         
-        /* 작은 모바일에서 버튼 텍스트만 크게 */
-        button, .stButton button {
-            font-size: 30px !important;
-        }
+        if st.sidebar.button(
+            f"{emoji} {category} ({count}개)", 
+            key=f"restaurant_category_{category.replace(' ', '_')}",
+            use_container_width=True,
+            type=button_type
+        ):
+            st.session_state.selected_restaurant_category = category
+            st.session_state.restaurant_items_to_show = 12
+            # 🔧 필터 변경 시그니처 초기화 + rerun 추가
+            st.session_state["_filter_sig"] = ""
+            st.rerun()
+    
+    # 2. 지역별 필터 - 4개 권역 버튼 (1열 배치) - 🔧 rerun 추가
+    st.sidebar.subheader("🗺️ 지역별")
+    region_stats = restaurant_portal.get_region_stats()
+    
+    # 전체 버튼 (전체 너비)
+    is_selected = st.session_state.selected_restaurant_region == "전체"
+    button_type = "primary" if is_selected else "secondary"
+    
+    if st.sidebar.button(
+        f"🏠 전체 ({region_stats.get('전체', 0)}개)", 
+        key="restaurant_region_all",
+        use_container_width=True,
+        type=button_type
+    ):
+        st.session_state.selected_restaurant_region = "전체"
+        st.session_state.restaurant_items_to_show = 12
+        # 🔧 필터 변경 시그니처 초기화 + rerun 추가
+        st.session_state["_filter_sig"] = ""
+        st.rerun()
+    
+    # 4개 권역 버튼: 2열로 묶어서 배치 - 🔧 rerun 추가
+    regions_display = [
+        ("원도심권", "중구 동구 영도구\n서구"),
+        ("동부산권", "해운대구 수영구\n남구 기장군"),
+        ("서부산권", "사하구 강서구\n사상구"),
+        ("북부산권", "북구 금정구 동래구\n연제구 부산진구")
+    ]
+    for i in range(0, len(regions_display), 2):
+        cols = st.sidebar.columns(2)
+        for j, col in enumerate(cols):
+            idx = i + j
+            if idx < len(regions_display):
+                region_key, district_names = regions_display[idx]
+                is_sel = st.session_state.selected_restaurant_region == region_key
+                btn_type = "primary" if is_sel else "secondary"
+                if col.button(
+                    f"{district_names}",
+                    key=f"restaurant_region_{region_key}",
+                    use_container_width=True,
+                    type=btn_type
+                ):
+                    st.session_state.selected_restaurant_region = region_key
+                    st.session_state.restaurant_items_to_show = 12
+                    # 🔧 필터 변경 시그니처 초기화 + rerun 추가
+                    st.session_state["_filter_sig"] = ""
+                    st.rerun()
+    
+    # 3. 음식종류별 필터 - 전체 1줄, 나머지 2줄 배치 - 🔧 rerun 추가
+    st.sidebar.subheader("🍜 음식종류")
+    food_type_stats = restaurant_portal.get_food_type_stats()
+
+    # 1) 전체 버튼: 한 줄 꽉 채우기
+    is_selected = st.session_state.selected_restaurant_food_type == "전체"
+    button_type = "primary" if is_selected else "secondary"
+    if st.sidebar.button(
+        f"🏠 전체 ({food_type_stats.get('전체', 0)}개)",
+        key="restaurant_food_all",
+        use_container_width=True,
+        type=button_type
+    ):
+        st.session_state.selected_restaurant_food_type = "전체"
+        st.session_state.restaurant_items_to_show = 12
+        # 🔧 필터 변경 시그니처 초기화 + rerun 추가
+        st.session_state["_filter_sig"] = ""
+        st.rerun()
+
+    # 2) 나머지 음식종류: 2열로 묶어서 반복 - 🔧 rerun 추가
+    other_food_types = [ft for ft in RESTAURANT_FOOD_TYPES if ft != "전체"]
+    for i in range(0, len(other_food_types), 2):
+        cols = st.sidebar.columns(2)
+        for j, col in enumerate(cols):
+            idx = i + j
+            if idx < len(other_food_types):
+                ft = other_food_types[idx]
+                count = food_type_stats.get(ft, 0)
+                is_sel = st.session_state.selected_restaurant_food_type == ft
+                btn_type = "primary" if is_sel else "secondary"
+                if col.button(
+                    f"{ft} ({count}개)",
+                    key=f"food_{ft.replace(' ', '_')}",
+                    use_container_width=True,
+                    type=btn_type
+                ):
+                    st.session_state.selected_restaurant_food_type = ft
+                    st.session_state.restaurant_items_to_show = 12
+                    # 🔧 필터 변경 시그니처 초기화 + rerun 추가
+                    st.session_state["_filter_sig"] = ""
+                    st.rerun()
+    
+    # 🔧 지도/카드 보기 모드 선택 - radio로 전환
+    st.sidebar.divider()
+    st.sidebar.subheader("🗺️ 보기 모드")
+    
+    view_mode = st.sidebar.radio(
+        "표시 방식",
+        options=["지도", "카드"],
+        index=0 if st.session_state.get("restaurant_view_mode", "지도") == "지도" else 1,
+        key="restaurant_view_mode"
+    )
+    
+    # 통계 정보
+    st.sidebar.divider()
+    st.sidebar.subheader("📊 선택된 필터")
+    
+    total_count = len(restaurant_portal.restaurants_data)
+    
+    # 현재 필터 상태 표시
+    current_filters = []
+    if st.session_state.selected_restaurant_region != "전체":
+        current_filters.append(f"지역: {st.session_state.selected_restaurant_region}")
+    if st.session_state.selected_restaurant_food_type != "전체":
+        current_filters.append(f"음식: {st.session_state.selected_restaurant_food_type}")
+    if st.session_state.selected_restaurant_category != "전체":
+        current_filters.append(f"카테고리: {st.session_state.selected_restaurant_category}")
+    
+    if current_filters:
+        for filter_text in current_filters:
+            st.sidebar.info(f"🔍 {filter_text}")
+    else:
+        st.sidebar.success(f"🏠 **전체 맛집**: {total_count}개")
+    
+    col1, col2 = st.sidebar.columns(2)
+    with col1:
+        st.metric("전체", total_count)
+    with col2:
+        michelin_count = len([r for r in restaurant_portal.restaurants_data if r.get('category') == '미쉐린가이드'])
+        st.metric("미슐랭", michelin_count)
+    
+    # 선택된 필터 반환
+    selected_regions = [st.session_state.selected_restaurant_region] if st.session_state.selected_restaurant_region != "전체" else ["전체"]
+    selected_food_types = [st.session_state.selected_restaurant_food_type] if st.session_state.selected_restaurant_food_type != "전체" else ["전체"]
+    selected_categories = [st.session_state.selected_restaurant_category] if st.session_state.selected_restaurant_category != "전체" else ["전체"]
+    
+    return search_query, selected_regions, selected_food_types, selected_categories
+
+def render_plans_sidebar(plans_portal: BusanPlansPortal):
+    """업무계획 전용 사이드바 - rerun 제거"""
+    st.sidebar.header("📋 업무계획 필터")
+    
+    # 검색어 입력
+    search_query = st.sidebar.text_input(
+        "🔎 검색어",
+        placeholder="부서명이나 내용 검색",
+        help="업무계획 제목, 부서명, 내용에서 검색합니다.",
+        key="plans_search_input"
+    )
+    
+    # 부서별 분류 선택
+    st.sidebar.subheader("🏛️ 부서별 분류")
+    
+    # 분류별 통계 계산
+    dept_stats = {}
+    for plan in plans_portal.plans_data:
+        category = plans_portal.get_department_category(plan.get('department', ''))
+        dept_stats[category] = dept_stats.get(category, 0) + 1
+    
+    total_count = len(plans_portal.plans_data)
+    dept_stats["전체"] = total_count
+    
+    # 세션 상태에서 선택된 분류 관리
+    if 'selected_plans_category' not in st.session_state:
+        st.session_state.selected_plans_category = "전체"
+    
+    selected_categories = []
+    
+    # 1열로 버튼 배치 - 🔧 rerun 제거
+    for display_name, dept_list in PLAN_DEPARTMENTS:
+        category = display_name.split(' ', 1)[1] if ' ' in display_name else display_name
+        count = dept_stats.get(category, 0)
+        is_selected = st.session_state.selected_plans_category == category
+        button_type = "primary" if is_selected else "secondary"
         
-        section[data-testid="stSidebar"] button {
-            font-size: 20px !important;
-        }
-    }
+        if st.sidebar.button(
+            f"{display_name} ({count}개)", 
+            key=f"plans_dept_{category}",
+            use_container_width=True,
+            type=button_type
+        ):
+            st.session_state.selected_plans_category = category
+            st.session_state.plans_items_to_show = 12
+            # 🔧 st.rerun() 제거
+    
+    selected_categories = [st.session_state.selected_plans_category] if st.session_state.selected_plans_category != "전체" else ["전체"]
+    
+    # 통계 정보
+    st.sidebar.divider()
+    st.sidebar.subheader("📊 선택된 분류")
+    
+    if st.session_state.selected_plans_category == "전체":
+        st.sidebar.success(f"🏠 **전체 업무계획**: {total_count}개")
+    else:
+        selected_count = dept_stats.get(st.session_state.selected_plans_category, 0)
+        emoji_category = next((display for display, dept in PLAN_DEPARTMENTS if display.endswith(st.session_state.selected_plans_category)), st.session_state.selected_plans_category)
+        st.sidebar.success(f"**{emoji_category}**: {selected_count}개")
+    
+    col1, col2 = st.sidebar.columns(2)
+    with col1:
+        st.metric("전체", total_count)
+    with col2:
+        dept_count = len(set(plan.get('department', '') for plan in plans_portal.plans_data))
+        st.metric("부서 수", dept_count)
+    
+    return search_query, selected_categories
 
-    .stColumn > div {
-        height: 100%;
-    }
-    </style>
-    """
+def main():
+    """메인 앱 실행 (3페이지 통합) - rerun 최적화"""
+    # 세션 상태 초기화
+    if 'show_detail' not in st.session_state:
+        st.session_state.show_detail = False
+    if 'selected_news' not in st.session_state:
+        st.session_state.selected_news = None
+    if 'show_restaurant_detail' not in st.session_state:
+        st.session_state.show_restaurant_detail = False
+    if 'selected_restaurant' not in st.session_state:
+        st.session_state.selected_restaurant = None
+    if 'show_plan_detail' not in st.session_state:
+        st.session_state.show_plan_detail = False
+    if 'selected_plan' not in st.session_state:
+        st.session_state.selected_plan = None
+    if 'page' not in st.session_state:
+        st.session_state.page = 'news'
 
-def get_card_styles_css():
-    """카드 스타일 CSS"""
-    return """
-    <style>
-    /* 메인 페이지 다크모드 배경 */
-    .stApp {
-        background: linear-gradient(180deg, #374151 0%, #4b5563 50%, #6b7280 100%) !important;
-    }
-    
-    /* 상단 여백 줄이기 */
-    .stApp > div:first-child {
-        padding-top: 1rem !important;
-    }
-    
-    .block-container {
-        padding-top: 1rem !important;
-        padding-bottom: 1rem !important;
-    }
-    
-    /* 일반 텍스트 흰색 */
-    .stApp > div, 
-    .stMarkdown p, 
-    .stMarkdown h1, 
-    .stMarkdown h2, 
-    .stMarkdown h3 {
-        color: white !important;
-    }
-    
-    /* 이용방법 박스 흰색 텍스트 */
-    [data-testid="stAlert"] {
-        display: block !important;
-        visibility: visible !important;
-    }
-    
-    [data-testid="stAlert"] p, 
-    [data-testid="stAlert"] div, 
-    [data-testid="stAlert"] * {
-        color: white !important;
-    }
-    
-    /* 제목 박스 스타일 */
-    .news-title-box {
-        padding: 20px;
-        border-radius: 12px;
-        margin: 10px 0;
-        text-align: center;
-        font-weight: bold;
-        min-height: 120px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
+    try:
+        # 🔧 핵심 수정 1: 상세 페이지 우선 체크 (모든 페이지 공통)
+        if st.session_state.show_detail and st.session_state.selected_news:
+            render_news_detail(st.session_state.selected_news)
+            return  # 여기서 종료
+        elif st.session_state.show_restaurant_detail and st.session_state.selected_restaurant:
+            render_restaurant_detail(st.session_state.selected_restaurant)
+            return  # 여기서 종료
+        elif st.session_state.show_plan_detail and st.session_state.selected_plan:
+            render_plans_detail(st.session_state.selected_plan)
+            return  # 여기서 종료
+        
+        # 메인 페이지 렌더링
+        render_header()
+        
+        if st.session_state.page == 'news':
+            # 보도자료 페이지
+            portal = BusanNewsPortal()
+            search_query, selected_tags, date_range = render_news_sidebar(portal)
+            filtered_news = portal.filter_news(selected_tags, search_query, date_range)
+            
+            if portal.news_data:
+                render_news_grid_with_scroll(filtered_news)
+            else:
+                st.info("📢 보도자료 데이터를 로드하는 중입니다...")
+                
+        elif st.session_state.page == 'restaurants':
+            # 🔧 핵심: 맛집 페이지 - 전체 데이터 먼저 로드
+            restaurant_portal = BusanRestaurantPortal()
+            
+            # 🔧 URL 파라미터 체크 (상세페이지 이동) - PyDeck 팝업 링크 처리
+            try:
+                params = st.query_params
+                if 'restaurant_detail' in params:
+                    import urllib.parse
+                    file_path = urllib.parse.unquote(params['restaurant_detail'])
+                    
+                    # 전체 맛집 데이터에서 찾기
+                    for restaurant in restaurant_portal.restaurants_data:
+                        if restaurant.get('file_path') == file_path:
+                            st.session_state.selected_restaurant = restaurant
+                            st.session_state.show_restaurant_detail = True
+                            st.query_params.clear()
+                            st.rerun()
+                            break
+            except Exception as e:
+                pass  # 에러 무시하고 계속
+            
+            # 🔧 상세페이지 체크
+            if st.session_state.get('show_restaurant_detail') and st.session_state.get('selected_restaurant'):
+                render_restaurant_detail(st.session_state.selected_restaurant)
+                return  # 여기서 종료
+            
+            # 맛집정보 필터링 및 표시
+            search_query, selected_regions, selected_food_types, selected_categories = render_restaurant_sidebar(restaurant_portal)
+            filtered_restaurants = restaurant_portal.filter_restaurants(
+                selected_regions, selected_food_types, selected_categories, search_query
+            )
+            
+            # 미슐랭 맛집 우선 정렬 적용
+            def sort_restaurants_michelin_first(restaurants):
+                """미슐랭 맛집을 맨 앞으로 정렬"""
+                michelin_restaurants = [r for r in restaurants if r.get('category') == '미쉐린가이드']
+                other_restaurants = [r for r in restaurants if r.get('category') != '미쉐린가이드']
+                return michelin_restaurants + other_restaurants
+            
+            # 미슐랭 우선 정렬 적용
+            filtered_restaurants = sort_restaurants_michelin_first(filtered_restaurants)
+            
+            if restaurant_portal.restaurants_data:
+                # 🔧 보기 모드에 따라 다른 렌더링 함수 호출
+                view_mode = st.session_state.get('restaurant_view_mode', '지도')
+                
+                if view_mode == '지도':
+                    # 지도 모드
+                    render_restaurant_map_with_sidebar(filtered_restaurants)
+                else:
+                    # 카드 모드 (기존 방식)
+                    render_restaurant_grid_with_scroll(filtered_restaurants)
+            else:
+                st.info("🍽️ 맛집 데이터를 로드하는 중입니다...")
+                
+        elif st.session_state.page == 'plans':
+            # 🔧 핵심 수정 3: 업무계획 페이지 내부에서도 상세페이지 우선 체크
+            if st.session_state.get('show_plan_detail') and st.session_state.get('selected_plan'):
+                render_plans_detail(st.session_state.selected_plan)
+                return  # 여기서 종료
+            
+            # 업무계획 페이지
+            plans_portal = BusanPlansPortal()
+            search_query, selected_categories = render_plans_sidebar(plans_portal)
+            filtered_plans = plans_portal.filter_plans(selected_categories, search_query)
+            
+            if plans_portal.plans_data:
+                render_plans_grid_with_scroll(filtered_plans)
+            else:
+                st.info("📋 업무계획 데이터를 로드하는 중입니다...")
+        
+        # 제작자 정보 (공통) - 하단 배경을 검은색으로 수정
+        st.markdown(
+            """
+            <div style="
+                text-align: center; 
+                margin: 20px 0; 
+                padding: 15px; 
+                background-color: #000000;
+                border-radius: 10px;
+            ">
+                <p style="margin: 0; color: white !important; font-size: 14px;">
+                    🏛️ <strong style="color: white !important;">Made by 부산시청 매니저</strong> | 
+                    ⭐ <strong style="color: white !important;">즐겨찾기: Ctrl+D (Windows) / Cmd+D (Mac)</strong> | 
+                    🌐 <strong style="color: white !important;"><a href="https://www.busan.go.kr" target="_blank" style="color: #0d6efd !important; text-decoration: none;">부산시청 바로가기</a></strong>
+                </p>
+            </div>
+            """, 
+            unsafe_allow_html=True
+        )
+                
+    except Exception as e:
+        st.error(f"❌ 앱 실행 중 오류: {e}")
+        st.info("**해결 방법**: 데이터 파일을 확인하거나 페이지를 새로고침해주세요.")
 
-    /* 제목박스 내 텍스트 검은색 */
-    .news-title-box span, 
-    .news-title-box div, 
-    .news-title-box * {
-        color: #000000 !important;
-        font-size: 22px !important;
-        font-weight: bold !important;
-    }
-
-    /* 요약 박스 스타일 */
-    .news-summary {
-        margin: 1rem 0;
-        padding: 15px;
-        background-color: #374151 !important;
-        color: white !important;
-        border-radius: 8px;
-        border-left: 4px solid #6b7280 !important;
-        line-height: 1.6;
-    }
-    </style>
-    """
-
-def get_detail_page_css():
-    """상세 페이지 전용 CSS"""
-    return """
-    <style>
-    /* 상세 페이지 다크모드 배경 */
-    .detail-page {
-        background: linear-gradient(180deg, #374151 0%, #4b5563 50%, #6b7280 100%) !important;
-        color: white !important;
-        font-size: 20px !important;
-        line-height: 1.8 !important;
-        padding: 20px !important;
-        border-radius: 10px !important;
-    }
-    
-    /* 상세 페이지 내 모든 텍스트 20px */
-    .detail-page *,
-    .detail-page p,
-    .detail-page div,
-    .detail-page span,
-    .detail-page li,
-    .detail-page td,
-    .detail-page th {
-        font-size: 20px !important;
-        line-height: 1.8 !important;
-        color: white !important;
-    }
-    
-    .detail-page h1 {
-        color: white !important;
-        font-size: 36px !important;
-        line-height: 1.4 !important;
-        margin-bottom: 20px !important;
-    }
-    
-    .detail-page h2 {
-        color: white !important;
-        font-size: 28px !important;
-        line-height: 1.5 !important;
-        margin: 25px 0 15px 0 !important;
-    }
-    
-    .detail-page h3 {
-        color: white !important;
-        font-size: 24px !important;
-        line-height: 1.5 !important;
-        margin: 20px 0 10px 0 !important;
-    }
-    
-    .detail-page strong, 
-    .detail-page b {
-        color: white !important;
-        font-size: 20px !important;
-        font-weight: 700 !important;
-    }
-    
-    /* 일반 마크다운도 20px */
-    div[style*="font-size: 20px"] {
-        font-size: 20px !important;
-        line-height: 1.8 !important;
-        color: white !important;
-    }
-    
-    div[style*="font-size: 20px"] * {
-        font-size: 20px !important;
-        line-height: 1.8 !important;
-        color: white !important;
-    }
-    
-    div[style*="font-size: 20px"] h1 {
-        font-size: 36px !important;
-        line-height: 1.4 !important;
-    }
-    
-    div[style*="font-size: 20px"] h2 {
-        font-size: 28px !important;
-        line-height: 1.5 !important;
-    }
-    
-    div[style*="font-size: 20px"] h3 {
-        font-size: 24px !important;
-        line-height: 1.5 !important;
-    }
-    </style>
-    """
+if __name__ == "__main__":
+    main()
