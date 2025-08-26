@@ -195,7 +195,7 @@ def create_hover_popup_content(row, *args, **kwargs) -> str:
 # 지도 + 패널
 # ------------------------------------------------------------
 def render_restaurant_map_with_sidebar(restaurant_list: List[Dict]):
-   """맛집 지도: Plotly 버전으로 전환 (깜빡임 없음)"""
+   """맛집 지도: 모바일+PC 자동스크롤 + 진한보라색 클릭 효과"""
    import pandas as pd
    import plotly.graph_objects as go
    
@@ -210,6 +210,26 @@ def render_restaurant_map_with_sidebar(restaurant_list: List[Dict]):
    if not restaurant_list:
        st.info("🔍 조건에 맞는 맛집이 없습니다.")
        return
+
+   # 🔧 모바일+PC 모두 자동 스크롤 JavaScript
+   st.markdown("""
+   <script>
+   function scrollToPanel() {
+       const panel = document.getElementById('restaurant-detail-panel');
+       if (panel) {
+           panel.scrollIntoView({ 
+               behavior: 'smooth', 
+               block: 'start',
+               inline: 'nearest'
+           });
+       }
+   }
+   
+   function delayedScroll() {
+       setTimeout(scrollToPanel, 300);
+   }
+   </script>
+   """, unsafe_allow_html=True)
 
    # 필터 변경 감지
    def _filter_signature():
@@ -319,10 +339,16 @@ def render_restaurant_map_with_sidebar(restaurant_list: List[Dict]):
                    )
                ))
 
-           # ✨ 여기 추가: 선택/비선택 디밍 해제
+           # 🔧 클릭 시 진한보라색 변화, 다른 마커들은 그대로
            fig.update_traces(
-               selected={'marker': {'opacity': 1.0, 'size': 30}},  # 크기 키움(예시)
-               unselected={'marker': {'opacity': 1.0}},
+               selected={
+                   'marker': {
+                       'opacity': 1.0, 
+                       'color': '#6B46C1',  # 진한보라색
+                       'size': 25           # 크기는 그대로
+                   }
+               },
+               unselected={'marker': {'opacity': 0.95}},  # 다른 마커들 그대로
                selector=dict(type='scattermapbox')
            )
 
@@ -401,11 +427,21 @@ def render_restaurant_map_with_sidebar(restaurant_list: List[Dict]):
                            st.session_state.selected_panel_restaurant = selected_restaurant
                            st.session_state.show_restaurant_panel = True
                            st.session_state.selected_marker_index = idx
+                           
+                           # 🔧 자동 스크롤 JavaScript 실행
+                           st.markdown("""
+                           <script>
+                           delayedScroll();
+                           </script>
+                           """, unsafe_allow_html=True)
+                           
                            st.rerun()
 
    with col2:
-       # 사이드 패널 (변경 없음)
-       with st.container(key="restaurant_side_panel"):
+       # 🔧 패널에 고유 ID 추가
+       with st.container():
+           st.markdown('<div id="restaurant-detail-panel">', unsafe_allow_html=True)
+           
            if st.session_state.get("show_restaurant_panel"):
                render_restaurant_side_panel(st.session_state["selected_panel_restaurant"])
            else:
@@ -427,6 +463,8 @@ def render_restaurant_map_with_sidebar(restaurant_list: List[Dict]):
                 상세정보가 여기에 표시됩니다
                 </div>
                 """, unsafe_allow_html=True)
+           
+           st.markdown('</div>', unsafe_allow_html=True)
    
    # 하단 설명/범례
    st.markdown("---")
@@ -435,7 +473,8 @@ def render_restaurant_map_with_sidebar(restaurant_list: List[Dict]):
 
 **🎯 이용 방법:**
 - **마커에 마우스를 올리면** 상세 정보가 팝업으로 표시됩니다
-- **마커를 클릭**하면 우측 패널에 상세정보가 나타납니다
+- **마커를 클릭**하면 진한보라색으로 변하며 우측 패널에 상세정보가 나타납니다
+- **클릭 시 자동으로** 상세정보 패널로 부드럽게 이동합니다
 
 **지도 조작:**
 - **확대/축소**: 마우스 휠 또는 +/- 버튼
@@ -655,22 +694,22 @@ def render_header():
 
     if current_page == 'news':
         st.markdown("### 부산시 최신 보도자료를 알려드립니다")
-        st.markdown("""
-<div class="howto-box" style="
-    background-color:#374151;
-    border-left:4px solid #6b7280;
-    border-radius:8px;
-    padding:16px;
-    line-height:1.6;
-">
-<p><strong>📖 이용 방법</strong></p>
-<ul>
-    <li>왼쪽 사이드바에서 <strong>분야를 선택</strong>하면 해당 분야의 보도자료를 확인할 수 있습니다</li>
-    <li><strong>검색어</strong>를 입력하여 원하는 내용을 빠르게 찾아보세요</li>
-    <li>각 카드를 클릭하면 <strong>상세 내용</strong>을 볼 수 있습니다</li>
-</ul>
-</div>
-""", unsafe_allow_html=True)
+        # st.markdown("""
+# <div class="howto-box" style="
+    # background-color:#374151;
+    # border-left:4px solid #6b7280;
+    # border-radius:8px;
+    # padding:16px;
+    # line-height:1.6;
+# ">
+# <p><strong>📖 이용 방법</strong></p>
+# <ul>
+    # <li>왼쪽 사이드바에서 <strong>분야를 선택</strong>하면 해당 분야의 보도자료를 확인할 수 있습니다</li>
+    # <li><strong>검색어</strong>를 입력하여 원하는 내용을 빠르게 찾아보세요</li>
+    # <li>각 카드를 클릭하면 <strong>상세 내용</strong>을 볼 수 있습니다</li>
+# </ul>
+# </div>
+# """, unsafe_allow_html=True)
 
     elif current_page == 'restaurants':
         st.markdown("### 부산 맛집 정보를 지도에서 확인하세요")
@@ -779,31 +818,31 @@ def render_news_card_aligned(news_item: Dict):
             unsafe_allow_html=True
         )
 
-        summary = news_item.get('detailed_summary', news_item.get('thumbnail_summary', ''))
-        if len(summary) > 120:
-            summary = summary[:120] + "..."
+        # summary = news_item.get('detailed_summary', news_item.get('thumbnail_summary', ''))
+        # if len(summary) > 120:
+        #     summary = summary[:120] + "..."
 
-        st.markdown(
-            f"""
-            <div class="news-summary" style="
-                margin: 0rem 0 0.5rem 0;
-                padding: 15px;
-                background-color: #f8f9fa;
-                border-radius: 8px;
-                border-left: 4px solid #dee2e6;
-                line-height: 1.6;
-                height: 100px;
-                overflow: hidden;
-                display: flex;
-                align-items: flex-start;
-                font-size: 14px;
-                color: #495057;
-            ">
-                {summary}
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
+        # st.markdown(
+        #     f"""
+        #     <div class="news-summary" style="
+        #         margin: 0rem 0 0.5rem 0;
+        #         padding: 15px;
+        #         background-color: #f8f9fa;
+        #         border-radius: 8px;
+        #         border-left: 4px solid #dee2e6;
+        #         line-height: 1.6;
+        #         height: 100px;
+        #         overflow: hidden;
+        #         display: flex;
+        #         align-items: flex-start;
+        #         font-size: 14px;
+        #         color: #495057;
+        #     ">
+        #         {summary}
+        #     </div>
+        #     """,
+        #     unsafe_allow_html=True
+        # )
 
         if st.button(
             "📄 클릭하여 내용 보기",
@@ -1077,7 +1116,7 @@ def render_news_grid_with_scroll(news_list: List[Dict]):
         return
 
     if 'items_to_show' not in st.session_state:
-        st.session_state.items_to_show = 12
+        st.session_state.items_to_show = 24
 
     current_news = news_list[:st.session_state.items_to_show]
     cols_per_row = get_responsive_columns()
@@ -1097,7 +1136,7 @@ def render_news_grid_with_scroll(news_list: List[Dict]):
         col1, col2, col3 = st.columns([1, 1, 1])
         with col2:
             if st.button(f"📄 더 보기 ({remaining}개 남음)", use_container_width=True, type="primary"):
-                st.session_state.items_to_show += 12
+                st.session_state.items_to_show += 24
                 st.rerun()
 
 

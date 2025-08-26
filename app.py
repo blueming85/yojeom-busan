@@ -9,7 +9,7 @@
 
 import streamlit as st
 
-# 🔧 페이지 설정 (반드시 첫 번째 Streamlit 명령이어야 함)
+# 페이지 설정 (반드시 첫 번째 Streamlit 명령이어야 함)
 st.set_page_config(
     page_title="요즘 부산",
     page_icon="🏢",
@@ -17,7 +17,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# 나머지 import들
+# 나머지 imports들
 import json
 import re
 from datetime import datetime, timedelta
@@ -26,6 +26,7 @@ from typing import List, Dict, Optional
 import streamlit.components.v1 as components
 import time
 from streamlit_scroll_to_top import scroll_to_here
+import os
 
 # 프로젝트 모듈 import
 from config import (
@@ -40,12 +41,11 @@ from restaurant_portal import BusanRestaurantPortal, get_restaurant_portal_stats
 from detail_pages import (
     render_header, render_news_detail, render_restaurant_detail, render_plans_detail,
     render_news_grid_with_scroll, render_restaurant_grid_with_scroll, render_plans_grid_with_scroll,
-    render_restaurant_map_with_sidebar,  # 🔧 지도 함수 추가
+    render_restaurant_map_with_sidebar,
     extract_contact_from_content
 )
 
-# 🔧 회색 그라데이션 배경만 적용
-# 🔧 회색 그라데이션 배경만 적용
+# 회색 그라데이션 배경만 적용
 def apply_custom_styles():
     """회색 그라데이션 배경과 기본 텍스트 색상 적용"""
     st.markdown("""
@@ -123,11 +123,11 @@ def apply_custom_styles():
         background: linear-gradient(180deg, #4b5563 0%, #6b7280 50%, #9ca3af 100%) !important;
     }
     
-    /* 🔧 사이드바 타이트한 줄간격 설정 */
+    /* 사이드바 타이트한 줄간격 설정 */
     /* 사이드바 전체 줄간격 조정 */
     section[data-testid="stSidebar"] .stMarkdown {
-        margin-bottom: 2px !important;
-        padding-bottom: 2px !important;
+        margin-bottom: 0px !important;
+        padding-bottom: 0px !important;
         line-height: 1.1 !important;
     }
     
@@ -137,7 +137,7 @@ def apply_custom_styles():
     section[data-testid="stSidebar"] h3,
     section[data-testid="stSidebar"] h4 {
         margin-top: 6px !important;
-        margin-bottom: 3px !important;
+        margin-bottom: 8px !important;
         line-height: 1.1 !important;
         padding-top: 2px !important;
         padding-bottom: 1px !important;
@@ -152,17 +152,41 @@ def apply_custom_styles():
         padding-bottom: 1px !important;
     }
     
-    /* 사이드바 버튼 간격 조정 */
+    /* 사이드바 버튼 간격 조정 - 최대한 타이트하게 */
     section[data-testid="stSidebar"] button {
-        margin-bottom: 1px !important;
-        margin-top: 1px !important;
-        padding: 3px 6px !important;
+        margin-bottom: -4px !important;
+        margin-top: -4px !important;
+        padding: 1px 2px !important;
+    }
+    
+    /* 사이드바 모든 element 간격 최소화 */
+    section[data-testid="stSidebar"] .element-container {
+        margin-bottom: -2px !important;
+        margin-top: -2px !important;
+        padding-bottom: 0px !important;
+        padding-top: 0px !important;
+    }
+    
+    /* 사이드바 버튼 컨테이너 간격 제거 */
+    section[data-testid="stSidebar"] .stButton > div {
+        margin-bottom: -2px !important;
+        margin-top: -2px !important;
+        padding-bottom: 0px !important;
+        padding-top: 0px !important;
+    }
+    
+    /* 사이드바 모든 div 간격 최소화 */
+    section[data-testid="stSidebar"] > div > div > div {
+        margin-bottom: -1px !important;
+        margin-top: -1px !important;
+        padding-bottom: 0px !important;
+        padding-top: 0px !important;
     }
     
     /* 사이드바 divider 간격 조정 */
     section[data-testid="stSidebar"] hr {
-        margin-top: 6px !important;
-        margin-bottom: 6px !important;
+        margin-top: 3px !important;
+        margin-bottom: 3px !important;
     }
     
     /* 사이드바 metric 컴포넌트 간격 조정 */
@@ -184,7 +208,7 @@ def apply_custom_styles():
         margin-top: 2px !important;
     }
     
-    /* 🔧 사이드바 2열 버튼 간격 거의 완전히 제거 */
+    /* 사이드바 2열 버튼 간격 거의 완전히 제거 */
     section[data-testid="stSidebar"] [data-testid="column"] {
         padding-left: 0px !important;
         padding-right: 0px !important;
@@ -215,13 +239,41 @@ def apply_custom_styles():
         width: 100% !important;
     }
     
-    /* 사이드바 success/info/warning 메시지 간격 조정 */
+    /* 사이드바 success/info/warning/error 메시지 간격 조정 + 하얀색 텍스트 */
     section[data-testid="stSidebar"] .stSuccess,
     section[data-testid="stSidebar"] .stInfo,
-    section[data-testid="stSidebar"] .stWarning {
+    section[data-testid="stSidebar"] .stWarning,
+    section[data-testid="stSidebar"] .stError {
         margin-top: 2px !important;
         margin-bottom: 2px !important;
         padding: 4px 8px !important;
+    }
+    
+    /* 사이드바 알림 메시지 텍스트 하얀색 강제 적용 */
+    section[data-testid="stSidebar"] .stSuccess > div,
+    section[data-testid="stSidebar"] .stInfo > div,
+    section[data-testid="stSidebar"] .stWarning > div,
+    section[data-testid="stSidebar"] .stError > div,
+    section[data-testid="stSidebar"] .stSuccess p,
+    section[data-testid="stSidebar"] .stInfo p,
+    section[data-testid="stSidebar"] .stWarning p,
+    section[data-testid="stSidebar"] .stError p,
+    section[data-testid="stSidebar"] .stSuccess div,
+    section[data-testid="stSidebar"] .stInfo div,
+    section[data-testid="stSidebar"] .stWarning div,
+    section[data-testid="stSidebar"] .stError div,
+    section[data-testid="stSidebar"] .stSuccess *,
+    section[data-testid="stSidebar"] .stInfo *,
+    section[data-testid="stSidebar"] .stWarning *,
+    section[data-testid="stSidebar"] .stError * {
+        color: white !important;
+        -webkit-text-fill-color: white !important;
+    }
+    
+    /* 사이드바 selectbox 간격 조정 */
+    section[data-testid="stSidebar"] .stSelectbox > div {
+        margin-bottom: 4px !important;
+        margin-top: 2px !important;
     }
     
     /* 모든 텍스트 흰색 */
@@ -254,38 +306,95 @@ def apply_custom_styles():
     /* 사이드바 입력창 */
     section[data-testid="stSidebar"] input,
     section[data-testid="stSidebar"] .stTextInput input,
-    section[data-testid="stSidebar"] textarea {
+    section[data-testid="stSidebar"] textarea,
+    section[data-testid="stSidebar"] select,
+    section[data-testid="stSidebar"] .stSelectbox select,
+    section[data-testid="stSidebar"] .stSelectbox > div > div {
         color: black !important;
         background-color: white !important;
         font-size: 16px !important;
     }
+    
+    /* Selectbox 컨테이너 배경 투명하게 */
+    section[data-testid="stSidebar"] .stSelectbox {
+        background-color: transparent !important;
+    }
+    
+    section[data-testid="stSidebar"] .stSelectbox > div {
+        background-color: white !important;
+        border: 1px solid #d1d5db !important;
+        border-radius: 6px !important;
+    }
+    
+    /* Selectbox 텍스트 색상 - 이모지는 유지하고 나머지는 하얀색 */
+    section[data-testid="stSidebar"] .stSelectbox select,
+    section[data-testid="stSidebar"] .stSelectbox > div > div,
+    section[data-testid="stSidebar"] .stSelectbox > div > div > div,
+    section[data-testid="stSidebar"] .stSelectbox [role="combobox"],
+    section[data-testid="stSidebar"] [data-baseweb="select"] > div,
+    section[data-testid="stSidebar"] [data-baseweb="select"] [role="option"],
+    section[data-testid="stSidebar"] [data-baseweb="select"] > div > div,
+    section[data-testid="stSidebar"] [data-testid="stSelectbox"] > div > div,
+    section[data-testid="stSidebar"] [data-testid="stSelectbox"] > div > div > div,
+    section[data-testid="stSidebar"] [data-testid="stSelectbox"] span,
+    section[data-testid="stSidebar"] [data-testid="stSelectbox"] div[role="button"],
+    section[data-testid="stSidebar"] .stSelectbox div,
+    section[data-testid="stSidebar"] .stSelectbox span {
+        color: white !important;
+        background-color: transparent !important;
+        font-size: 16px !important;
+        text-shadow: none !important;
+        -webkit-text-fill-color: white !important;
+    }
+    
+    /* Selectbox 드롭다운 옵션들 - 하얀색 텍스트 */
+    section[data-testid="stSidebar"] .stSelectbox option,
+    section[data-testid="stSidebar"] [role="listbox"] [role="option"],
+    section[data-testid="stSidebar"] [data-baseweb="menu"] [role="option"] {
+        color: white !important;
+        background-color: #6B7280 !important;
+        -webkit-text-fill-color: white !important;
+    }
+    
+    /* Selectbox hover 상태 - 하얀색 유지 */
+    section[data-testid="stSidebar"] [data-baseweb="select"] > div:hover {
+        color: white !important;
+        background-color: rgba(255,255,255,0.1) !important;
+        -webkit-text-fill-color: white !important;
+    }
+    
+    /* Selectbox 내부 텍스트 노드까지 강제 적용 */
+    section[data-testid="stSidebar"] .stSelectbox * {
+        color: white !important;
+        -webkit-text-fill-color: white !important;
+    }
 
-    /* 사이드바 버튼 secondary 스타일 */
+    /* 사이드바 버튼 secondary 스타일 - 최대한 타이트하게 */
     section[data-testid="stSidebar"] button[kind="secondary"] {
         background: #6B7280 !important;
         border: 2px solid #6B7280 !important;
         color: white !important;
-        padding: 3px 6px !important;  /* 🔧 패딩 줄임 */
+        padding: 1px 2px !important;
         font-size: 16px !important;
         font-weight: 700 !important;
         border-radius: 6px !important;
-        margin-bottom: 1px !important;  /* 🔧 마진 줄임 */
-        margin-top: 1px !important;
+        margin-bottom: -1px !important;
+        margin-top: -1px !important;
         outline: none !important;
         box-shadow: none !important;
     }
 
-    /* 사이드바 버튼 primary 스타일 */
+    /* 사이드바 버튼 primary 스타일 - 최대한 타이트하게 */
     section[data-testid="stSidebar"] button[kind="primary"] {
         background: #8B5CF6 !important;
         border: 2px solid #8B5CF6 !important;
         color: white !important;
-        padding: 3px 6px !important;  /* 🔧 패딩 줄임 */
+        padding: 1px 2px !important;
         font-size: 16px !important;
         font-weight: 700 !important;
         border-radius: 6px !important;
-        margin-bottom: 1px !important;  /* 🔧 마진 줄임 */
-        margin-top: 1px !important;
+        margin-bottom: -1px !important;
+        margin-top: -1px !important;
         outline: none !important;
         box-shadow: none !important;
     }
@@ -429,13 +538,13 @@ class BusanNewsPortal:
         news_list = []
         
         if not self.md_dir.exists():
-            st.error(f"📁 마크다운 디렉토리가 없습니다: {self.md_dir}")
+            st.error(f"마크다운 디렉토리가 없습니다: {self.md_dir}")
             return []
         
         md_files = list(self.md_dir.glob("*.md"))
         
         if not md_files:
-            st.warning("📄 마크다운 파일이 없습니다. 크롤링을 먼저 실행해주세요.")
+            st.warning("마크다운 파일이 없습니다. 크롤링을 먼저 실행해주세요.")
             return []
         
         for md_file in md_files:
@@ -508,13 +617,12 @@ class BusanNewsPortal:
             return None
     
     def _extract_summary_from_body(self, body: str) -> str:
-        """본문에서 요약 추출"""
+        """본문에서 요약 추출 - 기사 첫 문장부터 추출, 반복 표현 정리"""
         lines = body.split('\n')
         summary_lines = []
         
-        # "## 📋 주요 내용" 부분 찾기
+        # 1. 먼저 "## 📋 주요 내용" 또는 "## 📋 핵심 내용" 섹션 찾기
         in_main_content = False
-        
         for line in lines:
             line = line.strip()
             if '## 📋 주요 내용' in line or '## 📋 핵심 내용' in line:
@@ -525,7 +633,89 @@ class BusanNewsPortal:
             elif in_main_content and line and not line.startswith('#'):
                 summary_lines.append(line)
         
-        return '\n'.join(summary_lines).strip() if summary_lines else body[:200] + "..."
+        # 2. 주요 내용 섹션이 있으면 그것을 반환
+        if summary_lines:
+            summary = '\n'.join(summary_lines).strip()
+            return self._clean_summary_text(summary)
+        
+        # 3. 주요 내용 섹션이 없으면 본문의 첫 번째 의미있는 문단들 추출
+        meaningful_lines = []
+        for line in lines:
+            line = line.strip()
+            # 헤더, 빈 줄, 특수 문자로 시작하는 줄 제외
+            if (line and 
+                not line.startswith('#') and 
+                not line.startswith('---') and
+                not line.startswith('![') and
+                not line.startswith('[') and
+                len(line) > 10):  # 너무 짧은 줄 제외
+                meaningful_lines.append(line)
+                
+                # 충분한 내용이 모이면 중단 (약 200자 정도)
+                if len('\n'.join(meaningful_lines)) > 150:
+                    break
+        
+        # 4. 의미있는 내용이 있으면 반환, 없으면 처음 200자
+        if meaningful_lines:
+            summary = '\n'.join(meaningful_lines)
+            return self._clean_summary_text(summary)
+        else:
+            # 마지막 fallback: 처음 200자
+            clean_body = body.replace('#', '').replace('---', '').strip()
+            fallback = clean_body[:200] + "..." if len(clean_body) > 200 else clean_body
+            return self._clean_summary_text(fallback)
+    
+    def _clean_summary_text(self, text: str) -> str:
+        """썸네일용 요약 텍스트 정리 - 반복 표현 제거 및 가독성 개선"""
+        if not text:
+            return ""
+        
+        # 1. 기본 정리
+        text = text.strip()
+        
+        # 2. "부산시는" 반복 제거 및 다양한 표현으로 변경
+        sentences = []
+        for i, sentence in enumerate(text.split('.')):
+            sentence = sentence.strip()
+            if not sentence:
+                continue
+                
+            # 첫 번째 문장은 그대로 유지
+            if i == 0:
+                sentences.append(sentence)
+            else:
+                # 두 번째 문장부터는 "부산시는" 제거하고 자연스럽게 연결
+                if sentence.startswith('부산시는'):
+                    sentence = sentence[4:].strip()  # "부산시는" 제거
+                    if sentence:  # 빈 문장이 아니면 추가
+                        sentences.append(sentence)
+                elif sentence.startswith('부산시'):
+                    sentence = sentence[3:].strip()  # "부산시" 제거
+                    if sentence:
+                        sentences.append(sentence)
+                else:
+                    sentences.append(sentence)
+        
+        # 3. 문장 재조합
+        cleaned_text = '. '.join(sentences)
+        if cleaned_text and not cleaned_text.endswith('.'):
+            cleaned_text += '.'
+        
+        # 4. 길이 제한 (200자)
+        if len(cleaned_text) > 200:
+            # 마지막 완전한 문장까지만 포함
+            truncated = cleaned_text[:200]
+            last_period = truncated.rfind('.')
+            if last_period > 100:  # 너무 짧지 않다면 마지막 온점까지
+                cleaned_text = truncated[:last_period + 1]
+            else:
+                cleaned_text = truncated + "..."
+        
+        # 5. 최종 정리
+        cleaned_text = cleaned_text.replace('  ', ' ')  # 이중 공백 제거
+        cleaned_text = cleaned_text.replace('..', '.')   # 이중 마침표 제거
+        
+        return cleaned_text
     
     def get_tag_stats(self) -> Dict:
         """태그별 통계 계산"""
@@ -588,8 +778,107 @@ class BusanNewsPortal:
         
         return filtered_news
 
+def get_ai_recommendations(portal: BusanNewsPortal, situation: str, interest: str) -> List[Dict]:
+    """GPT API를 사용한 맞춤 보도자료 추천 - 상황+관심분야 기반"""
+    try:
+        from openai import OpenAI
+        
+        # OpenAI 클라이언트 초기화
+        client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+        
+        if not os.getenv('OPENAI_API_KEY'):
+            st.error("OpenAI API 키가 설정되지 않았습니다.")
+            return []
+        
+        # 최근 1년 보도자료만 사용
+        cutoff_date = datetime.now() - timedelta(days=365)
+        recent_news = []
+        
+        for news in portal.news_data:
+            try:
+                news_date = datetime.strptime(news['date'], '%Y-%m-%d')
+                if news_date >= cutoff_date:
+                    recent_news.append(news)
+            except:
+                continue
+        
+        if not recent_news:
+            return []
+        
+        # 보도자료 정보 준비 - 토큰 제한 고려하여 최적화
+        news_info = []
+        for i, news in enumerate(recent_news[:80]):  # 80개로 줄임
+            # 요약 길이도 줄임 (200자 -> 100자)
+            summary = news.get('thumbnail_summary', news.get('detailed_summary', ''))
+            if summary:
+                summary = summary[:100]  # 100자로 제한
+            
+            news_info.append({
+                'id': i,
+                'title': news['title'][:80],  # 제목도 80자로 제한
+                'date': news['date'],
+                'tags': ', '.join(news['tags'][:2]),  # 태그도 최대 2개만
+                'summary': summary
+            })
+        
+        # GPT 프롬프트도 간소화
+        prompt = f"""
+사용자: {situation} / {interest}
+
+부산시 보도자료에서 이 사용자에게 직접 도움되는 7-10개만 선택하세요.
+
+선별 기준:
+- 실제 신청/참여 가능한 지원사업 우선
+- 사용자 상황과 직접 관련된 내용만
+- 일반적 정책발표/행사소식 제외
+
+매칭예시:
+"창업준비+일자리/경제" → 창업지원센터,스타트업지원,창업교육,창업자금
+"육아중+복지혜택" → 육아지원금,보육시설,아동수당
+"구직중+일자리/경제" → 취업지원,직업훈련,일자리박람회
+
+보도자료:
+{json.dumps(news_info, ensure_ascii=False)}
+
+JSON응답:
+{{"recommendations":[{{"id":번호,"reason":"구체적도움이유"}}]}}
+"""
+
+        # GPT API 호출
+        response = client.chat.completions.create(
+            model="gpt-4.1-nano",
+            messages=[
+                {
+                    "role": "system", 
+                    "content": "당신은 부산시민들을 위한 정확한 보도자료 추천 전문가입니다. 사용자의 상황과 관심분야에 직접적으로 도움이 되는 보도자료만 선별해야 합니다. 관련성이 낮은 내용은 절대 추천하지 마세요."
+                },
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.1,  # 더 정확한 추천을 위해 낮춤
+            max_tokens=2000
+        )
+        
+        # 응답 파싱
+        result = json.loads(response.choices[0].message.content)
+        recommendations = []
+        
+        for rec in result.get('recommendations', []):
+            news_id = rec.get('id')
+            reason = rec.get('reason', '')
+            
+            if news_id < len(recent_news):
+                news_item = recent_news[news_id].copy()
+                news_item['ai_reason'] = reason
+                recommendations.append(news_item)
+        
+        return recommendations
+        
+    except Exception as e:
+        st.error(f"AI 추천 오류: {e}")
+        return []
+
 def render_news_sidebar(portal: BusanNewsPortal):
-    """보도자료 전용 사이드바 - rerun 제거"""
+    """보도자료 전용 사이드바 - 상황+관심분야 기반 AI 추천"""
     st.sidebar.header("📰 필터 및 검색")
     
     # 검색어 입력
@@ -625,7 +914,7 @@ def render_news_sidebar(portal: BusanNewsPortal):
     
     selected_tags = []
     
-    # 1열로 버튼 배치 - 🔧 rerun 제거
+    # 1열로 버튼 배치
     for display_name, tag_value in sidebar_tags:
         count = tag_stats.get(tag_value, 0)
         is_selected = st.session_state.selected_news_tag == tag_value
@@ -638,56 +927,119 @@ def render_news_sidebar(portal: BusanNewsPortal):
             type=button_type
         ):
             st.session_state.selected_news_tag = tag_value
-            st.session_state.items_to_show = 12
-            # 🔧 st.rerun() 제거 - 버튼 자체가 rerun을 발생시킴
+            st.session_state.items_to_show = 24
+            # AI 추천 모드 해제
+            st.session_state.ai_recommendations = None
     
     selected_tags = [st.session_state.selected_news_tag] if st.session_state.selected_news_tag != "전체" else ["전체"]
     
-    # 날짜 범위 선택
-    st.sidebar.subheader("📅 날짜 범위")
-    date_filter = st.sidebar.radio(
-        "기간 선택",
-        ["전체", "최근 7일", "최근 30일", "사용자 정의"],
-        key="news_date_filter"
+    # 🔎 AI 맞춤 추천 섹션
+    st.sidebar.divider()
+    st.sidebar.subheader("🔎 AI 맞춤 추천")
+    
+    # 드롭다운 옵션들 - 연령대 제거, 상황+관심분야
+    situation_options = ["💼 상황을 선택하세요", "청년/학생", "직장인/구직자", "육아중/신혼부부", "창업준비", "은퇴/시니어", "일반시민"]
+    interest_options = ["🎯 관심분야를 선택하세요", "일자리/취업/창업", "주거/부동산", "육아/교육", "복지혜택/건강의료", "문화/관광", "교통/인프라", "행정서비스"]
+    
+    # 세션 상태 초기화
+    if 'ai_recommendations' not in st.session_state:
+        st.session_state.ai_recommendations = None
+    if 'ai_loading' not in st.session_state:
+        st.session_state.ai_loading = False
+    
+    # 드롭다운들
+    situation = st.sidebar.selectbox(
+        "💼 상황",
+        situation_options,
+        key="ai_situation"
     )
     
-    date_range = None
-    if date_filter == "최근 7일":
-        end_date = datetime.now().date()
-        start_date = end_date - timedelta(days=7)
-        date_range = (start_date, end_date)
-    elif date_filter == "최근 30일":
-        end_date = datetime.now().date()
-        start_date = end_date - timedelta(days=30)
-        date_range = (start_date, end_date)
-    elif date_filter == "사용자 정의":
-        col1, col2 = st.sidebar.columns(2)
-        with col1:
-            start_date = st.sidebar.date_input("시작일", key="news_start_date")
-        with col2:
-            end_date = st.sidebar.date_input("종료일", key="news_end_date")
-        if start_date and end_date:
-            date_range = (start_date, end_date)
+    interest = st.sidebar.selectbox(
+        "🎯 관심분야",
+        interest_options,
+        key="ai_interest"
+    )
     
-    # 통계 정보
-    st.sidebar.divider()
-    st.sidebar.subheader("📊 선택된 분야")
-    stats = portal.get_recent_stats()
+    # 추천받기 버튼
+    both_selected = (
+        not situation.startswith("💼") and 
+        not interest.startswith("🎯")
+    )
     
-    if st.session_state.selected_news_tag == "전체":
-        st.sidebar.success(f"🏠 **전체 보도자료**: {stats['total']}개")
+    if both_selected:
+        if st.session_state.get('ai_loading', False):
+            st.sidebar.button(
+                "📄 추천 중...", 
+                disabled=True,
+                use_container_width=True,
+                type="primary"
+            )
+        else:
+            if st.sidebar.button(
+                "✨ 추천받기", 
+                use_container_width=True,
+                type="primary",
+                key="get_ai_recommendations"
+            ):
+                st.session_state.ai_loading = True
+                try:
+                    with st.spinner('AI가 맞춤 보도자료를 분석하는 중...'):
+                        recommendations = get_ai_recommendations(portal, situation, interest)
+                        if recommendations:
+                            st.session_state.ai_recommendations = recommendations
+                            st.session_state.selected_news_tag = "전체"  # 태그 선택 초기화
+                            # st.success를 st.markdown으로 변경하여 하얀색 텍스트 적용
+                            st.sidebar.markdown(f"""
+                            <div style="
+                                background-color: #10B981;
+                                color: white !important;
+                                padding: 8px 12px;
+                                border-radius: 8px;
+                                margin: 8px 0;
+                                font-weight: bold;
+                            ">
+                                🎯 {len(recommendations)}개의 맞춤 보도자료를 찾았습니다!
+                            </div>
+                            """, unsafe_allow_html=True)
+                        else:
+                            st.error("추천 결과를 가져올 수 없습니다. 다시 시도해주세요.")
+                except Exception as e:
+                    st.error(f"추천 중 오류 발생: {e}")
+                finally:
+                    st.session_state.ai_loading = False
     else:
-        selected_count = tag_stats.get(st.session_state.selected_news_tag, 0)
-        emoji_tag = next((display for display, tag in sidebar_tags if tag == st.session_state.selected_news_tag), st.session_state.selected_news_tag)
-        st.sidebar.success(f"**{emoji_tag}**: {selected_count}개")
+        st.sidebar.button(
+            "✨ 2개 항목을 모두 선택하세요", 
+            disabled=True,
+            use_container_width=True,
+            type="secondary"
+        )
     
-    col1, col2 = st.sidebar.columns(2)
-    with col1:
-        st.metric("전체", stats['total'])
-    with col2:
-        st.metric("최근 7일", stats['recent'])
+    # AI 추천 결과가 있으면 표시
+    if st.session_state.ai_recommendations:
+        # st.success를 st.markdown으로 변경
+        st.sidebar.markdown(f"""
+        <div style="
+            background-color: #10B981;
+            color: white !important;
+            padding: 8px 12px;
+            border-radius: 8px;
+            margin: 8px 0;
+            font-weight: bold;
+        ">
+            🤖 AI 추천: {len(st.session_state.ai_recommendations)}개
+        </div>
+        """, unsafe_allow_html=True)
+        
+        if st.sidebar.button(
+            "📄 일반 모드로 돌아가기",
+            use_container_width=True,
+            type="secondary",
+            key="clear_ai_recommendations"
+        ):
+            st.session_state.ai_recommendations = None
     
-    return search_query, selected_tags, date_range
+    return search_query, selected_tags, None
 
 def render_restaurant_sidebar(restaurant_portal: BusanRestaurantPortal):
     """맛집정보 전용 사이드바 - 🔧 스크롤 탑 + 줄바꿈 수정"""
@@ -724,7 +1076,7 @@ def render_restaurant_sidebar(restaurant_portal: BusanRestaurantPortal):
         type=button_type
     ):
         st.session_state.selected_restaurant_category = "전체"
-        st.session_state.restaurant_items_to_show = 12
+        st.session_state.restaurant_items_to_show = 24
         # 🔧 스크롤 탑 추가
         st.session_state.scroll_to_top = True
         st.session_state["_filter_sig"] = ""
@@ -885,7 +1237,19 @@ def render_restaurant_sidebar(restaurant_portal: BusanRestaurantPortal):
         for filter_text in current_filters:
             st.sidebar.info(f"🔍 {filter_text}")
     else:
-        st.sidebar.success(f"🏠 **전체 맛집**: {total_count}개")
+        # st.success를 st.markdown으로 변경
+        st.sidebar.markdown(f"""
+        <div style="
+            background-color: #10B981;
+            color: white !important;
+            padding: 8px 12px;
+            border-radius: 8px;
+            margin: 8px 0;
+            font-weight: bold;
+        ">
+            🏠 **전체 맛집**: {total_count}개
+        </div>
+        """, unsafe_allow_html=True)
     
     col1, col2 = st.sidebar.columns(2)
     with col1:
@@ -955,11 +1319,35 @@ def render_plans_sidebar(plans_portal: BusanPlansPortal):
     st.sidebar.subheader("📊 선택된 분류")
     
     if st.session_state.selected_plans_category == "전체":
-        st.sidebar.success(f"🏠 **전체 업무계획**: {total_count}개")
+        # st.success를 st.markdown으로 변경
+        st.sidebar.markdown(f"""
+        <div style="
+            background-color: #10B981;
+            color: white !important;
+            padding: 8px 12px;
+            border-radius: 8px;
+            margin: 8px 0;
+            font-weight: bold;
+        ">
+            🏠 **전체 업무계획**: {total_count}개
+        </div>
+        """, unsafe_allow_html=True)
     else:
         selected_count = dept_stats.get(st.session_state.selected_plans_category, 0)
         emoji_category = next((display for display, dept in PLAN_DEPARTMENTS if display.endswith(st.session_state.selected_plans_category)), st.session_state.selected_plans_category)
-        st.sidebar.success(f"**{emoji_category}**: {selected_count}개")
+        # st.success를 st.markdown으로 변경
+        st.sidebar.markdown(f"""
+        <div style="
+            background-color: #10B981;
+            color: white !important;
+            padding: 8px 12px;
+            border-radius: 8px;
+            margin: 8px 0;
+            font-weight: bold;
+        ">
+            **{emoji_category}**: {selected_count}개
+        </div>
+        """, unsafe_allow_html=True)
     
     col1, col2 = st.sidebar.columns(2)
     with col1:
@@ -1012,7 +1400,14 @@ def main():
             # 보도자료 페이지
             portal = BusanNewsPortal()
             search_query, selected_tags, date_range = render_news_sidebar(portal)
-            filtered_news = portal.filter_news(selected_tags, search_query, date_range)
+            
+            # 🔧 AI 추천 결과가 있으면 그것을 표시, 없으면 일반 필터링
+            if st.session_state.get('ai_recommendations'):
+                # AI 추천 결과 표시
+                filtered_news = st.session_state.ai_recommendations
+            else:
+                # 일반 필터링 결과 표시
+                filtered_news = portal.filter_news(selected_tags, search_query, date_range)
             
             if portal.news_data:
                 render_news_grid_with_scroll(filtered_news)
@@ -1112,7 +1507,7 @@ def main():
         )
                 
     except Exception as e:
-        st.error(f"⚠ 앱 실행 중 오류: {e}")
+        st.error(f"⚠️ 앱 실행 중 오류: {e}")
         st.info("**해결 방법**: 데이터 파일을 확인하거나 페이지를 새로고침해주세요.")
 
 if __name__ == "__main__":
