@@ -7,3 +7,4 @@ pandas>=2.2.3
 requests>=2.31.0
 streamlit-scroll-to-top
 plotly>=5.0.0
+openai>=1.0.0
