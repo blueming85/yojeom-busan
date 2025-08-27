@@ -60,6 +60,88 @@ def apply_custom_styles():
         opacity: 0 !important;
     }
 
+    /* 사이드바 초기 너비 350px로 설정 */
+    section[data-testid="stSidebar"] {
+        width: 350px !important;
+        min-width: 350px !important;
+        max-width: 350px !important;
+        background: linear-gradient(180deg, #4b5563 0%, #6b7280 50%, #9ca3af 100%) !important;
+    }
+
+    /* 사이드바가 열릴 때 너비 유지 */
+    section[data-testid="stSidebar"][aria-expanded="true"] {
+        width: 350px !important;
+        min-width: 350px !important;
+        max-width: 350px !important;
+    }
+
+    /* 메인 콘텐츠 영역 조정 */
+    .main .block-container {
+        padding-left: 370px !important;
+    }
+
+    /* 모바일에서는 기본값 사용 */
+    @media (max-width: 768px) {
+        section[data-testid="stSidebar"] {
+            width: auto !important;
+            min-width: auto !important;
+            max-width: auto !important;
+        }
+        .main .block-container {
+            padding-left: 1rem !important;
+        }
+    }
+
+    /* Plotly 호버 툴팁 텍스트 색상 수정 - 모바일에서 잘 보이도록 검정색으로 */
+    .js-plotly-plot .plotly .hovertext,
+    .js-plotly-plot .plotly .hoverlayer .hovertext,
+    .plotly-graph-div .hovertext,
+    .plotly-graph-div .hoverlayer .hovertext,
+    .hoverlayer .hovertext,
+    .hovertext,
+    .js-plotly-plot .hovertext *,
+    .plotly-graph-div .hovertext *,
+    .hoverlayer .hovertext *,
+    .hovertext * {
+        color: #000000 !important;
+        background-color: rgba(255, 255, 255, 0.95) !important;
+        border: 1px solid #cccccc !important;
+        font-weight: 600 !important;
+        text-shadow: none !important;
+        -webkit-text-fill-color: #000000 !important;
+    }
+
+    /* Plotly 호버 툴팁 내부 요소들 강제 검정색 */
+    .hoverlayer text,
+    .hovertext text,
+    .js-plotly-plot .hoverlayer text,
+    .js-plotly-plot .hovertext text,
+    .plotly-graph-div .hoverlayer text,
+    .plotly-graph-div .hovertext text {
+        fill: #000000 !important;
+        color: #000000 !important;
+        font-weight: 600 !important;
+    }
+
+    /* Plotly 마커 클릭 이벤트 보장 */
+    .js-plotly-plot .plotly .scatterlayer,
+    .js-plotly-plot .plotly .scatterlayer .trace,
+    .plotly-graph-div .scatterlayer,
+    .plotly-graph-div .scatterlayer .trace {
+        pointer-events: auto !important;
+    }
+
+    /* 호버 툴팁은 클릭 이벤트 통과시키기 */
+    .js-plotly-plot .plotly .hoverlayer,
+    .plotly-graph-div .hoverlayer {
+        pointer-events: none !important;
+    }
+
+    .js-plotly-plot .plotly .hovertext,
+    .plotly-graph-div .hovertext {
+        pointer-events: none !important;
+    }
+
     /* 헤더 영역 색상 및 높이 조정 - 본페이지와 동일한 색상 */
     [data-testid="stHeader"],
     header[data-testid="stHeader"] {
@@ -116,11 +198,6 @@ def apply_custom_styles():
     /* 메인 배경 */
     .stApp { 
         background: linear-gradient(180deg, #374151 0%, #4b5563 50%, #6b7280 100%) !important; 
-    }
-    
-    /* 사이드바 배경 */
-    section[data-testid="stSidebar"] {
-        background: linear-gradient(180deg, #4b5563 0%, #6b7280 50%, #9ca3af 100%) !important;
     }
     
     /* 사이드바 타이트한 줄간격 설정 */
@@ -779,100 +856,175 @@ class BusanNewsPortal:
         return filtered_news
 
 def get_ai_recommendations(portal: BusanNewsPortal, situation: str, interest: str) -> List[Dict]:
-    """GPT API를 사용한 맞춤 보도자료 추천 - 상황+관심분야 기반"""
+    """
+    상황(situation) + 관심분야(interest) 기반 AI 추천
+    - 최근 1년 보도자료만 사용
+    - 관심분야 → 내부 태그 매핑으로 1차 필터
+    - 분야별 핵심 키워드로 2차 보정(옵션)
+    - GPT는 최종 후보군만 받아서 선별(reason 포함)
+    """
+    import os, json, re
+    from datetime import datetime, timedelta
+    import streamlit as st
+
+    # 0) 관심분야 → 내부 태그 매핑
+    INTEREST_TO_TAGS = {
+        "일자리/취업/창업": ["일자리·경제"],
+        "주거/부동산": ["교통·주거"],
+        "육아/교육": ["청년·교육"],
+        "복지혜택/건강의료": ["복지·건강"],
+        "문화/관광": ["문화·관광"],
+        "교통/인프라": ["교통·주거"],      # ✅ 교통/인프라 → 교통·주거 우선
+        "행정서비스": ["행정·소식"],
+    }
+
+    # (선택) 분야별 키워드 힌트로 추가 보정
+    INTEREST_KEYWORDS = {
+        "교통/인프라": ["교통", "인프라", "도로", "지하철", "철도", "BRT", "버스", "환승", "터널", "교차로", "보행", "주차", "주거", "주택", "재개발"],
+        "주거/부동산": ["주거", "주택", "청약", "임대", "분양", "재개발", "정비", "도시공원"],
+        "일자리/취업/창업": ["채용", "일자리", "취업", "고용", "창업", "스타트업", "보육", "자금", "컨설팅", "교육"],
+        "육아/교육": ["육아", "보육", "어린이", "청소년", "교육", "장학", "돌봄"],
+        "복지혜택/건강의료": ["복지", "건강", "의료", "지원금", "바우처", "장애", "노인", "임산부"],
+        "문화/관광": ["축제", "전시", "공연", "관광", "행사", "박람회", "야간"],
+        "행정서비스": ["민원", "서비스", "온라인", "시스템", "플랫폼", "행정"],
+    }
+
     try:
-        from openai import OpenAI
-        
-        # OpenAI 클라이언트 초기화
-        client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
-        
-        if not os.getenv('OPENAI_API_KEY'):
-            st.error("OpenAI API 키가 설정되지 않았습니다.")
-            return []
-        
-        # 최근 1년 보도자료만 사용
-        cutoff_date = datetime.now() - timedelta(days=365)
+        # 1) 최근 1년 보도자료만 확보
+        cutoff = datetime.now() - timedelta(days=365)
         recent_news = []
-        
         for news in portal.news_data:
             try:
-                news_date = datetime.strptime(news['date'], '%Y-%m-%d')
-                if news_date >= cutoff_date:
+                nd = datetime.strptime(news.get("date", ""), "%Y-%m-%d")
+                if nd >= cutoff:
                     recent_news.append(news)
-            except:
+            except Exception:
+                # 날짜 파싱 실패 시 포함하지 않음
                 continue
-        
+
         if not recent_news:
             return []
-        
-        # 보도자료 정보 준비 - 토큰 제한 고려하여 최적화
+
+        # 2) 관심분야 매핑 태그로 1차 필터
+        mapped_tags = INTEREST_TO_TAGS.get(interest, [])
+        if mapped_tags:
+            candidate_news = [
+                n for n in recent_news
+                if any(t in mapped_tags for t in n.get("tags", []))
+            ]
+            # 매핑 태그가 없어서 비면 전체로 폴백
+            candidate_news = candidate_news or recent_news
+        else:
+            candidate_news = recent_news
+
+        # 3) 키워드 힌트로 2차 보정(있을 때만, 너무 줄어들면 폴백)
+        kw = INTEREST_KEYWORDS.get(interest, [])
+        if kw:
+            kw_lower = [k.lower() for k in kw]
+            def hit(n):
+                title = (n.get("title") or "").lower()
+                body = (n.get("detailed_summary") or n.get("thumbnail_summary") or "").lower()
+                return any(k in title or k in body for k in kw_lower)
+            kw_filtered = [n for n in candidate_news if hit(n)]
+            if kw_filtered:  # 키워드 매치가 있으면 그걸 우선 사용
+                candidate_news = kw_filtered
+
+        # 4) GPT에 보낼 요약 정보 구성(과도한 토큰 방지)
         news_info = []
-        for i, news in enumerate(recent_news[:80]):  # 80개로 줄임
-            # 요약 길이도 줄임 (200자 -> 100자)
-            summary = news.get('thumbnail_summary', news.get('detailed_summary', ''))
-            if summary:
-                summary = summary[:100]  # 100자로 제한
-            
+        for i, n in enumerate(candidate_news[:200]):  # 안전상 한도
+            summary = n.get("thumbnail_summary") or n.get("detailed_summary") or ""
+            summary = summary[:60] if summary else ""
+            tag_text = ", ".join(n.get("tags", [])[:2])
             news_info.append({
-                'id': i,
-                'title': news['title'][:80],  # 제목도 80자로 제한
-                'date': news['date'],
-                'tags': ', '.join(news['tags'][:2]),  # 태그도 최대 2개만
-                'summary': summary
+                "id": i,
+                "title": n.get("title", "")[:100],
+                "date": n.get("date", ""),
+                "tags": tag_text,
+                "summary": summary,
             })
-        
-        # GPT 프롬프트도 간소화
+
+        if not news_info:
+            return []
+
+        # 5) GPT 호출
+        try:
+            from openai import OpenAI
+            client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        except Exception as e:
+            st.error(f"OpenAI 클라이언트 로드 실패: {e}")
+            return []
+
+        if not os.getenv("OPENAI_API_KEY"):
+            st.error("OpenAI API 키가 설정되지 않았습니다.")
+            return []
+
+        # 시스템/유저 프롬프트
+        mapped_tags_text = ", ".join(mapped_tags) if mapped_tags else "해당없음"
         prompt = f"""
-사용자: {situation} / {interest}
+사용자 상황: {situation}
+관심분야: {interest}
+우선 고려 태그: {mapped_tags_text}
 
-부산시 보도자료에서 이 사용자에게 직접 도움되는 7-10개만 선택하세요.
+규칙:
+- 사용자의 관심분야와 직접 연관된 항목만 추천
+- {interest}가 "일자리/취업/창업, 주거/부동산, 육아/교육, 복지혜택/건강의료"면
+  → 실제 신청/참여/접수/모집 가능한 사업·지원금·교육·컨설팅·박람회만 포함
+  → 단순 행사/기념식/발대식/선포/시상식 등은 제외
+- {interest}가 "문화/관광, 교통/인프라, 행정서비스"면
+  → 시민에게 유용한 서비스·시설개선·안내도 포함 가능
+  → 순수 홍보성/기념행사는 제외
+- 최대 10개, 관련성 없으면 0개도 허용
+- 이유는 구체적으로(대상·혜택·신청여부 등)
 
-선별 기준:
-- 실제 신청/참여 가능한 지원사업 우선
-- 사용자 상황과 직접 관련된 내용만
-- 일반적 정책발표/행사소식 제외
-
-매칭예시:
-"창업준비+일자리/경제" → 창업지원센터,스타트업지원,창업교육,창업자금
-"육아중+복지혜택" → 육아지원금,보육시설,아동수당
-"구직중+일자리/경제" → 취업지원,직업훈련,일자리박람회
-
-보도자료:
+보도자료 후보:
 {json.dumps(news_info, ensure_ascii=False)}
 
-JSON응답:
-{{"recommendations":[{{"id":번호,"reason":"구체적도움이유"}}]}}
-"""
+JSON으로만 응답:
+{{"recommendations":[{{"id":번호,"reason":"구체적도움이유"}}]]}}
+""".strip()
 
-        # GPT API 호출
-        response = client.chat.completions.create(
-            model="gpt-4.1-nano",
-            messages=[
-                {
-                    "role": "system", 
-                    "content": "당신은 부산시민들을 위한 정확한 보도자료 추천 전문가입니다. 사용자의 상황과 관심분야에 직접적으로 도움이 되는 보도자료만 선별해야 합니다. 관련성이 낮은 내용은 절대 추천하지 마세요."
-                },
-                {"role": "user", "content": prompt}
-            ],
-            temperature=0.1,  # 더 정확한 추천을 위해 낮춤
-            max_tokens=2000
-        )
-        
-        # 응답 파싱
-        result = json.loads(response.choices[0].message.content)
-        recommendations = []
-        
-        for rec in result.get('recommendations', []):
-            news_id = rec.get('id')
-            reason = rec.get('reason', '')
-            
-            if news_id < len(recent_news):
-                news_item = recent_news[news_id].copy()
-                news_item['ai_reason'] = reason
-                recommendations.append(news_item)
-        
-        return recommendations
-        
+        models_to_try = [
+            ("gpt-5-nano", {"max_tokens": 2000}),  # 일부 환경 호환
+            ("gpt-4.1-nano-2025-04-14", {"max_tokens": 2000, "temperature": 0.0}),
+        ]
+
+        content = None
+        for model_name, extra in models_to_try:
+            try:
+                resp = client.chat.completions.create(
+                    model=model_name,
+                    messages=[
+                        {"role": "system", "content": "부산시민에게 실제로 도움이 되는 보도자료만 정확히 선별하는 추천 전문가."},
+                        {"role": "user", "content": prompt},
+                    ],
+                    response_format={"type": "json_object"},
+                    **extra
+                )
+                content = resp.choices[0].message.content
+                if content and content.strip():
+                    break
+            except Exception:
+                continue
+
+        if not content:
+            st.error("AI 추천 응답이 비어 있습니다.")
+            return []
+
+        # 6) 응답 파싱 및 원본 데이터 연결
+        data = json.loads(content)
+        recs = []
+        for rec in data.get("recommendations", []):
+            try:
+                idx = int(rec.get("id"))
+            except Exception:
+                continue
+            if 0 <= idx < len(candidate_news):
+                item = dict(candidate_news[idx])  # copy
+                item["ai_reason"] = rec.get("reason", "")
+                recs.append(item)
+
+        return recs[:10]
+
     except Exception as e:
         st.error(f"AI 추천 오류: {e}")
         return []
@@ -989,18 +1141,18 @@ def render_news_sidebar(portal: BusanNewsPortal):
                             st.session_state.ai_recommendations = recommendations
                             st.session_state.selected_news_tag = "전체"  # 태그 선택 초기화
                             # st.success를 st.markdown으로 변경하여 하얀색 텍스트 적용
-                            st.sidebar.markdown(f"""
-                            <div style="
-                                background-color: #10B981;
-                                color: white !important;
-                                padding: 8px 12px;
-                                border-radius: 8px;
-                                margin: 8px 0;
-                                font-weight: bold;
-                            ">
-                                🎯 {len(recommendations)}개의 맞춤 보도자료를 찾았습니다!
-                            </div>
-                            """, unsafe_allow_html=True)
+                            # st.sidebar.markdown(f"""
+                            # <div style="
+                            #     background-color: #10B981;
+                            #     color: white !important;
+                            #     padding: 8px 12px;
+                            #     border-radius: 8px;
+                            #     margin: 8px 0;
+                            #     font-weight: bold;
+                            # ">
+                            #     🎯 {len(recommendations)}개의 맞춤 보도자료를 찾았습니다!
+                            # </div>
+                            # """, unsafe_allow_html=True)
                         else:
                             st.error("추천 결과를 가져올 수 없습니다. 다시 시도해주세요.")
                 except Exception as e:

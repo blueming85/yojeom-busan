@@ -735,9 +735,10 @@ def render_header():
 # ------------------------------------------------------------
 # 카드/그리드
 # ------------------------------------------------------------
-def render_news_card_aligned(news_item: Dict):
-    """보도자료 카드 렌더링"""
+def render_news_card_aligned(news_item: Dict, idx: int):
+    """보도자료 카드 렌더링 (idx 기반 고유 key 적용)"""
     with st.container():
+        # 태그 색상
         if news_item['tags']:
             main_tag = news_item['tags'][0]
             tag_color = TAG_COLORS.get(main_tag, "#6B7280")
@@ -745,6 +746,7 @@ def render_news_card_aligned(news_item: Dict):
             main_tag = "전체"
             tag_color = "#6B7280"
 
+        # 태그, 날짜 표시
         st.markdown(f"""
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; gap: 8px;">
             <div style="
@@ -773,6 +775,7 @@ def render_news_card_aligned(news_item: Dict):
         </div>
         """, unsafe_allow_html=True)
 
+        # 제목 박스 색상
         pastel_colors = {
             "#6B7280": "#E5E7EB",
             "#3B82F6": "#DBEAFE",
@@ -787,6 +790,7 @@ def render_news_card_aligned(news_item: Dict):
         pastel_color = pastel_colors.get(tag_color, "#F3F4F6")
         formatted_title = smart_line_break(news_item['title'])
 
+        # 제목 출력
         st.markdown(
             f"""
             <div class="news-title-box" style="
@@ -844,9 +848,10 @@ def render_news_card_aligned(news_item: Dict):
         #     unsafe_allow_html=True
         # )
 
+        # 상세보기 버튼 (idx 기반 key 보장)
         if st.button(
             "📄 클릭하여 내용 보기",
-            key=f"news_detail_btn_{hash(news_item['file_path'])}",
+            key=f"news_detail_btn_{idx}",
             use_container_width=True,
         ):
             st.session_state.selected_news = news_item
@@ -854,6 +859,7 @@ def render_news_card_aligned(news_item: Dict):
             st.session_state.scroll_to_top = True
             st.rerun()
 
+        # 카드 간격
         st.markdown("<div style='margin-bottom: 1.5rem;'></div>", unsafe_allow_html=True)
 
 
@@ -1126,7 +1132,7 @@ def render_news_grid_with_scroll(news_list: List[Dict]):
         for j in range(cols_per_row):
             if i + j < len(current_news):
                 with cols[j]:
-                    render_news_card_aligned(current_news[i + j])
+                    render_news_card_aligned(current_news[i + j], idx=i+j)
             else:
                 with cols[j]:
                     st.markdown("<div style='height: 400px; visibility: hidden;'></div>", unsafe_allow_html=True)
