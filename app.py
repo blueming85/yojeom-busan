@@ -34,10 +34,13 @@ from config import (
     PLANS_MD_DIR, PLAN_DEPARTMENTS, AVAILABLE_PLAN_TAGS, PLAN_TAG_COLORS,
     AVAILABLE_RESTAURANT_REGIONS, RESTAURANT_FOOD_TYPES, AVAILABLE_RESTAURANT_CATEGORIES,
     RESTAURANT_REGION_COLORS, RESTAURANT_FOOD_TYPE_COLORS, RESTAURANT_CATEGORY_COLORS,
+    AVAILABLE_POLICY_REGIONS, POLICY_CATEGORIES, POLICY_CATEGORY_COLORS,
     IS_LOCAL, get_env_info, MESSAGES
 )
 from plans_portal import BusanPlansPortal
 from restaurant_portal import BusanRestaurantPortal, get_restaurant_portal_stats
+from policy_portal import BusanPolicyPortal, get_policy_portal_stats   # ✅ 정책포털
+from policy_page import render_policy_map_with_sidebar
 from detail_pages import (
     render_header, render_news_detail, render_restaurant_detail, render_plans_detail,
     render_news_grid_with_scroll, render_restaurant_grid_with_scroll, render_plans_grid_with_scroll,
@@ -1417,6 +1420,71 @@ def render_restaurant_sidebar(restaurant_portal: BusanRestaurantPortal):
     
     return search_query, selected_regions, selected_food_types, selected_categories
 
+def render_policy_sidebar(policy_portal: BusanPolicyPortal):
+    """정책지도 전용 사이드바 — 버튼형(맛집 페이지와 동일 UX)"""
+    st.sidebar.header("🗺️ 정책 필터")
+
+    # 세션 기본값
+    if 'selected_policy_category' not in st.session_state:
+        st.session_state.selected_policy_category = "전체"
+    if 'selected_policy_region' not in st.session_state:
+        st.session_state.selected_policy_region = "전체"
+
+    # 검색어
+    search_query = st.sidebar.text_input(
+        "🔎 검색어",
+        placeholder="정책명, 지역, 카테고리 검색",
+        key="policy_search_input"
+    )
+
+    # --- 카테고리 버튼 ---
+    st.sidebar.subheader("🏷️ 카테고리")
+    category_stats = policy_portal.get_category_stats()
+
+    # "전체" 1번만
+    category_options = ["전체"] + [c for c in POLICY_CATEGORIES if c != "전체"]
+    for category in category_options:
+        count = category_stats.get(category, 0)
+        is_selected = (st.session_state.selected_policy_category == category)
+        btn_type = "primary" if is_selected else "secondary"
+
+        # 고유 key (중복 방지)
+        key = f"policy_catbtn_{category}".replace(" ", "_")
+        if st.sidebar.button(f"{category} ({count}개)", key=key, use_container_width=True, type=btn_type):
+            st.session_state.selected_policy_category = category
+            # 필터 바뀔 때 현재 선택된 항목 초기화
+            st.session_state.selected_policy_idx = None
+            st.session_state.scroll_to_top = True
+            st.rerun()
+
+    # --- 지역 버튼 ---
+    st.sidebar.subheader("📍 지역별")
+    region_stats = policy_portal.get_region_stats()
+    region_options = ["전체"] + [r for r in AVAILABLE_POLICY_REGIONS if r != "전체"]
+
+    for region in region_options:
+        count = region_stats.get(region, 0)
+        is_selected = (st.session_state.selected_policy_region == region)
+        btn_type = "primary" if is_selected else "secondary"
+
+        key = f"policy_regionbtn_{region}".replace(" ", "_")
+        if st.sidebar.button(f"{region} ({count}개)", key=key, use_container_width=True, type=btn_type):
+            st.session_state.selected_policy_region = region
+            st.session_state.selected_policy_idx = None
+            st.session_state.scroll_to_top = True
+            st.rerun()
+
+    # 반환(기존 인터페이스 유지)
+    selected_regions = (
+        [st.session_state.selected_policy_region]
+        if st.session_state.selected_policy_region != "전체" else ["전체"]
+    )
+    selected_categories = (
+        [st.session_state.selected_policy_category]
+        if st.session_state.selected_policy_category != "전체" else ["전체"]
+    )
+    return search_query, selected_regions, selected_categories
+
 def render_plans_sidebar(plans_portal: BusanPlansPortal):
     """업무계획 전용 사이드바 - rerun 제거"""
     st.sidebar.header("📋 업무계획 필터")
@@ -1511,7 +1579,7 @@ def render_plans_sidebar(plans_portal: BusanPlansPortal):
     return search_query, selected_categories
 
 def main():
-    """메인 앱 실행 (3페이지 통합) - 🔧 스크롤 탑 처리 추가"""
+    """메인 앱 실행 (4페이지 통합: 보도자료/맛집/정책지도/업무계획)"""
     # 세션 상태 초기화
     if 'show_detail' not in st.session_state:
         st.session_state.show_detail = False
@@ -1534,16 +1602,16 @@ def main():
             scroll_to_here(0, key='main_page_top')
             st.session_state.scroll_to_top = False
         
-        # 🔧 핵심 수정 1: 상세 페이지 우선 체크 (모든 페이지 공통)
+        # 상세 페이지 우선 체크
         if st.session_state.show_detail and st.session_state.selected_news:
             render_news_detail(st.session_state.selected_news)
-            return  # 여기서 종료
+            return
         elif st.session_state.show_restaurant_detail and st.session_state.selected_restaurant:
             render_restaurant_detail(st.session_state.selected_restaurant)
-            return  # 여기서 종료
+            return
         elif st.session_state.show_plan_detail and st.session_state.selected_plan:
             render_plans_detail(st.session_state.selected_plan)
-            return  # 여기서 종료
+            return
         
         # 메인 페이지 렌더링
         render_header()
@@ -1553,12 +1621,9 @@ def main():
             portal = BusanNewsPortal()
             search_query, selected_tags, date_range = render_news_sidebar(portal)
             
-            # 🔧 AI 추천 결과가 있으면 그것을 표시, 없으면 일반 필터링
             if st.session_state.get('ai_recommendations'):
-                # AI 추천 결과 표시
                 filtered_news = st.session_state.ai_recommendations
             else:
-                # 일반 필터링 결과 표시
                 filtered_news = portal.filter_news(selected_tags, search_query, date_range)
             
             if portal.news_data:
@@ -1567,17 +1632,15 @@ def main():
                 st.info("📢 보도자료 데이터를 로드하는 중입니다...")
                 
         elif st.session_state.page == 'restaurants':
-            # 🔧 핵심: 맛집 페이지 - 전체 데이터 먼저 로드
+            # 맛집 페이지
             restaurant_portal = BusanRestaurantPortal()
             
-            # 🔧 URL 파라미터 체크 (상세페이지 이동) - PyDeck 팝업 링크 처리
+            # URL 파라미터 → 상세페이지 이동
             try:
                 params = st.query_params
                 if 'restaurant_detail' in params:
                     import urllib.parse
                     file_path = urllib.parse.unquote(params['restaurant_detail'])
-                    
-                    # 전체 맛집 데이터에서 찾기
                     for restaurant in restaurant_portal.restaurants_data:
                         if restaurant.get('file_path') == file_path:
                             st.session_state.selected_restaurant = restaurant
@@ -1585,50 +1648,53 @@ def main():
                             st.query_params.clear()
                             st.rerun()
                             break
-            except Exception as e:
-                pass  # 에러 무시하고 계속
+            except Exception:
+                pass
             
-            # 🔧 상세페이지 체크
             if st.session_state.get('show_restaurant_detail') and st.session_state.get('selected_restaurant'):
                 render_restaurant_detail(st.session_state.selected_restaurant)
-                return  # 여기서 종료
+                return
             
-            # 맛집정보 필터링 및 표시
             search_query, selected_regions, selected_food_types, selected_categories = render_restaurant_sidebar(restaurant_portal)
             filtered_restaurants = restaurant_portal.filter_restaurants(
                 selected_regions, selected_food_types, selected_categories, search_query
             )
             
-            # 미슐랭 맛집 우선 정렬 적용
             def sort_restaurants_michelin_first(restaurants):
-                """미슐랭 맛집을 맨 앞으로 정렬"""
-                michelin_restaurants = [r for r in restaurants if r.get('category') == '미쉐린가이드']
-                other_restaurants = [r for r in restaurants if r.get('category') != '미쉐린가이드']
-                return michelin_restaurants + other_restaurants
+                michelin = [r for r in restaurants if r.get('category') == '미쉐린가이드']
+                others = [r for r in restaurants if r.get('category') != '미쉐린가이드']
+                return michelin + others
             
-            # 미슐랭 우선 정렬 적용
             filtered_restaurants = sort_restaurants_michelin_first(filtered_restaurants)
             
             if restaurant_portal.restaurants_data:
-                # 🔧 보기 모드에 따라 다른 렌더링 함수 호출
                 view_mode = st.session_state.get('restaurant_view_mode', '지도')
-                
                 if view_mode == '지도':
-                    # 지도 모드
                     render_restaurant_map_with_sidebar(filtered_restaurants)
                 else:
-                    # 카드 모드 (기존 방식)
                     render_restaurant_grid_with_scroll(filtered_restaurants)
             else:
                 st.info("🍽️ 맛집 데이터를 로드하는 중입니다...")
+        
+        elif st.session_state.page == 'policy':
+            # 정책지도 페이지
+            policy_portal = BusanPolicyPortal()
+            search_query, selected_regions, selected_categories = render_policy_sidebar(policy_portal)
+            filtered_policies = policy_portal.filter_policies(
+                selected_regions, selected_categories, search_query
+            )
+
+            if policy_portal.policy_data:
+                render_policy_map_with_sidebar(filtered_policies)
+            else:
+                st.info("🗺️ 정책 데이터를 로드하는 중입니다...")
                 
         elif st.session_state.page == 'plans':
-            # 🔧 핵심 수정 3: 업무계획 페이지 내부에서도 상세페이지 우선 체크
+            # 업무계획 페이지
             if st.session_state.get('show_plan_detail') and st.session_state.get('selected_plan'):
                 render_plans_detail(st.session_state.selected_plan)
-                return  # 여기서 종료
+                return
             
-            # 업무계획 페이지
             plans_portal = BusanPlansPortal()
             search_query, selected_categories = render_plans_sidebar(plans_portal)
             filtered_plans = plans_portal.filter_plans(selected_categories, search_query)
@@ -1638,7 +1704,7 @@ def main():
             else:
                 st.info("📋 업무계획 데이터를 로드하는 중입니다...")
         
-        # 제작자 정보 (공통) - 하단 배경을 검은색으로 수정
+        # 제작자 정보 (공통)
         st.markdown(
             """
             <div style="

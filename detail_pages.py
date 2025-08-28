@@ -16,12 +16,14 @@ try:
     import plotly.express as px
     import pandas as pd
     PLOTLY_AVAILABLE = True
-    print("✅ Plotly 라이브러리 로드 성공")
+    # print 문 제거 또는 조건부로 변경
+    # print("✅ Plotly 라이브러리 로드 성공")
 except ImportError as e:
     PLOTLY_AVAILABLE = False
-    print(f"❌ Plotly 라이브러리 로드 실패: {e}")
-    st.warning("⚠️ 지도 기능을 사용하려면 다음 명령어를 실행해주세요:")
-    st.code("pip install plotly pandas")
+    # 이 부분을 주석 처리하거나 제거
+    # print(f"⌒ Plotly 라이브러리 로드 실패: {e}")
+    # st.warning("⚠️ 지도 기능을 사용하려면 다음 명령어를 실행해주세요:")
+    # st.code("pip install plotly pandas")
 
 # 카카오 API 및 requests 선택적 import
 try:
@@ -659,7 +661,7 @@ def get_responsive_columns():
 
 
 def render_header():
-    """헤더 렌더링 (3개 탭 네비게이션 포함)"""
+    """헤더 렌더링 (4개 탭 네비게이션 포함)"""
     col1, col2 = st.columns([2, 3])
 
     with col1:
@@ -668,7 +670,9 @@ def render_header():
     with col2:
         current_page = st.session_state.get('page', 'news')
 
-        tab_col1, tab_col2, tab_col3 = st.columns(3)
+        # ✅ 기존 3개 → 4개 탭
+        tab_col1, tab_col2, tab_col3, tab_col4 = st.columns(4)
+
         with tab_col1:
             if st.button("📰 보도자료", key="nav_news", use_container_width=True,
                          type="primary" if current_page == 'news' else "secondary"):
@@ -684,6 +688,12 @@ def render_header():
                 st.rerun()
 
         with tab_col3:
+            if st.button("🗺️ 정책지도", key="nav_policy", use_container_width=True,
+                         type="primary" if current_page == 'policy' else "secondary"):
+                st.session_state.page = 'policy'
+                st.rerun()
+
+        with tab_col4:
             if st.button("📋 업무계획", key="nav_plans", use_container_width=True,
                          type="primary" if current_page == 'plans' else "secondary"):
                 st.session_state.page = 'plans'
@@ -694,28 +704,18 @@ def render_header():
 
     if current_page == 'news':
         st.markdown("### 부산시 최신 보도자료를 알려드립니다")
-        # st.markdown("""
-# <div class="howto-box" style="
-    # background-color:#374151;
-    # border-left:4px solid #6b7280;
-    # border-radius:8px;
-    # padding:16px;
-    # line-height:1.6;
-# ">
-# <p><strong>📖 이용 방법</strong></p>
-# <ul>
-    # <li>왼쪽 사이드바에서 <strong>분야를 선택</strong>하면 해당 분야의 보도자료를 확인할 수 있습니다</li>
-    # <li><strong>검색어</strong>를 입력하여 원하는 내용을 빠르게 찾아보세요</li>
-    # <li>각 카드를 클릭하면 <strong>상세 내용</strong>을 볼 수 있습니다</li>
-# </ul>
-# </div>
-# """, unsafe_allow_html=True)
 
     elif current_page == 'restaurants':
         st.markdown("### 부산 맛집 정보를 지도에서 확인하세요")
 
+    elif current_page == 'policy':
+        st.markdown("### 도시혁신균형실 정책사업을 지도에서 한눈에 확인하세요")
+        st.markdown("""
+
+""", unsafe_allow_html=True)
+
     else:
-        st.markdown("### 2025년 부산시 각 부서별 주요 업무계획을 확인하세요")
+        st.markdown("### 2025년 부산시 부서별 주요 업무계획을 확인하세요")
         st.markdown("""
 <div class="howto-box" style="
     background-color:#374151;
