@@ -9,3 +9,4 @@ streamlit-scroll-to-top
 plotly>=5.0.0
 openai>=1.0.0
 browser_cookie3>=0.19.1
+streamlit-js-eval==0.1.7

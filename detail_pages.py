@@ -200,6 +200,7 @@ def render_restaurant_map_with_sidebar(restaurant_list: List[Dict]):
    """맛집 지도: 모바일+PC 자동스크롤 + 진한보라색 클릭 효과"""
    import pandas as pd
    import plotly.graph_objects as go
+   from streamlit_js_eval import streamlit_js_eval
    
    # 상태값 초기화
    if 'show_restaurant_panel' not in st.session_state:
@@ -212,6 +213,19 @@ def render_restaurant_map_with_sidebar(restaurant_list: List[Dict]):
    if not restaurant_list:
        st.info("🔍 조건에 맞는 맛집이 없습니다.")
        return
+
+   # 화면 너비 감지 (모바일 판단)
+   screen_width = streamlit_js_eval(
+       js_expressions='window.innerWidth',
+       want_output=True,
+       key='screen_width'
+   )
+
+   # 모바일 기준: 768px 이하
+   is_mobile = screen_width is not None and screen_width <= 768
+
+   # 조건부 높이 설정
+   map_height = 300 if is_mobile else 700  # 모바일: 300px, 웹: 700px
 
    # 🔧 모바일+PC 모두 자동 스크롤 JavaScript
    st.markdown("""
@@ -364,7 +378,7 @@ def render_restaurant_map_with_sidebar(restaurant_list: List[Dict]):
                    center=dict(lat=center_lat, lon=center_lon),
                    zoom=11
                ),
-               height=700,
+               height=map_height,  # 여기서 조건부 높이 적용
                margin={"r": 0, "t": 0, "l": 0, "b": 0},
                showlegend=True,
                legend=dict(
