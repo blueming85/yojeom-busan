@@ -94,18 +94,30 @@ def apply_custom_styles():
             padding-left: 1rem !important;
         }
         
-        /* 모바일 맛집지도 크기 축소 */
+        /* 모바일 맛집지도 크기 축소 - 더 강력한 선택자 */
         .js-plotly-plot,
+        .js-plotly-plot .plotly,
         .plotly-graph-div,
-        [data-testid="stDeckGlJsonChart"] {
-            height: 250px !important;
-            max-height: 250px !important;
+        .plotly-graph-div > div,
+        [data-testid="stDeckGlJsonChart"],
+        [data-testid="stDeckGlJsonChart"] > div,
+        div[data-testid="stDeckGlJsonChart"],
+        .element-container .js-plotly-plot,
+        .element-container .plotly-graph-div,
+        .stPlotlyChart,
+        .stPlotlyChart > div {
+            height: 200px !important;
+            max-height: 200px !important;
+            min-height: 200px !important;
         }
         
         /* PyDeck 지도 컨테이너 크기 조정 */
         .deck-tooltip,
-        .deck-canvas {
-            height: 300px !important;
+        .deck-canvas,
+        canvas.deck-canvas {
+            height: 200px !important;
+            max-height: 200px !important;
+            min-height: 200px !important;
         }
     }
 
