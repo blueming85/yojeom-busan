@@ -83,7 +83,7 @@ def apply_custom_styles():
         padding-left: 370px !important;
     }
 
-    /* 모바일에서는 기본값 사용 */
+    /* 모바일에서는 기본값 사용 + 맛집지도 크기 조정 */
     @media (max-width: 768px) {
         section[data-testid="stSidebar"] {
             width: auto !important;
@@ -93,7 +93,22 @@ def apply_custom_styles():
         .main .block-container {
             padding-left: 1rem !important;
         }
+        
+        /* 모바일 맛집지도 크기 축소 */
+        .js-plotly-plot,
+        .plotly-graph-div,
+        [data-testid="stDeckGlJsonChart"] {
+            height: 250px !important;
+            max-height: 250px !important;
+        }
+        
+        /* PyDeck 지도 컨테이너 크기 조정 */
+        .deck-tooltip,
+        .deck-canvas {
+            height: 300px !important;
+        }
     }
+
 
     /* Plotly 호버 툴팁 텍스트 색상 수정 - 모바일에서 잘 보이도록 검정색으로 */
     .js-plotly-plot .plotly .hovertext,
@@ -1362,16 +1377,6 @@ def render_restaurant_sidebar(restaurant_portal: BusanRestaurantPortal):
                     st.session_state["_filter_sig"] = ""
                     st.rerun()
     
-    # 🔧 지도/카드 보기 모드 선택 - radio로 전환
-    st.sidebar.divider()
-    st.sidebar.subheader("🗺️ 보기 모드")
-    
-    view_mode = st.sidebar.radio(
-        "표시 방식",
-        options=["지도", "카드"],
-        index=0 if st.session_state.get("restaurant_view_mode", "지도") == "지도" else 1,
-        key="restaurant_view_mode"
-    )
     
     # 통계 정보
     st.sidebar.divider()
@@ -1668,11 +1673,7 @@ def main():
             filtered_restaurants = sort_restaurants_michelin_first(filtered_restaurants)
             
             if restaurant_portal.restaurants_data:
-                view_mode = st.session_state.get('restaurant_view_mode', '지도')
-                if view_mode == '지도':
-                    render_restaurant_map_with_sidebar(filtered_restaurants)
-                else:
-                    render_restaurant_grid_with_scroll(filtered_restaurants)
+                render_restaurant_map_with_sidebar(filtered_restaurants)
             else:
                 st.info("🍽️ 맛집 데이터를 로드하는 중입니다...")
         

@@ -1,0 +1,4652 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!doctype html>
+<html lang="ko" >
+
+<head>
+
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+
+<title>문서등록대장</title>
+
+<link rel="stylesheet" type="text/css" href="/ref/css/import.css" />
+<link rel="stylesheet" href="/css/protoload.css" type="text/css">
+
+
+
+
+<Script Language="JavaScript">
+  var V_ClientObjectProgId = "";
+  var V_HangulObjectProgId = "";
+
+  var Const =
+  {
+
+    
+    Path :
+    {
+      CTX : '',
+      BMS : '/bms',
+      CSS : '/css',
+      IMG : '/images',
+      JS  : '/js',
+      LST : '/bms/dctlist'
+    },
+
+    
+    Cmd :
+    {
+      BDY_FILE : 'body_file_info',
+      ENF_FILE : 'enf_file_info',
+      ATT_FILE : 'attach_file_list'
+    },
+
+    
+    FileCtrl :
+    {
+      VERSION  : '1,1,8,10',
+      SVR_IP   : '10.47.36.67',
+      SVR_PORT : '8080',
+      SVR_DIR  : '/WORK_TEMP/sto/6260000/20250908/blueming85/'
+    },
+
+    
+    DRM :
+    {
+      USE_DRM    : '1',
+      NO_USE_DRM : '0'
+    },
+
+    
+    RCV :
+    {
+      RDOC : 'P',
+      ENF  : 'R'
+    },
+
+    
+    POPUP_TYPE : '005',
+
+    POPUP_STATUS : 'no'
+
+  };
+
+</Script>
+
+
+<script type="text/javascript" src="/ref/js/prototype-1.7.3.js"></script>
+<script type="text/javascript" src="/js/ajax/protoload.js"></script>
+<script type="text/javascript" src="/ref/js/jquery-1.11.3.min.js"></script>
+<script type="text/javascript" src="/ref/js/jquery.fileDownload.js"></script> 
+<script type="text/javascript" src="/sto/js/FileManagerNew.js?version=20240613"></script>
+<script type="text/javascript" src="/ref/js/json2.js"></script> 
+<script type="text/javascript" src="/js/bms/dct_list.js?version=1"></script>
+<script type="text/javascript" src="/js/bms/org.js?version=1"  ></script>
+<script type="text/javascript" src="/js/bms/com.js"            ></script>
+<script type="text/javascript" src="/js/ko/dctResource_ko.js"  ></script>
+<script type="text/javascript" src="/js/comm/iemenu.js"        ></script>
+<script type="text/javascript" src="/js/comm/comm_strn.js"     ></script>
+
+
+
+
+<script type="text/javascript">
+var j$              = jQuery.noConflict();
+var gCompId         = "6260000";
+
+var DCT_LST_PREFIX  = "/bms/dctlist";
+var LST_COMMAND     = "ctrldeptviewsource";
+
+var reqOrgCompareId = "";
+
+//목록이 존재하느냐 목록의 수가 0 이면 false, 1 이상이면 true
+var isList          = true;
+var pagenum         = "1";
+var currDate         = 20250908;
+var schDateTerm     = "012";
+var schDetailDateTerm     = "012";
+
+//2023 4차 KSH 문서등록대장 winname 변경
+viewWinName = "BmsCtrlReportSourceV";
+
+function getDctUrl( prefix, command ) {
+    return prefix + "/" + command + ".do";
+}
+
+function initBody() {
+    var cookieStr = getReadDocidCookie();
+    if ( cookieStr != null && cookieStr.length > 0 && jQuery("#TTL_" + cookieStr ).get(0) ) {
+        jQuery("#TTL_" + cookieStr ).html( "<b>" + jQuery("#TTL_" + cookieStr ).text() + "</b>" );
+    }
+
+    var f = document.mainFrm;
+    var autotype = "N";
+    if (autotype == "S") {
+        f.searchsday_disp.disabled = false;
+        f.searcheday_disp.disabled = true;
+    } else if (autotype == "E") {
+        f.searchsday_disp.disabled = true;
+        f.searcheday_disp.disabled = false;
+    }
+
+    //기록관리고도화 선택한 특수기록물 상세검색조건 유지 strt - KWH 202008
+    var varGb = f.paperrecgubun.value;
+    if(varGb != ''){
+	    var spCharArr = varGb.split('');
+	    for(var i=0;i < spCharArr.length; i++){
+            var elId = "chkpaperrecgubun" + spCharArr[i];
+            j$("#"+elId).attr("checked", true);
+	    }
+    }
+
+    var varSp = f.paperrecspecial.value;
+    if(varSp != ''){
+	    var spCharArr = varSp.split('');
+	    for(var i=0;i < spCharArr.length; i++){
+	        if(spCharArr[i] == 'Y'){
+	            var elId = "chkpaperrecspecial0" + (i+1);
+	            j$("#"+elId).attr("checked", true);
+	        }
+	    }
+    }
+	//기록관리고도화 선택한 특수기록물 상세검색조건 유지 end - KWH 202008
+    initExpandColumn("상태");
+}
+
+
+function reloadPage() {
+    var f = document.mainFrm;
+
+    f.pagenum.value    = pagenum;
+    f.istotal.value    = "";
+
+    searchValueSet(f);
+
+    f.action = getDctUrl( DCT_LST_PREFIX, LST_COMMAND );
+    f.target = '';
+    f.submit();
+}
+
+
+
+function movePage( reqPagenum ) {
+    var f = document.mainFrm;
+
+    if ( ISSEARCH ) return;
+
+    ISSEARCH = true;
+    showProgress.call();
+
+    if( reqPagenum == "lastpage" ) {
+        f.islastpage.value     = "Y";
+    } else {
+        f.pagenum.value        = reqPagenum;
+    }
+
+    f.istotal.value = "";
+
+    searchValueSet(f);
+
+    f.action = getDctUrl( DCT_LST_PREFIX, LST_COMMAND );
+    f.target = "";
+    f.submit();
+}
+
+function setReadDocidCookie(value) {
+    var expdate = new Date();
+    expdate.setTime(expdate.getTime() + 1000 * 3600 * 24 * 3);
+    document.cookie = "READDOCIDCOOKIE=" + escape (value) + "; path=/; expires=" + expdate.toGMTString();
+}
+
+function getReadDocidCookie() {
+    var search = "READDOCIDCOOKIE="
+    if (document.cookie.length > 0) { // 쿠키가 설정되어 있다면
+      offset = document.cookie.indexOf(search);
+      if (offset != -1) { // 쿠키가 존재하면
+        offset += search.length
+        // set index of beginning of value
+        end = document.cookie.indexOf(";", offset);
+        // 쿠키 값의 마지막 위치 인덱스 번호 설정
+        if (end == -1)
+          end = document.cookie.length;
+        return unescape(document.cookie.substring(offset, end));
+      }
+    }
+    return "";
+}
+
+/**
+ * 함수명: 첨부파일 저장
+ * 설  명:
+ */
+var exeStr = "";
+function downloadFile(reqType, reqDocid, reqFileId, reqFileName, reqDispName, reqDrmUse, reqProtectflag ) {
+    // 보안[ProtectFlag = Y] 설정이 걸려있는 문서보기
+    protectResult = "";
+    if ( protectFlagCheck(reqDocid)) {
+        var newWidth   = 800;
+        var newHeight  = 485;//350;//280;
+        var newLeft    = (screen.availWidth - newWidth)/2;
+        var newTop     = (screen.availHeight - newHeight)/2;
+        var features   = "left=" + newLeft + ",top=" + newTop + ",width=400,height=160,scrollbars=no,resizable=no,status=no";
+
+        exeStr = "viewMainDoc( '" + reqType + "', '" + reqDocid + "', '" + reqFileId + "', '" + reqFileName + "', '" + reqDispName + "', '" + reqDrmUse + "' )"
+
+        objWindow = window.open("/bms/dct/protectreportview.do", "popup", features);
+    }
+    else {
+        viewMainDoc( reqType, reqDocid, reqFileId, reqFileName, reqDispName, reqDrmUse );
+    }
+}
+
+
+function viewDoc( reqRcvFlag
+                , reqPaperFlag
+                , reqDocId
+                , reqProtectflag
+                , reqSetCardFlag
+                , reqDistributeFlag
+                , reqDocStatus
+                , reqEnfGubun
+                , reqActerGubun
+                , reqSystemType
+                , reqConvBodyFlag
+                , reqFirstReadId
+                , reqAuthorOrgId
+                , reqRelayType
+                , reqOpen
+                , rmsMoveFlag
+                , rePortDt
+                , disposalFlag
+                )
+{
+
+	//[202111]기록관리고도화 폐기 기록물의 경우 열람 시 에러가 발생하여 열람되지 않도록 기능개선
+    if(disposalFlag != undefined && disposalFlag == 'Y'){
+    	console.log("평가폐기된 기록물로 열람하실 수 없습니다.");
+    	return;
+    }else if(rmsMoveFlag == 'Y'){
+        
+        alert("조회하고자 하는 문서는 CAMS 이관, 평가/폐기, 기관간인계된 기록물로 기록물통합서비스 플랫폼에서 조회할 수 있습니다.");
+        return;
+    }
+
+    
+
+  
+
+    var myOrgYn = 'Y';
+//     if(myOrgYn == 'N' && (reqOpen == 'DPBT2' || reqOpen = 'DPBT3')){
+    if(myOrgYn == 'N' && reqOpen == 'DPBT2'){    
+        alert("타기관 '문서' 조회시 비공개 문서는 조회할 수 없습니다.");
+        return;
+    }
+    setReadDocidCookie(reqDocId);
+    
+    jQuery("form[name='mainFrm'] input[name='chkDocId']").each(function ( idx, objEl ) {
+    	if ( this.value == reqDocId ) {
+            jQuery( "#TTL_" + this.value ).html( "<b>" + jQuery( "#TTL_" + this.value ).text() + "</b>" );
+        }
+        else {
+            jQuery( "#TTL_" + this.value ).html( jQuery( "#TTL_" + this.value).text() );
+        }
+    });
+
+    
+    if ( viewMsgUse ) {
+        if ( !confirmPopup( viewWin ) ) {
+            if ( viewWin && !viewWin.closed )    viewWin.focus();
+            return;
+        }
+    }
+
+    
+    var protectResult;
+    
+    /**************************************************** 
+    protectFlagCheck 기능개선 - by 장재양 2016-04-27
+     ****************************************************/
+    var protectFlagCheckResult;
+    
+    if(reqRcvFlag == 'M'){	// 전자심의
+        protectFlagCheckResult = protectFlagCheckOfMTG(reqDocId);
+    }else{
+        protectFlagCheckResult = protectFlagCheck(reqDocId);
+    }
+        
+    /****************************************************/
+    
+    //if(protectFlagCheck(reqDocId))
+    if(protectFlagCheckResult)
+    {
+        var newWidth   = 800;
+        var newHeight  = 485;//350;//280;
+        var newLeft    = (screen.availWidth - newWidth)/2;
+        var newTop     = (screen.availHeight - newHeight)/2;
+        var features   = "left=" + newLeft + ",top=" + newTop + ",width=400,height=160,scrollbars=no,resizable=no,status=no";
+
+        /************************** 
+        전자심의 기능개선
+        - by 장재양 2016-04-26
+         **************************/
+
+        exeStr = "openDoc( '" + reqRcvFlag + "', '" +  reqPaperFlag + "', '" +  reqDocId + "', '" +  reqProtectflag + "', '" +  reqSetCardFlag + "', '" +  reqDistributeFlag + "', '" +  reqDocStatus + "', '" +  reqEnfGubun + "', '" +  reqActerGubun + "', '" +  reqSystemType + "', '" +  reqConvBodyFlag + "', '" +  reqFirstReadId + "', '" +  reqRelayType + "', '"+  reqAuthorOrgId + "'" +")";
+        
+        var objWindowUrl = "";
+        
+		if(reqRcvFlag == 'M'){	// 전자심의
+		    
+		    objWindowUrl = "/bms/dct/protectMtgReportview.do";
+		    
+		}else{
+		    
+		    objWindowUrl = "/bms/dct/protectreportview.do";
+			
+		}
+		
+		objWindow = window.open(objWindowUrl, "popup", features);
+		
+		
+		/* 
+        exeStr = "openDoc( '" + reqRcvFlag + "', '" +  reqPaperFlag + "', '" +  reqDocId + "', '" +  reqProtectflag + "', '" +  reqSetCardFlag + "', '" +  reqDistributeFlag + "', '" +  reqDocStatus + "', '" +  reqEnfGubun + "', '" +  reqActerGubun + "', '" +  reqSystemType + "', '" +  reqConvBodyFlag + "', '" +  reqFirstReadId + "', '" + reqRelayType + "', '" + reqAuthorOrgId + "'  )"
+
+        objWindow = window.open("/bms/dct/protectreportview.do", "popup", features);
+ 		*/        
+        
+    }
+    else {
+        openDoc( reqRcvFlag, reqPaperFlag, reqDocId, reqProtectflag, reqSetCardFlag, reqDistributeFlag, reqDocStatus, reqEnfGubun, reqActerGubun, reqSystemType, reqConvBodyFlag, reqFirstReadId, reqRelayType, reqAuthorOrgId );
+    }
+}
+    
+
+function openDoc( reqRcvFlag
+                , reqPaperFlag
+                , reqDocId
+                , reqProtectflag
+                , reqSetCardFlag
+                , reqDistributeFlag
+                , reqDocStatus
+                , reqEnfGubun
+                , reqActerGubun
+                , reqSystemType
+                , reqConvBodyFlag
+                , reqFirstReadId
+                , reqRelayType
+                , reqAuthorOrgId
+                )
+{
+    if(viewWin && closedFlag){
+        viewWin.close();
+    }
+    
+    var f = document.mainFrm;
+    
+    viewWin = window.open('', viewWinName, getViewOption(reqRcvFlag, reqPaperFlag));
+
+    if( reqRcvFlag == 'P' ) { // 생산
+        FormManager.create( "cloudDocView", 'post', '/bms/dct/viewreport.do', viewWinName);
+
+        FormManager.addHidden('fromlistok' , 'Y');
+        FormManager.addHidden('docid'      , reqDocId);
+        FormManager.addHidden('authororgid', reqAuthorOrgId);
+        
+        //document.viewFrm.docid.value = reqDocId;
+
+    }else if(reqRcvFlag == 'M'){	// 전자심의
+        FormManager.create( "cloudDocView", "post", "/bms/dct/viewmtgreport.do", viewWinName );
+        FormManager.addHidden('authororgid', reqAuthorOrgId);
+        FormManager.addHidden("docid", reqDocId );
+    }
+    else { // 접수 
+        FormManager.create( "cloudDocView", 'post', '/bms/dctenf/BmsDctEnfReceiptCardDetail.do', viewWinName);
+
+        FormManager.addHidden('enfdocid'       , reqDocId);
+        FormManager.addHidden('setcardflag'    , reqSetCardFlag);
+        FormManager.addHidden('distributeflag' , reqDistributeFlag);
+        FormManager.addHidden('paperdocflag'   , reqPaperFlag);
+        FormManager.addHidden('docstatus'      , reqDocStatus);
+        FormManager.addHidden('enfgubun'       , reqEnfGubun);
+        FormManager.addHidden('actergubun'     , reqActerGubun);
+        FormManager.addHidden('systemtype'     , reqSystemType);
+        FormManager.addHidden('convbodyflag'   , reqConvBodyFlag);
+        FormManager.addHidden('firstreadid'    , reqFirstReadId);
+        FormManager.addHidden('relaytype'      , reqRelayType);
+        FormManager.addHidden('authororgid', reqAuthorOrgId);
+
+    }
+    
+    FormManager.addHidden("authororgcode",  reqAuthorOrgId);
+
+    
+    if(gCompId == reqAuthorOrgId){
+    	FormManager.addHidden('procgb'         , 'ctrl');
+    }else{
+        //타기관 문서조회 시 readonly로 문서를 열어주는 옵션
+        FormManager.addHidden('procgb'         , 'lately');
+    }
+    FormManager.addHidden('nextcmd'        , 'ctrldeptviewsource');
+    FormManager.addHidden('popupflag'      , 'Y');
+
+    FormManager.addHidden('pagenum'        , '1');
+    FormManager.addHidden('searchkey'      , 'detail');
+    FormManager.addHidden('searchtext'     , '');
+    FormManager.addHidden('reportsday'     , '20250809');
+    FormManager.addHidden('reporteday'     , '20250908');
+    FormManager.addHidden('istotal'        , '');
+
+    FormManager.addHidden('desctitle'      , '');
+    FormManager.addHidden('desckeyword'      , '');
+    FormManager.addHidden('descdocno'      , '');
+    FormManager.addHidden('descobjname'    , '');
+    FormManager.addHidden('descasktype'    , 'ALL');
+    FormManager.addHidden('descstate'      , '');
+    FormManager.addHidden('descopen'       , 'ALL');
+    FormManager.addHidden('descopenbasis'  , '');
+    FormManager.addHidden('descdeptname'   , '');
+    FormManager.addHidden('descapprdocnum' , '');
+    FormManager.addHidden('taskId'         , '');		//과제카드 ID 2015.10.06 ksh
+    FormManager.addHidden('taskNm'         , '');      //과제카드명 2015.10.06 ksh
+    
+    FormManager.submit();
+
+    viewWin.focus();
+}
+
+
+function searchList( reqType ) {
+    try {
+        // 검색중인 동안 다른 검색의 입력을 막는다.
+        if ( ISSEARCH ) return;
+
+        var f = document.mainFrm;
+
+        // 일반검색
+        if( reqType != 'DETAIL' ) {
+            if ( !validateDate( f.searchsday_disp, f.searcheday_disp, currDate, schDateTerm )
+               ) {
+                return;
+            }
+
+            if ( f.sSearchkey.value == "descdocno" && !/^[0-9]*$/.test( f.searchtext_disp.value.strip() ) ) {
+                alert("문서번호는 숫자만 입력해주세요.");
+                f.searchtext_disp.focus();
+                return;
+            }
+
+            // 검색중이라고 flag처리하고 검색중임을 나타내는 레이어를 활성화시킨다.
+            ISSEARCH = true;
+            showProgress.call();
+
+            f.searchkey.value      = f.sSearchkey.value;
+            f.searchtext.value     = f.searchtext_disp.value.strip();
+            f.reportsday.value     = f.searchsday_value.value;
+            f.reporteday.value     = f.searcheday_value.value;
+
+            
+            detailClear();
+        }
+        // 상세검색
+        else {
+            if (  !validateDate( f.detailsday_disp, f.detaileday_disp, currDate, schDetailDateTerm )        // 날짜체크
+               || !validateDocno( f.descdocno )                                         // 문서번호 체크
+               ) {
+                return;
+            }
+
+            // 검색중이라고 flag처리하고 검색중임을 나타내는 레이어를 활성화시킨다.
+            ISSEARCH = true;
+            showProgress.call();
+
+            var checkObj;
+            var stateValue, basisValue;
+
+            
+            stateValue = '';
+            checkObj   = document.getElementsByName('sState');
+            for( i = 0; i < checkObj.length; i++) {
+                if( checkObj[i].checked )   stateValue = stateValue + checkObj[i].value;
+            }
+
+            
+            basisValue = '';
+            if( f.descopen.value == 'DPBT2' || f.descopen.value == 'DPBT3' ) {
+                checkObj = document.getElementsByName('sOpenbasis');
+                for( i = 0; i < checkObj.length; i++) {
+                    if(checkObj[i].checked)
+                        basisValue = basisValue + checkObj[i].value;
+                    else
+                        basisValue = basisValue + '%';
+                }
+            }
+
+            
+            //searchClear();  serch -> normal 로변경 search로 하면 상세검색 검색이 안됨 2017.02.13 유연수  
+            normalClear();
+
+            f.searchkey.value     = 'detail';
+            f.reportsday.value    = f.detailsday_value.value;
+            f.reporteday.value    = f.detaileday_value.value;
+            f.desctitle.value     = f.desctitle_disp.value.strip();
+            f.desckeyword.value     = f.desckeyword_disp.value.strip();
+            f.descdeptname.value  = f.descdeptname_disp.value.strip();
+            f.descstate.value     = stateValue;
+            f.descobjname.value   = f.descobjname_disp.value.strip();
+            f.descopenbasis.value = basisValue;
+			
+            
+            fn_convPaperRecGubun(f);		//등록구분
+            fn_convPaperRecSpecial(f);
+            
+            
+            if ( f.descapprdocnum_disp.value.strip() == "(ex. 문서접수과, 문서접수과-10)" ) {
+                f.descapprdocnum.value  = "";
+            }
+            else {
+                f.descapprdocnum.value  = f.descapprdocnum_disp.value.strip();
+            }
+
+            // 분리등록문서 검색 조건
+            f.descpartflag.value    = ""; // A는 모두 검색
+            if ( f.descpartflagY_disp.checked && !f.descpartflagN_disp.checked ) {
+                f.descpartflag.value    = "Y";
+            }
+            else if ( !f.descpartflagY_disp.checked && f.descpartflagN_disp.checked ) {
+                f.descpartflag.value    = "N";
+            }
+            else if ( f.descpartflagY_disp.checked && f.descpartflagN_disp.checked ) {
+                f.descpartflag.value    = "A";
+            }
+
+            // 문서구분 검색조건
+            f.descrcvflag.value    = ""; // A는 모두 검색
+            if ( f.descrcvflagP_disp.checked && !f.descrcvflagR_disp.checked ) {
+                f.descrcvflag.value    = "P";
+            }
+            else if ( !f.descrcvflagP_disp.checked && f.descrcvflagR_disp.checked ) {
+                f.descrcvflag.value    = "R";
+            }
+            else if ( f.descrcvflagP_disp.checked && f.descrcvflagR_disp.checked ) {
+                f.descrcvflag.value    = "A";
+            }
+        }
+
+        f.pagenum.value    = '1';
+        f.istotal.value    = '';
+
+        f.action = '/bms/dctlist/ctrldeptviewsource.do';
+        f.target = '';
+        f.submit();
+
+        listLoad = false;
+    }
+    catch( e ) {
+        ISSEARCH = false;
+        hideProgress.call();
+    }
+}
+// 상세검색 버튼 클릭 시 화면 토글
+function searchView() {
+    if (j$("#detailsearch").attr("class") == "tbl_srch2_wrap none") {
+        j$("#detailsearch").attr("class", "tbl_srch2_wrap");
+        j$("#btnReset").attr("onclick", "detailClear();");
+        j$("#btnSearch").attr("onclick", "searchList('DETAIL');");
+        //상세검색 활성화시 기본검색의 text 삭제 2019.02.26
+        normalClear();
+    } else {
+        j$("#detailsearch").attr("class", "tbl_srch2_wrap none");
+        j$("#btnReset").attr("onclick", "normalClear();");
+        j$("#btnSearch").attr("onclick", "searchList();");
+        //상세검색 비활성화시 상세검색의 정보 삭제 2019.02.26
+        detailClear();
+    }
+    parent.resizeFrame_bms("_MAIN");
+}
+// Calendar 열기
+function useCalendar(reqType) {
+	var f = document.mainFrm;
+    if (reqType == 'start' && f.autotype.value != "E") {
+        show_calendar(f.searchsday_value, f.searchsday_disp, 'YYYY.MM.DD', "end", f.searcheday_value, false);
+    } else if (reqType == 'end' && f.autotype.value != "S") {
+        show_calendar(f.searcheday_value, f.searcheday_disp, 'YYYY.MM.DD', "start", f.searchsday_value, false);
+    } else if (reqType == 'detailstart') {
+        show_calendar(f.detailsday_value, f.detailsday_disp, 'YYYY.MM.DD', "detailend", f.detaileday_value, false);
+    } else if (reqType == 'detailend') {
+        show_calendar( f.detaileday_value, f.detaileday_disp, 'YYYY.MM.DD', "detailstart", f.detailsday_value, false);
+    }
+}
+// 월 더하기 빼기
+function addMonth(targetDate, oDateTerm, isMinus) {
+	var iTerm = parseInt(oDateTerm.value, 10);
+    var objDate = new Date(targetDate.substring(0, 4), targetDate.substring(4, 6) - 1, targetDate.substring(6, 8));
+    if (isMinus === true) {
+    	objDate.setMonth(objDate.getMonth() - iTerm);
+    } else {
+    	objDate.setMonth(objDate.getMonth() + iTerm);
+    }
+    return objDate.getFullYear() + new String(objDate.getMonth() + 1).lpad("0", 2) + new String(objDate.getDate()).lpad("0", 2);
+}
+// 날짜 선택시 호출되는 함수
+function pst_set_date(id) {
+	var f = document.mainFrm;
+    var format = /(\d{4})(\d{2})(\d{2})/;
+    if (f.autotype.value == "S" && id.name == "searchsday_value") {
+    	f.searcheday_value.value = addMonth(id.value, f.dateTerm);
+    	f.searcheday_disp.value = f.searcheday_value.value.replace(format, "$1.$2.$3");
+    }
+    if (f.autotype.value == "E" && id.name == "searcheday_value") {
+        f.searchsday_value.value = addMonth(id.value, f.dateTerm, true);
+        f.searchsday_disp.value = f.searchsday_value.value.replace(format, "$1.$2.$3");
+    }
+    if (f.searcheday_disp.value == '') {
+        f.searcheday_disp.value = f.searchsday_disp.value;
+        f.searcheday_value.value = del_period(f.searchsday_disp.value);
+    }
+}
+// 한 자리 숫자를 두 자리 숫자로 변환
+function addzero(n) {
+    return n < 10 ? "0" + n : n;
+}
+// 일반 검색 설정일 기준
+function checkAutoType(obj) {
+	var objTerm = document.mainFrm.dateTerm;
+	var f = document.mainFrm;
+    if (obj.value != "N") {
+        j$('#dateTerm').css('cursor', 'pointer');
+        if (obj.value == "S") {
+            j$('#dateTerm').css('cursor', 'pointer');
+        	f.searchsday_disp.disabled = false;
+        	f.searcheday_disp.disabled = true;
+        } else if (obj.value == "E") {
+            j$('#dateTerm').css('cursor', 'pointer');
+        	f.searchsday_disp.disabled = true;
+            f.searcheday_disp.disabled = false;
+        }
+    } else {
+        j$('#dateTerm').css('cursor', 'default');
+    	f.searchsday_disp.disabled = false;
+        f.searcheday_disp.disabled = false;
+        f.searcheday_value.value = '2025.09.08';
+        f.searcheday_disp.value = '2025.09.08';
+    }
+    setSearchTerm();
+}
+// 일반 검색 1,2,3,6개월
+function setSearchTerm() {
+    var f = document.mainFrm;
+    var obj = f.dateTerm;
+    var now = new Date();
+
+    // 기간 옵션이 1, 2, 3, 6 개월일 경우 원래의 로직을 태운다.
+    if (obj.value == "1" || obj.value == "2" || obj.value == "3" || obj.value == "6") {
+        if (f.autotype.value == "S") {
+            var sYear = f.searchsday_value.value.substring(0,4);
+            var sMonth = f.searchsday_value.value.substring(4,6);
+            var sDay = f.searchsday_value.value.substring(6,8);
+
+            now.setFullYear(sYear);
+            now.setMonth(new Number(sMonth)+new Number(obj.value)-1);
+            now.setDate(sDay);
+
+            var newDate2 = ""+addzero(now.getFullYear())+addzero(now.getMonth()+1)+addzero(now.getDate());
+            f.searcheday_value.value = newDate2;
+            newDate = newDate2.replace(/^(\d{4})(\d\d)(\d\d)$/, '$1.$2.$3');
+            f.searcheday_disp.value = newDate;
+        } else if (f.autotype.value == "E") {
+            var eYear = f.searcheday_value.value.substring(0,4);
+            var eMonth = f.searcheday_value.value.substring(4,6);
+            var eDay = f.searcheday_value.value.substring(6,8);
+
+            now.setFullYear(eYear);
+            now.setMonth(new Number(eMonth)-new Number(obj.value)-1);
+            now.setDate(eDay);
+
+            var newDate2 = ""+addzero(now.getFullYear())+addzero(now.getMonth()+1)+addzero(now.getDate());
+            f.searchsday_value.value = newDate2;
+            newDate = newDate2.replace(/^(\d{4})(\d\d)(\d\d)$/, '$1.$2.$3');
+            f.searchsday_disp.value = newDate;
+        } else {
+            var newDate1 = ""+addzero(now.getFullYear())+addzero(now.getMonth()+1)+addzero(now.getDate());
+            f.searcheday_value.value = newDate1;
+            newDate = newDate1.replace(/^(\d{4})(\d\d)(\d\d)$/, '$1.$2.$3');
+            f.searcheday_disp.value = newDate;
+            now.setMonth(now.getMonth()-obj.value);
+            var newDate2 = ""+addzero(now.getFullYear())+addzero(now.getMonth()+1)+addzero(now.getDate());
+            f.searchsday_value.value = newDate2;
+            newDate = newDate2.replace(/^(\d{4})(\d\d)(\d\d)$/, '$1.$2.$3');
+            f.searchsday_disp.value = newDate;
+        }
+    } else if (obj.value == 2025) {//기간옵션이 당해년도일 때
+        var date = new Date();
+        var newDate1 = obj.value + addzero(now.getMonth()+1)+addzero(now.getDate());
+        f.searcheday_value.value = newDate1;
+        newDate = newDate1.replace(/^(\d{4})(\d\d)(\d\d)$/, '$1.$2.$3');
+        f.searcheday_disp.value = newDate;
+
+        var newDate2 = obj.value + "0101";
+        f.searchsday_value.value = newDate2;
+        newDate = newDate2.replace(/^(\d{4})(\d\d)(\d\d)$/, '$1.$2.$3');
+        f.searchsday_disp.value = newDate;
+    } else {    // 기간옵션이 년도별일때 이쪽 로직을 탐
+        var newDate1 = obj.value + "1231";
+        f.searcheday_value.value = newDate1;
+        newDate = newDate1.replace(/^(\d{4})(\d\d)(\d\d)$/, '$1.$2.$3');
+        f.searcheday_disp.value = newDate;
+
+        var newDate2 = obj.value + "0101";
+        f.searchsday_value.value = newDate2;
+        newDate = newDate2.replace(/^(\d{4})(\d\d)(\d\d)$/, '$1.$2.$3');
+        f.searchsday_disp.value = newDate;
+    }
+}
+// 검색 조건 초기화
+function searchClear() {
+    if (j$("#detailsearch").attr("class") == "tbl_srch2_wrap none") {
+        normalClear();
+	} else {
+	    detailClear();
+	}
+}
+// 일반 검색 조건 초기화
+function normalClear() {
+    var f = document.mainFrm;
+    f.rcvflagfilter.value       = "A";
+    f.filter.value              = "ALL";
+    f.sSearchkey.value          = 'docttl';
+    f.searchtext_disp.value     = "";
+    f.searchtext.value          = "";
+    f.searchsday_disp.disabled  = false;
+    f.searcheday_disp.disabled  = false;
+    f.searchsday_disp.value     = '2025.08.09';
+    f.searchsday_value.value    = '20250809';
+    f.searcheday_disp.value     = '2025.09.08';
+    f.searcheday_value.value    = '20250908';
+    f.autotype.value		    = "N";
+    f.dateTerm.value            = '1';
+	j$('#dateTerm').trigger("onchange");
+}
+// 상세 검색 조건 초기화
+function detailClear() {
+    var f = document.mainFrm;
+
+    f.desctitle.value           = '';
+    f.desctitle_disp.value      = '';
+    f.desckeyword.value         = '';
+    f.desckeyword_disp.value    = '';
+    f.descdocno.value           = '';
+    f.descobjname_disp.value    = '';
+    f.descobjname.value         = '';
+    f.descstate.value           = '';
+    f.descopenbasis.value       = '';
+    f.descdeptname_disp.value   = '';
+    f.descdeptname.value        = '';
+    f.descapprdocnum_disp.value = '';
+    f.descasktype.value         = 'ALL';
+    f.descopen.value            = 'ALL';
+
+    f.detailsday_disp.value     = '2025.08.09';
+    f.detailsday_value.value    = '20250809';
+    f.detaileday_disp.value     = '2025.09.08';
+    f.detaileday_value.value    = '20250908';
+    f.descpartflag.value        = "";
+    f.descrcvflag.value         = "";
+
+    f.detailsday_disp.disabled  = false;
+    f.detaileday_disp.disabled  = false;
+
+    f.taskId.value = "";    //과제카드ID 2015.10.06 ksh
+    f.taskNm.value = "";    //과제카드명 2015.10.06 ksh
+    $("taskNm").innerText = "";
+
+    // 상태 초기화
+    var checkObj = document.getElementsByName('sState');
+    for (var i = 0; i < checkObj.length; i++) {
+      if (checkObj[i].checked) checkObj[i].checked = false;
+    }
+      
+    // 문서구분 초기화
+    checkObj = document.getElementsByClassName('descrcvflag');
+    for (var i = 0; i < checkObj.length; i++) {
+        if (checkObj[i].checked) checkObj[i].checked = false;
+    }
+    // 문서종류 초기화
+    checkObj = document.getElementsByClassName('ispaper');
+    for (var i = 0; i < checkObj.length; i++) {
+        if (checkObj[i].checked) checkObj[i].checked = false;
+    }
+    // 시행구분 초기화
+    checkObj = document.getElementsByClassName('enfgubun');
+    for (var i = 0; i < checkObj.length; i++) {
+        if (checkObj[i].checked) checkObj[i].checked = false;
+    }
+    // 분리등록여부 초기화
+    checkObj = document.getElementsByClassName('partflag');
+    for (var i = 0; i < checkObj.length; i++) {
+        if (checkObj[i].checked) checkObj[i].checked = false;
+    }
+
+    
+    
+    // 이미지검색 초기화
+    checkObj = document.getElementsByName('schForImage');
+    checkObj[0].checked = false;
+
+    // 공개여부 법령 초기화
+    checkObj = document.getElementsByName('sOpenbasis');
+    for (var i = 0; i < checkObj.length; i++) {
+      if (checkObj[i].checked) checkObj[i].checked = false;
+    }
+
+    // 공개여부 법령 숨기기
+    $('openbasis').style.display = 'none';
+
+    f.descapprdocnum.value = "";
+    
+    // 기록관리고도화 특수기록물, 등록구분 초기화 start - KWH 202008
+    checkObj = document.getElementsByName('chkpaperrecgubun');
+    for (var i = 0; i < checkObj.length; i++) {
+        if (checkObj[i].checked) checkObj[i].checked = false;
+    }
+    
+    f.paperrecspecial.value = '';
+    checkObj = document.getElementsByName('chkpaperrecspecial');
+    for (var i = 0; i < checkObj.length; i++) {
+        if (checkObj[i].checked) checkObj[i].checked = false;
+    }
+    // 기록관리고도화 특수기록물, 등록구분 초기화 end - KWH 202008
+
+    var now = new Date();
+    var newDate1 = ""+addzero(now.getFullYear())+addzero(now.getMonth()+1)+addzero(now.getDate());
+    f.detaileday_value.value = newDate1;
+    f.detaileday_disp.value = newDate1.replace(/^(\d{4})(\d\d)(\d\d)$/, '$1.$2.$3');
+    now.setMonth(now.getMonth()-1);
+    var newDate2 = ""+addzero(now.getFullYear())+addzero(now.getMonth()+1)+addzero(now.getDate());
+    f.detailsday_value.value = newDate2;
+    f.detailsday_disp.value = newDate2.replace(/^(\d{4})(\d\d)(\d\d)$/, '$1.$2.$3');
+}
+
+
+var onLoad = true;
+function deptSelected(reqOrgID, reqOrgName) {
+    if(!onLoad) {
+        detailClear();
+
+        $(deptnameStr).innerHTML = '문서등록대장 ' +
+                                   '<FONT color="#000000" style="font-size:9pt;font-weight:normal;">(' + reqOrgName + ')</FONT>';
+
+        var f = document.mainFrm;
+
+        f.pagenum.value  = 1;
+        f.deptid.value   = reqOrgID;
+        f.deptname.value = reqOrgName;
+        f.istotal.value  = '';
+
+        f.target = 'listFrame';
+        f.action = '/bms/dctlist/ctrldeptviewsource.do';
+        f.submit();
+
+        listLoad = false;
+    }
+    else {
+        onLoad = false;
+    }
+}
+
+
+
+function addFavorite(reqType) {
+    var objDocId      = document.getElementsByName("chkDocId");
+    var objDocTitle   = document.getElementsByName("chkDocTitle");
+    var objCardType   = document.getElementsByName("chkCardType");
+    var objAuthorName = document.getElementsByName("chkAuthorName");
+
+    if(objDocId.length < 1) return;
+
+    var cardtypeValue = "";
+    var docidValue    = "";
+    var doctitleValue = "";
+    var authornameValue = "";
+
+    var chkCount      = 0;
+
+    for ( i = 0; i < objDocId.length; i++) {
+        if (objDocId[i].checked) {
+            chkCount = chkCount + 1;
+
+            cardtypeValue = cardtypeValue + objCardType[i].value + "|";
+            docidValue    = docidValue    + objDocId[i].value    + "|";
+            doctitleValue = doctitleValue + objDocTitle[i].value + "|";
+            authornameValue = authornameValue + objAuthorName[i].value + "|";
+        }
+    }
+
+    if( chkCount < 1 ) {
+        alert("선택된 문서가 없습니다.");      
+        return;
+    }
+
+
+    var formTarget, formCommand;
+
+    if( reqType == "ADMIN" ) {
+        
+        alert("권한이 없습니다.");      
+        return;
+        
+    }
+    else {
+        var newWidth  = 422;
+        var newHeight = 410;
+        var newLeft   = (screen.availWidth  - newWidth)/2;
+        var newTop    = (screen.availHeight - newHeight)/2;
+
+        newWin = window.open( "", "favoriteFrm", "left=" + newLeft + ",top=" + newTop + ",width=" + newWidth + ",height=" + newHeight + ",scrollbars=no,resizable=yes");
+
+        formCommand = "/blg/scrap/favoritefoldersel.do";
+        formTarget = newWin.name;
+    }
+
+    FormManager.create("addFrm", "post", formCommand, formTarget);
+
+    FormManager.addHidden2("cardtype" , cardtypeValue);
+    FormManager.addHidden2("cardid"   , docidValue   );
+    FormManager.addHidden2("title"    , doctitleValue);
+    FormManager.addHidden2("authorname"    , authornameValue);
+
+    FormManager.submit();
+}
+
+function modPjtCard() {
+	//var objDocId       = document.getElementsByName("chkDocId");
+
+	var autoChk   = 0; // 자동발송건수
+	var chkDctIdCount   = 0;
+    var chkDisplayBox   = document.getElementsByName("chkDocId");
+    var chkDctId        = document.getElementsByName("chkDocId");
+    var chkProtectFlag  = document.getElementsByName("chkProtectFlag");
+    var chkActergubun   = document.getElementsByName("chkActergubun");
+    var chkDctIdLength  = chkDctId.length;
+    var docIds          = "";
+	
+    var height = 0;
+    
+    for( var i = 0; i < chkDctIdLength; i++) {
+        if( chkDisplayBox[i].checked ) {
+            chkDctIdCount = chkDctIdCount + 1;
+            if( i > 6){
+                height += 50;
+            }
+        }        
+    }
+
+    for( var i = chkDctIdLength - 1; i >= 0 ; i-- ) {
+		if( chkDisplayBox[i].checked ) {
+			docIds = docIds + chkDctId[i].value + "|";
+		}		
+    }
+
+    if( chkDctIdCount < 1 ) {
+        //선택된 문서가 없습니다!.
+        alert("선택된 문서가 없습니다.");
+        return;
+    } 
+
+    var newWidth    = 500;
+    var newHeight   = 400+height;
+
+    var newLeft     = ( screen.availWidth - newWidth ) / 2;
+    var newTop      = 0; // (screen.availHeight - newHeight)/2;
+
+    var isScroll    = chkDctIdCount > 11 ? "yes" : "no";
+
+    win = window.open("", "batchPopUp", "left=" + newLeft + ",top=" + newTop + ",width=" + newWidth + ",height=" + newHeight + ",scrollbars=" + isScroll + ", resizable=no");
+
+    j$("form[name='mainFrm'] input[name='docIds']").val( docIds );
+    
+    j$("form[name='mainFrm']").attr( "target", win.name );
+    j$("form[name='mainFrm']").attr( "action", "/bms/dct/modpjtcards.do" );
+    j$("form[name='mainFrm']").submit();
+}
+
+
+// var docidValue      = "";
+// var rcvflagValue    = "";
+var rdocnumberValue = "";
+var gubun           = "";
+function ptintMainFile( pGubun ) {
+    var objDocId        = document.getElementsByName("chkDocId");
+    var objDocTitle     = document.getElementsByName("chkDocTitle");
+    var objDocState     = document.getElementsByName("chkDocState");
+    var objDocStateName = document.getElementsByName("chkDocStateName");
+    var objProtectFlag  = document.getElementsByName("chkProtectFlag");
+    var objPaperFlag    = document.getElementsByName("chkPaperFlag");
+    var objRcvFlag      = document.getElementsByName("chkRcvFlag");
+    var objRocNumber    = document.getElementsByName("chkRocNumber");
+    var chkCount        = 0;
+    var docidValue 		= "";
+    var rcvflagValue    = "";	// 전역변수로 선언되어 생성되는 폼에 체크된 값이 계속 누적되므로 펑션 안으로 이동시킴
+
+    if ( objDocId.length < 1 ) {
+        return;
+    }
+
+    gubun = ( pGubun == undefined ) ? "print" : pGubun;
+
+    for ( var i = 0; i < objDocId.length; i++) {
+        if ( objDocId[i].checked ) {
+            if ( objPaperFlag[i].value == "Y" ) {
+                alert("비전자 문서가 존재해서 일괄인쇄를 할 수 없습니다.");
+                // objDocId[i].checked=false;
+                return;
+            }
+            else if ( gubun == "enfprint" && objRcvFlag[i].value == "R" ) {
+                alert("접수문서가 포함되어 있어 시행문 일괄인쇄를 할 수 없습니다.");
+                // objDocId[i].checked=false;
+                return;
+            }
+            else if ( gubun == "enfprint" && objDocStateName[i].value != "발송" ) {
+                alert("발송전 문서가 포함되어 있어 시행문 일괄인쇄를 할 수 없습니다.");
+                // objDocId[i].checked=false;
+                return;
+            } else {
+                chkCount         = chkCount + 1;
+                docidValue         = docidValue + objDocId[i].value + "↔";
+                rcvflagValue     = rcvflagValue + objRcvFlag[i].value + "↔";
+                rdocnumberValue = rdocnumberValue + objRocNumber[i].value + "↔";
+            }
+        }
+    }
+
+    if (  chkCount > 10 ) {
+        alert("일괄인쇄 문서는 10건까지만 가능합니다.");
+        return;
+    }
+
+    if ( chkCount < 1 ) {
+        
+        alert( "선택된 문서가 없습니다." );
+        return;
+    } else {
+        var protectResult;
+        var isProtectFlag;
+        var tempStr = "선택된 문서의 본문을 일괄인쇄 하시겠습니까?";
+
+        if ( gubun == "enfprint" ) {
+            tempStr = "선택된 문서의 시행문을 일괄인쇄 하시겠습니까?";
+        }
+
+        if( !confirm( tempStr ) ) {
+            return;
+        }
+
+        for ( var i = 0; i < objDocId.length; i++) {
+            if ( objDocId[i].checked && objProtectFlag[i].value == 'Y' ) {
+                isProtectFlag = 'Y';
+                break;
+            }
+        }
+
+        if ( isProtectFlag == 'Y' ) {
+            var newWidth   = 800;
+            var newHeight  = 485;//350;//280;
+            var newLeft    = (screen.availWidth - newWidth)/2;
+            var newTop     = (screen.availHeight - newHeight)/2;
+            var features   = "left=" + newLeft + ",top=" + newTop + ",width=400,height=160,scrollbars=no,resizable=no,status=no";
+
+            //exeStr = "execPtintMainFile()";
+            exeStr = "checkReadAuthforSendState( docidValue, rcvflagValue, rdocnumberValue, gubun )";
+
+            objWindow = window.open("/bms/dct/protectreportview.do", "popup", features);
+        } else {
+            //execPtintMainFile();
+            checkReadAuthforSendState( docidValue, rcvflagValue, rdocnumberValue, gubun );
+        }
+    }
+}
+
+/* function execPtintMainFile() {
+    checkReadAuthforSendState( docidValue, rcvflagValue, rdocnumberValue, gubun );
+} */
+
+
+function viewSendState() {
+    var objDocId      = document.getElementsByName("chkDocId");
+    var objDocTitle   = document.getElementsByName("chkDocTitle");
+    var objDocState   = document.getElementsByName("chkDocState");
+    var objAttachFlag = document.getElementsByName("chkAttachFlag");
+
+
+    if(objDocId.length < 1) return;
+
+    var docidValue    = '';
+    var docstateValue = '';
+    var docattachflag = '';
+    var chkCount      = 0;
+
+    for ( var i = 0; i < objDocId.length; i++) {
+        if ( objDocId[i].checked ) {
+            chkCount        = chkCount + 1;
+            docidValue      = objDocId[i].value;
+            docstateValue   = objDocState[i].value;
+            docattachflag   = objAttachFlag[i].value;
+        }
+    }
+
+    if ( chkCount < 1 ) {
+        
+        alert('선택된 문서가 없습니다.');
+        return;
+    }
+
+    if(chkCount > 1) {
+        alert("하나의 문서만 발송현황 조회할 수 있습니다.");
+        for (var k = 0; k < objDocId.length; k++ ) {
+            objDocId[k].checked=false;
+        }
+        return;
+    }
+
+    if ( docstateValue != "DRDS4" ) {
+        alert("발송한 문서만 발송현황 조회할 수 있습니다. (비전자문서 제외)");
+        for ( var k = 0; k < objDocId.length; k++ ) {
+            objDocId[k].checked=false;
+        }
+        return;
+    }
+    
+    checkReadAuthforSendState(docidValue, "", "", "view", docattachflag);
+}
+
+
+
+function checkReadAuthforSendState( reqDocId, reqRcvFlag, reqRdocNumber, gubun, attachflag ) {
+    var chkResult       = "N";
+    var arrDocidList    = "";
+    var arrRcvflagList  = "";
+    var selectDocId     = "";
+    var fileidValue     = "";
+    var sfilenameValue  = "";
+    var failgubun       = "";
+    var flettl          = "";
+    var objDocId        = document.getElementsByName("chkDocId");
+    var objDocTitle     = document.getElementsByName("chkDocTitle");
+
+    if ( gubun == "view" ) {
+        new Ajax.Request("/bms/common/checkAuth.do", {
+            method: 'post',
+            parameters: "opt=read&module=dct&moduleID=" + encodeURIComponent(reqDocId),
+            asynchronous: false,
+            onSuccess: function(transport) {
+                var result = transport.responseText.strip();
+
+                if (result == "true") {
+                    viewSendStateUrlCall(reqDocId, attachflag);
+                } else if (result == "false") {
+                    alert("권한이 없습니다.");
+                } else {
+                    alert("잘못된 호출입니다.");
+                }
+            }
+        });
+    } else if ( gubun == "print" || gubun == "enfprint"  ) {
+        var file_info_url = "/bms/dctlist/body_file_info.do";
+
+        if ( gubun == "enfprint" ) {
+            file_info_url = "/bms/dctlist/enf_file_info.do";
+        }
+
+        arrDocidList    = reqDocId.split("↔");
+        arrRcvflagList  = reqRcvFlag.split("↔");
+
+        for ( var nLoop = 0; nLoop < arrDocidList.length-1; ++nLoop ) {
+            new Ajax.Request("/bms/common/checkAuth.do", {
+                method        : "post",
+                parameters    : "opt=read&module=" + ( arrRcvflagList[nLoop] == "P" || arrRcvflagList[nLoop] == "A" ? "dct" : "enf" ) + "&moduleID=" + encodeURIComponent(arrDocidList[nLoop]),
+                asynchronous  : false,
+                onSuccess     : function(transport) {
+                    var result = transport.responseText.strip();
+
+                    if (result == "true") {
+                    } else if (result == "false") {
+                        selectDocId = arrDocidList[nLoop];
+                    } else {
+                        selectDocId = arrDocidList[nLoop];
+                    }
+                }
+            });
+        }
+
+        if ( objDocId.length < 1 ) return true;
+
+        for ( var i = 0; i < objDocId.length; i++) {
+            if ( objDocId[i].value == selectDocId ) {
+                alert( "열람권한이 없는 문서가 존재해서 일괄인쇄를 할 수 없습니다.\r\n\r\n문서제목 : [" + objDocTitle[i].value + "]" );
+                //objDocId[i].checked=false;
+                return true;
+            }
+        }
+
+        for ( var nLoop = 0; nLoop < arrDocidList.length-1; ++nLoop ) {
+            var sendV = {
+              "docid"    : arrDocidList[nLoop],
+              "rcv"      : arrRcvflagList[nLoop],
+              "printall" : ( gubun == "enfprint" ? "all" : "" ),
+              "printallflag" : "Y"
+            };
+
+            new Ajax.Request( file_info_url, {
+                method      : "post",
+                parameters  : "json=" + encodeURIComponent( JSON.stringify( sendV ) ),
+                asynchronous: false,
+                onSuccess   : function(transport) {
+                    var result = JSON.parse( transport.responseText );
+                    
+                    if (result.result_code == 1) {
+                        fileidValue = fileidValue + result.fleid + "↔";
+                        sfilenameValue = sfilenameValue + result.sfilename + "↔";
+                    } else {
+                        alert(result.error_message);
+                        failgubun = "Y";
+                    }
+                }
+            });
+            if (failgubun == "Y") {
+                return true;
+            }
+        }
+        
+        var formTarget, formCommand;
+
+        var newWidth   = 1024;
+        var newHeight  = 768;
+
+        var newLeft = (screen.availWidth - newWidth)/2;
+        var newTop = (screen.availHeight - newHeight)/2;
+
+        newWin = window.open( "", "multiprintReportWin", "left="+newLeft+",top="+newTop+",width="+newWidth+",height="+newHeight+",scrollbars=no,resizable=no,status=no");
+
+        formCommand     = "/bms/dct/multiprintreport.do";
+
+        if ( gubun == "enfprint" ) {
+            formCommand = "/bms/dctlist/multienfprint.do";
+        }
+
+        formTarget         = newWin.name;
+
+        FormManager.create( "multiprintReportFrm", "post", formCommand, formTarget );
+
+        FormManager.addHidden("docidValue"      , reqDocId);
+        FormManager.addHidden("rcvflagValue"    , reqRcvFlag);
+        FormManager.addHidden("rdocnumberValue" , reqRdocNumber);
+        FormManager.addHidden("fileidValue"     , fileidValue);
+        FormManager.addHidden("sfilenameValue"  , sfilenameValue);
+        FormManager.submit();
+    
+    } else if ( gubun == "contentRead") {
+        var file_info_url = "/bms/dctlist/body_file_info.do";
+        var contentReadDocId = "";
+        var docHead = "";
+        var drmflag = "";
+        arrDocidList    = reqDocId.split("↔");
+        arrRcvflagList  = reqRcvFlag.split("↔");
+
+        for ( var nLoop = 0; nLoop < arrDocidList.length; ++nLoop ) {
+            new Ajax.Request("/bms/common/checkAuth.do", {
+                method        : "post",
+                parameters    : "opt=read&module="+ arrDocidList[nLoop].substring(0,3).toLowerCase() +"&moduleID=" + encodeURIComponent(arrDocidList[nLoop]),
+                asynchronous  : false,
+                onSuccess     : function(transport) {
+                    var result = transport.responseText.strip();
+
+                    if (result == "true") {
+                    } else if (result == "false") {
+                        selectDocId = arrDocidList[nLoop];
+                    } else {
+                        selectDocId = arrDocidList[nLoop];
+                    }
+                }
+            });
+        }
+
+        if ( objDocId.length < 1 ) return true;
+
+        for ( var i = 0; i < objDocId.length; i++) {
+            if ( objDocId[i].value == selectDocId ) {
+                alert( "열람권한이 없는 문서입니다." );
+                return true;
+            }
+        }
+
+        for ( var nLoop = 0; nLoop < arrDocidList.length; ++nLoop ) {
+            contentReadDocId = arrDocidList[nLoop];
+            docHead = contentReadDocId.substring(0,3);
+
+            if(docHead == "ENF") {
+                var sendV = {
+                    "docid": arrDocidList[nLoop],
+                    "rcv": arrRcvflagList[nLoop],
+                    "printall": (gubun == "enfprint" ? "all" : ""),
+                    "printallflag": "Y",
+                    "enfaheadflag": "Y"
+                };
+            }else{
+                var sendV = {
+                    "docid": arrDocidList[nLoop],
+                    "rcv": arrRcvflagList[nLoop],
+                    "printall": (gubun == "enfprint" ? "all" : ""),
+                    "printallflag": "Y"
+                };
+            }
+
+            if(docHead == "ENF"){
+                file_info_url = "/bms/dctlist/enf_file_info.do";
+            }
+
+            new Ajax.Request( file_info_url, {
+                method      : "post",
+                parameters  : "json=" + encodeURIComponent( JSON.stringify( sendV ) ),
+                asynchronous: false,
+                onSuccess   : function(transport) {
+                    var result = JSON.parse( transport.responseText );
+
+                    if (result.result_code == 1) {
+                        fileidValue = fileidValue + result.fleid;
+                        sfilenameValue = sfilenameValue + result.sfilename;
+                        flettl = flettl + result.flettl;
+                        drmflag = result.drmflag;
+                    } else {
+                        alert(result.error_message);
+                        failgubun = "Y";
+                    }
+                }
+            });
+            if (failgubun == "Y") {
+                return true;
+            }
+        }
+
+        var downloadFile = fileidValue + "*" +  encodeURIComponent(flettl)  + "*" + sfilenameValue  + "*|";
+
+        
+            
+            
+            viewAheadBodyFile("",contentReadDocId,fileidValue,sfilenameValue,encodeURIComponent(flettl),drmflag);
+        
+    }
+}
+
+
+function attachAhead(attachUrl) {
+    attachUrl = attachUrl.replace(/\r\n/gi, "");
+    //popup = window.open("http://10.182.168.223:18080/docubraille/docubrailleviewer4speech.html","","target=_blank");
+    //popup = window.open("http://10.182.168.223:18080/docubraille/docubrailleviewer.html","","target=_blank");
+    //DocuBraille.setViewerData( popup, "http://10.182.168.223:18080/docubraille/translatelocalfile.jsp?filepath="+attachUrl,"url","test");
+    //viewAttachFileBraille('?filepath='+attachUrl,'온나라 본문 점자변환');
+    viewAttachFileBraille4Speech('?filepath='+attachUrl,'온나라 본문 점자변환');
+}
+
+
+function viewAheadBodyFile(editortype, docid, fileid, sfilename, guidfilename, drmflag) {
+    var newWidth   = 800;
+    var newHeight  = 485;
+    var newLeft    = (screen.availWidth - newWidth)/2;
+    var newTop     = (screen.availHeight - newHeight)/2;
+    var winstyle = "toolbar=no, location=no, directories=no, status=no, menubar=no, scrollbars=no"
+        + ", resizable=yes, width=" + newWidth + ", height=" + newHeight + ", left=" + newLeft + ", top=" + newTop;
+
+    var winName = "viewBodyFile";
+    var win = window.open("", winName, winstyle);
+
+    $("bodyfileviewform").action = "/bms/dct/viewbodyfile.do";
+    $("bodyfileviewform").editortype.value = editortype;
+    $("bodyfileviewform").docid.value = docid;
+    $("bodyfileviewform").fileid.value = fileid;
+    $("bodyfileviewform").sfilename.value = sfilename;
+    $("bodyfileviewform").drmflag.value = drmflag;
+    $("bodyfileviewform").guidfilename.value = unescape(guidfilename);
+    $("bodyfileviewform").target = winName;
+    $("bodyfileviewform").submit();
+}
+
+
+function viewSendStateUrlCall(docidValue, attachflag) {
+    var formTarget, formCommand;
+
+    var newWidth  = 740;
+    var newHeight = 470;
+    var newLeft   = (screen.availWidth  - newWidth)/2;
+    var newTop    = (screen.availHeight - newHeight)/2;
+
+    newWin = window.open( '',
+                          'popSendStateView',
+                          'left=' + newLeft + ',top=' + newTop + ',width=' + newWidth + ',height=' + newHeight + ',scrollbars=yes,resizable=yes');
+
+    formCommand = "/bms/dctenf/BmsDctEnfApprRecv.do";
+    formTarget = newWin.name;
+    FormManager.create('viewSendStateFrm', 'post', formCommand, formTarget);
+
+    FormManager.addHidden('docid'    , docidValue);
+    FormManager.addHidden('isattach'    , attachflag);
+    FormManager.submit();
+}
+
+
+
+function openChange() {
+    var f = document.mainFrm;
+
+    if(f.descopen.value == 'ALL' || f.descopen.value == 'DPBT1') {
+        $('openbasis').hide();
+
+        
+        var checkObj = document.getElementsByName('sOpenbasis');
+        for( i = 0; i < checkObj.length; i++) {
+            if(checkObj[i].checked) checkObj[i].checked = false;
+        }
+    }
+    else {
+        $('openbasis').show();
+    }
+}
+
+
+
+function filterSearch() {
+    showProgress.call();
+
+    var f = document.mainFrm;
+
+    f.pagenum.value          = '1';
+    f.searchkey.value        = '';
+
+    f.searchtext.value       = '';
+
+    f.reportsday.value      = '20250809';
+    f.reporteday.value      = '20250908';
+
+    detailClear();
+
+    $(detailsearch).hide();
+
+    f.istotal.value        = '';
+
+    f.action = '/bms/dctlist/ctrldeptviewsource.do';
+    f.target = '';
+    f.submit();
+
+    document.body.focus();
+}
+
+
+function rcvflagfilterSearch() {
+    showProgress.call();
+
+    var f = document.mainFrm;
+
+    f.pagenum.value          = '1';
+    f.searchkey.value        = '';
+
+    f.searchtext.value       = '';
+
+    f.reportsday.value      = '20250809';
+    f.reporteday.value      = '20250908';
+
+    detailClear();
+
+    $(detailsearch).hide();
+    
+    f.istotal.value        = '';
+
+    f.action = '/bms/dctlist/ctrldeptviewsource.do';
+    f.target = '';
+    f.submit();
+
+    document.body.focus();
+}
+
+
+
+function searchValueSet( reqForm ) {
+    reqForm.searchkey.value      = 'detail';
+    reqForm.searchtext.value     = unescapeJavaScript('');
+    reqForm.reportsday.value     = '20250809';
+    reqForm.reporteday.value     = '20250908';
+
+    reqForm.filter.value         = 'ALL';
+    reqForm.rcvflagfilter.value  = 'A';
+
+    reqForm.desctitle.value      = unescapeJavaScript('');
+    reqForm.desckeyword.value    = unescapeJavaScript('');
+    reqForm.descdocno.value      = '';
+    reqForm.descobjname.value    = '';
+    reqForm.descasktype.value    = 'ALL';
+    reqForm.descstate.value      = '';
+    reqForm.descopen.value       = 'ALL';
+    reqForm.descopenbasis.value  = '';
+
+    reqForm.deptid.value         = '6261962';
+    reqForm.deptname.value       = '철도시설과';
+    
+    reqForm.taskId.value         = '';    
+    reqForm.taskNm.value         = '';
+    
+    //기록관리고도화 등록구분, 특수기록물 검색조건 유지 start - KWH 202008
+    fn_convPaperRecGubun(reqForm);		//등록구분
+    fn_convPaperRecSpecial(reqForm);	//특수기록물
+  	//기록관리고도화 등록구분, 특수기록물 검색조건 유지  end - KWH 202008
+}
+
+
+
+var excelTF = false;
+function excel( value ) {
+    if( isList ) {      // 목록이 존재하느냐 목록의 수가 0 이면 false, 1 이상이면 true
+        var f    = document.mainFrm;
+
+        searchValueSet(f);
+
+        f.istotal.value         = "true";
+
+        var sdate = new Date();
+        var edate = new Date();
+
+        var sYear = f.searchsday_value.value.substring(0,4);
+        var sMonth = f.searchsday_value.value.substring(4,6);
+        var sDay = f.searchsday_value.value.substring(6,8);
+
+        var eYear = f.searcheday_value.value.substring(0,4);
+        var eMonth = f.searcheday_value.value.substring(4,6);
+        var eDay = f.searcheday_value.value.substring(6,8);
+
+        sdate.setFullYear(sYear);
+        sdate.setMonth(sMonth);
+        sdate.setDate(sDay);
+
+        edate.setFullYear(eYear);
+        edate.setMonth(new Number(eMonth)-6);
+        edate.setDate(eDay);
+
+        var newDate1 = ""+addzero(sdate.getFullYear())+addzero(sdate.getMonth())+addzero(sdate.getDate());
+        var newDate2 = ""+addzero(edate.getFullYear())+addzero(edate.getMonth())+addzero(edate.getDate());
+
+        if ( value == "PJT" ) {
+            var sDate   = f.reportsday.value;
+            var eDate   = f.reporteday.value;
+            var chkDate = 2;
+
+            if( chkTerm( sDate, eDate, chkDate ) < 0 ) {
+                alert( "과제정보를 포함한 엑셀다운로드의 검색 제한기간은 " + chkDate + "개월입니다."  );
+                return false;
+            }
+
+            f.pjtcardname.value = "Y";
+		} else {
+            if(newDate1 < newDate2){
+                alert('엑셀다운로드는 시스템 부하문제로 인해\n조회 종료일로 부터 6개월 이전 문서까지만 다운로드 됩니다.' +
+                      '\n\n조회된 종료일로부터 6개월 이전 문서를 다운로드 원하실 경우\n조회 날짜 변경 후 다운로드 해주시기 바랍니다.');
+            }
+        	f.pjtcardname.value = "";		// 문서등록대장 엑셀 다운로드시 과제정보 미포함 2015.10.06 ksh
+        }
+
+        // f.partflag.value   = partflag;
+
+        
+        showProgress.call();
+        if(!excelTF){
+	        excelTF = true;
+			var pUrl = "/bms/dctlist/ctrldeptviewsource_excel.do";
+			var params =  j$("#mainFrm").serialize();
+	
+			// 중복 클릭 방지
+	        j$.ajaxSetup({async:false});  
+	        j$.fileDownload(pUrl, {
+	            httpMethod:'POST',
+	            data:params
+	        })
+	        .done(function() {
+	            excelTF = false;
+	            if(hideProgress){
+	                hideProgress();    
+	            }
+	        })
+	        .fail(function() {//message 파일다운로드 중 오류가 발생 하였습니다.
+	            excelTF = false;
+	            if(hideProgress){
+	                hideProgress();    
+	            }
+	            alert("엑셀 다운로드에 실패하였습니다.");
+	        }); 
+        }
+        
+        f.partflag.value   = "N";
+    } else {
+        alert( DCT_ALERT_CTRLREPORTSOURCE_EXCEL_LIST_NONE );
+    }
+}
+
+
+function print( partflag ) {
+    if( isList ) {      // 목록이 존재하느냐 목록의 수가 0 이면 false, 1 이상이면 true
+        if ( printMessageUse ) {
+          if ( !confirm( DCT_ALERT_SET_PRINTPAPER + "\r\n\r\n" + DCT_ALERT_ISPRINT ) )
+            return;
+        }
+
+        printWin = window.open('', printWinName, getPrintOption());
+
+        var f = document.mainFrm;
+
+        searchValueSet(f);
+
+        f.istotal.value = 'true';
+        // f.partflag.value   = partflag;
+
+        
+        f.action = '/bms/dctlist/ctrldeptviewsource_print.do';
+        f.target = printWinName;
+        f.submit();
+
+        printWin.focus();
+
+        f.partflag.value   = "N";
+    } else {
+        alert( DCT_ALERT_CTRLREPORTSOURCE_PRINT_LIST_NONE );
+    }
+}
+
+
+
+function launchFunction( reqIndex ) {
+    var funcValue = saveMenuFunctionValue[reqIndex-1];
+
+    if( funcValue == "P" || funcValue == "R" ) {
+        eval('addPaperDoc(\'' + funcValue + '\')');
+    }
+    else {
+        eval( funcValue );
+    }
+}
+
+
+
+function showMenu() {
+    ResultMenu.Clear();
+
+    saveMenuFunctionValue = new Array();
+
+    ResultMenu.AddItem(DCT_POP_PAPER_RDOC);
+    ResultMenu.AddItem(DCT_POP_PAPER_ENF);
+
+    saveMenuFunctionValue[0] = 'P';
+    saveMenuFunctionValue[1] = 'R';
+
+    ResultMenu.PopUp();
+}
+
+
+
+function addPaperDoc(reqType) {
+    var popURL    = '';
+
+    if(reqType == 'P')
+        popURL= '/bms/dct/addoreportpaperview.do?popupflag=Y';
+    else
+        popURL= '/bms/dctenf/BmsDctEnfPaperCardForm.do?procgb=ctrl';
+
+    var newOption = getViewOption(reqType, 'Y');
+    newWin = window.open(popURL, '', newOption);
+    newWin.focus();
+}
+
+
+
+
+function popupHwp() {
+    var newWidth  = "450";
+    var newHeight = "250";
+    var newLeft   = (screen.availWidth  - newWidth)  / 2;
+    var newTop    = (screen.availHeight - newHeight) / 2;
+    var scrollbar = "no";
+    var resizable = "no";
+
+    var hwpPrintOption = "left="       + newLeft   + ", " +
+                         "top="        + newTop    + ", " +
+                         "width="      + newWidth  + ", " +
+                         "height="     + newHeight + ", " +
+                         "scrollbars=" + scrollbar + ", " +
+                         "resizable="  + resizable + ", " +
+                         "status=no";
+
+    hwpPrintWin = window.open("", "HWP_PRINT_POP", hwpPrintOption);
+
+    FormManager.create( "cloudDocView", "post", "/bms/dctlist/ctrldeptviewsource_p.do", hwpPrintWin.name);
+
+    FormManager.addHidden("deptid", document.mainFrm.deptid.value);
+
+    FormManager.submit();
+
+    hwpPrintWin.focus();
+}
+
+
+
+// 체크박스 전체선택/해제
+function chkAll(reqName) {
+    chkSelAll( reqName );
+}
+
+
+
+function selectedDept(reqObj) {
+    try {
+        if(reqObj != null) {
+            //지방의회가 온-나라를 자치단체와 같이 쓰면서 자치단체,지방의회 간에 부서선택이 되지 않도록 개선 2022-R-05
+            var selectable = true;
+            
+            j$.ajax({
+                type : 'POST',
+                url : '/bms/org/checkSelectableDept.do',
+                headers : {
+                    "Accept" : "application/json"
+                },
+                data : {targetDeptid : reqObj[0].deptId},
+                cache : false,
+                async : false,
+                contentType : 'application/x-www-form-urlencoded; charset=UTF-8',
+                success : function(data) {
+                    var result = data.result;
+
+                    if (result == 'N') {
+                        selectable = false;
+                    }
+
+                },
+                error : function(data) {
+                    if (window.console) {
+                        console.log('ajax checkSelectableDept call fail' + data);
+                    }
+                }
+            });
+
+            if (!selectable) {
+                alert('문서, 메모등록대장 타 부서 조회 불가로 설정된 부서입니다.\n' +
+                    '의회 등 특정부서(타 부서 조회 불가 부서)로 설정된 부서는\n' +
+                    '조직 내 부서 간 문서 조회가 불가합니다.');
+                hideProgress.call();
+                return;
+            }
+
+            
+
+            /* 타기관 문서등록대장 조회
+               클라우드 기관이 아닐 시 조회 불가 (20160419) KDW */
+            var tdsList = "";
+            j$.ajax({
+                type:"POST",
+                url:"/bms/org/cloudTdsListAjax.do",
+                async:false,
+                dataType:"text",
+                success:function(data){
+                    tdsList = JSON.parse(data);
+                },
+                error:function(request,status,error){
+                    alert(error);
+                }
+            });
+            var isCloudeTds=true;
+            var isCloudeCount=0;
+            if(reqObj[0].topOrgId!=null){
+                for(i=0;i<tdsList.length;i++){
+                    if(tdsList[i]==reqObj[0].topOrgId){
+                        //alert(tdsList+"="+reqObj[0].topOrgId);
+                        isCloudeCount++;
+                    }
+                }
+                if(isCloudeCount==0){
+                    isCloudeTds=false;
+                }
+            }
+            
+            //alert(isCloudeCount);
+            if(!isCloudeTds){
+                alert("온나라 클라우드 사용기관이 아니여서 문서등록대장 조회가 불가 합니다.");
+                return;
+            }
+            
+            if ( ISSEARCH ) {
+                return;
+            } else {
+                ISSEARCH = true;
+                showProgress.call();
+            }
+
+
+
+            var f = document.mainFrm;
+
+            
+            f.deptid.value   = reqObj[0].deptId;
+            f.deptname.value = reqObj[0].deptName;
+            f.toporgid.value = reqObj[0].topOrgId;
+            
+            //topOrgId = reqObj[0].topOrgId;
+            
+            f.pagenum.value          = '1';
+            f.searchkey.value        = '';
+
+            f.searchtext.value       = '';
+
+            f.searchsday_disp.value  = '2025.08.08';
+            f.searchsday_value.value = '20250809';
+            f.searcheday_disp.value  = '2025.09.08';
+            f.searcheday_value.value = '20250908';
+
+            f.reportsday.value       = '20250809';
+            f.reporteday.value       = '20250908';
+
+
+            detailClear();
+            
+            f.action = '/bms/dctlist/ctrldeptviewsource.do';
+            f.target = '';
+            f.submit();
+        }
+    }
+    catch( e ) {
+        ISSEARCH = false;
+        hideProgress.call();
+    }
+}
+
+
+function onSelSearch() {
+    document.mainFrm.searchtext_disp.value    = '';
+}
+
+
+// 문서번호 소팅
+function sortDocno() {
+    var f = document.mainFrm;
+    var sortdocno = "date";
+
+    if( "docnoasc" == sortdocno  ) {
+        f.orderby.value = "docnodesc";
+    } else if( "docnodesc" == sortdocno ) {
+        f.orderby.value = "date";
+    } else {
+        f.orderby.value = "docnoasc";
+    }
+
+    searchValueSet(f);
+    f.pagenum.value     ='';
+
+    f.action = '/bms/dctlist/ctrldeptviewsource.do';
+    f.target = '';
+    f.submit();
+
+}
+
+
+function showExportMenu( funcName ) {
+    ResultMenu.Clear();
+
+    saveMenuFunctionValue = new Array();
+
+    ResultMenu.AddItem("엑셀다운로드");
+    ResultMenu.AddItem("엑셀다운로드(과제정보포함)");
+
+    saveMenuFunctionValue[0] = funcName+'(\'N\')';
+    saveMenuFunctionValue[1] = funcName+'(\'PJT\')';
+
+    // ResultMenu.AddItem('분리등록 문서 제외');
+    // ResultMenu.AddItem('분리등록 문서 포함');
+
+    // saveMenuFunctionValue[0] = funcName+'(\'N\')';
+    // saveMenuFunctionValue[1] = funcName+'(\'Y\')';
+
+    ResultMenu.PopUp();
+
+}
+
+
+var DctPartList = {
+    docId       : "",
+    docNo       : "",
+    objToggle   : null,
+    tdIdx       : "1",
+    toggle      : function ( docId, docNo, obj, compareTdIdx ){
+                      this.docId        = docId;
+                      this.docNo        = docNo;
+                      this.objToggle    = obj;
+                      this.tdIdx        = compareTdIdx;
+
+                      this.request();
+                  },
+    request     : function(){
+                      var url       = '/bms/dctlist/dctPartList.do'
+                      var sendV     = { 'list' : [] };
+                      var docInfo   = { 'docid'     : this.docId };
+                      sendV.list[0] = docInfo;
+
+                      var myAjax = new Ajax.Request(
+                         url,
+                         {
+                             method      : 'post',
+                             parameters  : 'json=' + sendV.toJSONString(),
+                             onComplete  : function( originalRequest ) {
+                                               var objJson   = originalRequest.responseText.evalJSON(true);
+
+                                               setDctPartList( objJson.list, DctPartList.docNo, DctPartList.objToggle, DctPartList.tdIdx );
+                                           }
+                         });
+                 }
+}
+
+function setDctPartList( list, docNo, obj, tdIdx ) {
+    var objTable        = document.getElementById("dctList");
+    var objTableBody    = objTable.getElementsByTagName("tbody")[0];
+    var objRows         = objTableBody.getElementsByTagName("tr");
+    var rowCnt          = objRows.length;
+    var i               = 0;
+    var objTr, objTd, cellData;
+    var rowNo           = searchRowNo( objTableBody, tdIdx, docNo );
+    var cntList         = list.length;
+
+    // td의 값 읽어오기
+    for( i = 1; i < cntList; i++) {
+        if( obj.checked ) {
+            // 원하는 부분에 Row가 추가됨
+            objTr = objTableBody.insertRow( ( parseInt( rowNo ) + i ) );
+            objTr.setAttribute( "height", 20 );
+
+            createTd( objTr, "└", 1, "text-align:center;" );
+            createTd( objTr, list[i-1].docTtl, "9" );
+        }
+        else {
+            objTableBody.deleteRow( parseInt( rowNo ) + 1 );
+        }
+    }
+}
+
+function searchRowNo( objTableBody, tdIdx, value ) {
+    var objRows         = objTableBody.getElementsByTagName("tr");
+    var rowCnt          = objRows.length;
+    var rowNo           = 0;
+    var strData         = "";
+
+    // td의 값 읽어오기
+    for( i = 0; i < rowCnt; i++) {
+        objTd   = objRows[i].getElementsByTagName("td");
+
+        if( objTd.length == 1 )
+            continue;
+
+        if( objTd[parseInt( tdIdx )].childNodes[0].data != undefined
+         && trimSpace( objTd[1].childNodes[0].data ) == trimSpace( value ) ) {
+            rowNo = i;
+            break;
+        }
+    }
+
+    return rowNo;
+}
+
+function createTd( objTr, value, colspan, style ) {
+    var objTd, objTextNode;
+
+    objTd          = document.createElement("td");
+    objTextNode    = document.createTextNode( value );
+
+    objTd.appendChild( objTextNode );
+
+    if( colspan ) {
+        objTd.setAttribute( "colSpan", colspan );
+    }
+
+    if( style ) {
+        objTd.style.cssText = style;
+    }
+
+    objTr.appendChild( objTd );
+}
+
+
+/* 목록에서 (분리등록/분리등록현황) 할수 있는 권한
+ * 1. 생산 : 종료된 문서 (중단된 문서 제외)
+ * 2. 접수 : 담당확인 완료 문서
+ * 2. 기안자(생산용:기안자, 접수용:업무담당자)
+ * 3. 처리과 문서담당자(해당부서)
+ * 4. 기록관 이관 완료  제외
+ */
+function addDctPart() {
+    var frmCommand      = "";
+    var frmTarget       = "";
+
+    var objDocId        = document.getElementsByName("chkDocId");
+    var objPartFlag     = document.getElementsByName("chkPartFlag");
+    var objRcvFlag      = document.getElementsByName("chkRcvFlag");
+    var objSetCardFlag  = document.getElementsByName("chkSetCardFlag");
+    var objDocState     = document.getElementsByName("chkDocState");
+
+    var chkCount        = 0;
+    var strDocid        = "";
+    var strRcvFlag      = "A";
+    var strPartFlag     = "";
+    var strSetCardFlag  = "";
+    var strDocState     = "";
+
+    if ( objDocId.length < 1 ) return true;
+
+    for ( var i = 0; i < objDocId.length; i++) {
+        if ( objDocId[i].checked ) {
+            chkCount        = chkCount + 1;
+            strDocid        = trim( objDocId[i].value );
+            strPartFlag     = trim( objPartFlag[i].value );
+            strSetCardFlag  = trim( objSetCardFlag[i].value );
+            strDocState     = trim( objDocState[i].value );
+
+            // 생산(A)/접수(E)
+            if( objRcvFlag[i].value == "R" ) {
+                strRcvFlag = "E";
+            }
+        }
+    }
+
+    if ( chkCount < 1 ) {
+        alert('선택된 문서가 없습니다.');  
+        return;
+    }
+
+    if ( chkCount > 1 ) {
+        alert("분리등록은 하나의 문서만 처리 가능합니다.");
+        for ( var k = 0; k < objDocId.length; k++ ) {
+            objDocId[k].checked=false;
+        }
+
+        return;
+    }
+
+    if( strRcvFlag == "E" && !( strDocState == "EDS05" && strSetCardFlag == "Y" ) ) {
+        alert( "담당확인이된 접수문서만 분리등록이 가능합니다." );
+        return;
+    }
+
+    frmTarget  = openPopup( "addPartDocPopUp", 740, 465, true );
+    frmCommand = "/bms/dct/partaddreport.do";
+
+    FormManager.create( "frmAddDctPart", "post", frmCommand, frmTarget );
+
+    FormManager.addHidden( "docid",     strDocid );
+    FormManager.addHidden( "docgubun",  strRcvFlag );
+    FormManager.addHidden( "popupflag", "Y" );
+    FormManager.addHidden( "typegb",    "C" );
+
+    FormManager.submit();
+}
+
+function focusApprdocnum( obj ) {
+    var strVal  = obj.value;
+    var strEx   = "(ex. 문서접수과, 문서접수과-10)";
+
+    if ( strVal == strEx ) {
+        obj.style.fontStyle = "normal";
+        obj.style.color     = "#666666";
+        obj.value = "";
+    }
+}
+
+function blurApprdocnum( obj ) {
+    var strVal  = obj.value;
+
+    if ( strVal == "" ) {
+        obj.style.fontStyle = "italic";
+        obj.style.color     = "blue";
+        obj.value = "(ex. 문서접수과, 문서접수과-10)";
+    }
+}
+
+//2015년 2분기 기능개선 문서등록대장 이전/다음문서 이동 LSB
+var closedFlag = true;
+function goPreOrNext( docid, kind ) {
+    var order       = -1;
+    var error_alert = "";
+    var docids;
+    closedFlag 	= false;
+    
+	
+	var temp = '{"docid"         :"ENFF4D9D2ED69CAF1E661FA3F60736C00B5","doctitle"      :"시유재산 무상 사용허가(대부) 기준 알림","authorName"    :"조상환","authordeptname":"철도시설과","authordutyname":"주무관","rcvflag"       :"R","protectflag"   :"N","setcardfalg"   :"Y","distributeflag":"N","state"         :"EDS05","enfgubun"      :"N","actergubun"    :"","systemtype"    :"A","convbodyflag"  :"Y","firstreadid"   :"A83E45A15DC45FBD2CFFFFD105B21A48","relaytype"     :"DRT04","paperflag"     :"N","reportdate"    :"2025.09.08"},{"docid"         :"ENFAE700C49B5EF33A74912C8379C80100D","doctitle"      :"지자체 공공서비스 등록시스템 내 구비서류 세부내용 수정 협조 요청","authorName"    :"조상환","authordeptname":"철도시설과","authordutyname":"주무관","rcvflag"       :"R","protectflag"   :"N","setcardfalg"   :"Y","distributeflag":"N","state"         :"EDS05","enfgubun"      :"N","actergubun"    :"","systemtype"    :"A","convbodyflag"  :"Y","firstreadid"   :"A83E45A15DC45FBD2CFFFFD105B21A48","relaytype"     :"DRT04","paperflag"     :"N","reportdate"    :"2025.09.08"},{"docid"         :"ENF8F68B7D4604A124E5DA6AAC16E382A65","doctitle"      :"「2024년도 시의회 행정사무감사 지적사항」 2025년 3분기 처리결과 제출","authorName"    :"이유경","authordeptname":"철도시설과","authordutyname":"주무관","rcvflag"       :"R","protectflag"   :"N","setcardfalg"   :"N","distributeflag":"N","state"         :"EDS05","enfgubun"      :"N","actergubun"    :"EPR03","systemtype"    :"A","convbodyflag"  :"Y","firstreadid"   :"A83E45A15DC45FBD2CFFFFD105B21A48","relaytype"     :"DRT04","paperflag"     :"N","reportdate"    :"2025.09.08"},{"docid"         :"ENF7EABCA631B1C5B83128B03649D24412A","doctitle"      :"도시철도 강서선(트램) 추진관련 의견 제출 회신","authorName"    :"신혜진","authordeptname":"철도시설과","authordutyname":"주무관","rcvflag"       :"R","protectflag"   :"N","setcardfalg"   :"Y","distributeflag":"N","state"         :"EDS05","enfgubun"      :"Y","actergubun"    :"","systemtype"    :"A","convbodyflag"  :"Y","firstreadid"   :"A83E45A15DC45FBD2CFFFFD105B21A48","relaytype"     :"DRT01","paperflag"     :"N","reportdate"    :"2025.09.08"},{"docid"         :"ENFEE81ADD05D418DCDC287373B78EC7899","doctitle"      :"의원발의「산업안전보건법」일부개정법률안에 대한 관계부서 의견조회","authorName"    :"조상환","authordeptname":"철도시설과","authordutyname":"주무관","rcvflag"       :"R","protectflag"   :"N","setcardfalg"   :"Y","distributeflag":"N","state"         :"EDS05","enfgubun"      :"N","actergubun"    :"","systemtype"    :"A","convbodyflag"  :"Y","firstreadid"   :"A83E45A15DC45FBD2CFFFFD105B21A48","relaytype"     :"DRT04","paperflag"     :"N","reportdate"    :"2025.09.08"},{"docid"         :"ENF20C09CB0ECB711A07D41689426BDBBD5","doctitle"      :"시도지사협의회 지방정부의 정부위원회 참여 확대 추진계획 알림","authorName"    :"조상환","authordeptname":"철도시설과","authordutyname":"주무관","rcvflag"       :"R","protectflag"   :"N","setcardfalg"   :"Y","distributeflag":"N","state"         :"EDS05","enfgubun"      :"N","actergubun"    :"","systemtype"    :"A","convbodyflag"  :"N","firstreadid"   :"A83E45A15DC45FBD2CFFFFD105B21A48","relaytype"     :"DRT04","paperflag"     :"N","reportdate"    :"2025.09.08"},{"docid"         :"ENF421330EC096431C7381F0B31ADC6DF42","doctitle"      :"2025년 3분기 퇴직격려금 신청 안내(정년 및 명예퇴직자)","authorName"    :"조상환","authordeptname":"철도시설과","authordutyname":"주무관","rcvflag"       :"R","protectflag"   :"N","setcardfalg"   :"Y","distributeflag":"N","state"         :"EDS05","enfgubun"      :"N","actergubun"    :"","systemtype"    :"A","convbodyflag"  :"N","firstreadid"   :"A83E45A15DC45FBD2CFFFFD105B21A48","relaytype"     :"DRT04","paperflag"     :"N","reportdate"    :"2025.09.08"},{"docid"         :"ENF599F0E15F2AFBB63A7BF01F2739DE361","doctitle"      :"도시관리계획(지구단위계획) 결정 관련 의견 협의(덕포동 한일시멘트부지)","authorName"    :"최세운","authordeptname":"철도시설과","authordutyname":"주무관","rcvflag"       :"R","protectflag"   :"N","setcardfalg"   :"N","distributeflag":"N","state"         :"EDS05","enfgubun"      :"N","actergubun"    :"EPR03","systemtype"    :"A","convbodyflag"  :"Y","firstreadid"   :"01EDD85DE189AA63380664AB18728579","relaytype"     :"DRT04","paperflag"     :"N","reportdate"    :"2025.09.08"},{"docid"         :"ENFE4305B55E596E1B03D7FD70AA1DD4ACB","doctitle"      :"2025년 하반기 상시 통계수요조사 실시 안내","authorName"    :"조상환","authordeptname":"철도시설과","authordutyname":"주무관","rcvflag"       :"R","protectflag"   :"N","setcardfalg"   :"Y","distributeflag":"N","state"         :"EDS05","enfgubun"      :"N","actergubun"    :"","systemtype"    :"A","convbodyflag"  :"Y","firstreadid"   :"A83E45A15DC45FBD2CFFFFD105B21A48","relaytype"     :"DRT04","paperflag"     :"N","reportdate"    :"2025.09.08"},{"docid"         :"ENF14CC5B6836C3DFA2BD19B53570500A15","doctitle"      :"부산도시철도 사상~하단선 기본계획 변경(안) 승인 신청","authorName"    :"김소연","authordeptname":"철도시설과","authordutyname":"주무관","rcvflag"       :"R","protectflag"   :"N","setcardfalg"   :"N","distributeflag":"N","state"         :"EDS05","enfgubun"      :"Y","actergubun"    :"EPR03","systemtype"    :"A","convbodyflag"  :"Y","firstreadid"   :"01EDD85DE189AA63380664AB18728579","relaytype"     :"DRT01","paperflag"     :"N","reportdate"    :"2025.09.08"}';
+	docids = eval( '([' + temp + '])');
+
+	for ( i = 0; i < docids.length; i++) {
+        if ( docids[i].docid == docid ) {
+            order = i;
+            break;
+        }
+    }
+    viewMsgUse = false;
+
+    if ( kind =="pre" ) {
+        if ( order == 0 || order == -1 ) {
+            error_alert = "다음 문서가 없습니다.";
+        } else {
+            	//viewDoc(docids[order-1].rcvflag				, 
+				//		docids[order-1].paperflag			, 
+				//		docids[order-1].docid				,
+			    //       docids[order-1].protectflag			,
+			    //        docids[order-1].setcardflag			,
+			    //        docids[order-1].distributeflag		,
+			    //        docids[order-1].state				,
+			    //        docids[order-1].enfgubun			,
+			    //        docids[order-1].actergubun			,
+			    //        docids[order-1].systemtype			,
+			    //        docids[order-1].convbodyflag		,
+			    //        docids[order-1].firstreadid			,
+			    //        docids[order-1].relaytype);
+            eval( "document.all." + docids[order-1].docid + ".onclick()" );
+        }
+    } else {
+        if ( order == ( docids.length - 1 ) || order == -1 ) {
+            error_alert = "이전 문서가 없습니다.";
+        } else {
+
+            eval( "document.all." + docids[order+1].docid + ".onclick()" );
+        }
+    }
+
+    viewMsgUse = true;
+    closedFlag = true;
+
+    return error_alert;
+
+}
+
+
+//과제카드명으로 상세 조회될 수 있도록 개선 2015.10.06 ksh
+function goSetTask() {
+
+    var pWidth  = 680;
+    var pHeight = 470;
+
+    
+
+    var pointX   = (screen.width - pWidth)/2;
+    var pointY   = ((screen.height - pHeight)/2) - 20;
+    var winStyle = "toolbar=no, location=no, directories=no, status=no, menubar=no, scrollbars=yes"
+                 + ", resizable=no, width="+pWidth+", height="+pHeight+", left="+pointX+", top="+pointY;
+
+    var popwin= window.open("", "projectwin", winStyle);
+
+    FormManager.create("popwinFrm", "post", "/bms/com/taskPopup.do", "projectwin");
+
+    FormManager.addHidden2("caller", "doc");
+    FormManager.addHidden2("type", "2");
+    FormManager.addHidden2("userid", "A83E45A15DC45FBD2CFFFFD105B21A48");
+
+    FormManager.submit();
+
+    popwin.focus();
+}
+
+//Callback function
+//과제가 선택되면 불린다.
+//과제카드명으로 상세 조회될 수 있도록 개선 2015.10.06 ksh
+function cb_OnProjectSelect(pjtId,  pjtName,  pjtplanId,  pjtPlanName,
+                         taskId, taskName, taskplanId, taskPlanName,
+                         orgId,  orgName,  orgPlanId,  orgPlanName,
+                         schId, rptId,
+                         actGubun, actPeriod, actDate
+                         , pCardMngNm)
+{
+ // pjtId : 관리과제카드 id
+ // pjtName : 관리과제카드 이름
+ // pjtplanId: 관리과제카드 활동계획ID
+ // pjtPlanName : 관리과제카드 활동계획명
+ // taskId : 단위과제카드ID
+ // taskName : 단위과제카드명
+ // taskplanId :단위과제카드 활동계획ID
+ // taskPlanName : 단위과제카드 활동계획명
+ // orgId : 기관과제카드ID
+ // orgName : 기관과제카드명
+ // orgPlanId :기관과제카드 활동계획ID
+ // orgPlanName : 기관과제카드 활동계획명
+ // schId : 일정 Id (일정선택한 경우만)
+ // rptId : 반복 Id (일정선택한 경우만)
+	var f = document.mainFrm;
+	f.taskId.value = taskId;   
+	f.taskNm.value = taskName.replace('&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;보존기간:','');
+	$("taskNm").innerText = taskName.replace('&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;보존기간:','');
+	f.pjtcardname.value = "Y";
+}
+
+    	
+ // 타기관 조회
+ function extOrgSetPopup() {
+ 	// var winHeight = document.body.clientHeight;//현재창의높이
+ 	// var winWidth = document.body.clientWidth;//현재창 너비
+ 	
+ 	// var winX = window.screenLeft;  //현재 X좌표
+ 	// var winY = window.screenTop;   //현재 Y좌표
+ 	
+ 	// var popX = winX + (winWidth - 300)/2; 
+ 	// var popY = winY + (winHeight - 420)/2;
+
+ 	var popWidth = 300;		// 팝업창의 가로사이즈(너비)
+ 	var popHeight = 720;	// 팝업창의 세로사이즈(높이)
+
+ 	var left = (window.screen.width - popWidth) / 2;	// 팝업창의 가운데 정렬을 위한 X좌표(좌측상단)
+ 	var top = (window.screen.height - popHeight) / 2;	// 팝업창의 가운데 정렬을 위한 Y좌표(좌측상단)
+
+ 	window.open("/bms/org/orgSetPopupDept.do?task_code=DCT", "BmsOrgSetPopupDept"
+        , "width="+popWidth+",height="+popHeight+",left="+left+"px,top="+top+"px,toolbar=0,location=0,directories=0,status=0,menubar=0,scrollbars=0,resizable=0");
+ }
+
+//기록관리고도화 등록구분, 특수기록물 체크된 값으로 변환작업 start - KWH 202008
+function fn_convPaperRecGubun(selForm){
+    var descPaperrecgubun = '';
+    checkObj   = document.getElementsByName('chkpaperrecgubun');
+    for( i = 0; i < checkObj.length; i++) {
+        if( checkObj[i].checked ){
+            descPaperrecgubun += checkObj[i].value;
+        }
+    }
+    selForm.paperrecgubun.value = descPaperrecgubun;
+}
+function fn_convPaperRecSpecial(selForm){
+    var descPaperrecspecial = '';
+    checkObj   = document.getElementsByName('chkpaperrecspecial');
+    for( i = 0; i < checkObj.length; i++) {
+        if( checkObj[i].checked ){
+            descPaperrecspecial += 'Y';
+        }else{
+            descPaperrecspecial += 'N';                    
+        }
+    }
+    selForm.paperrecspecial.value = (descPaperrecspecial == "NNNNN")?"":descPaperrecspecial;
+}
+//기록관리고도화 등록구분, 특수기록물 체크된 값으로 변환작업 end - KWH 202008
+
+function handleEnterClick(e){
+    var keycode = (e.keyCode ? e.keyCode : e.which);
+    if( keycode == '13'){
+        document.activeElement.click();
+    }
+}
+
+function contentRead(docId, paperflag, protectflag) {
+    if(paperflag == 'Y') {
+        alert('비전자 문서는 본문읽기 할 수 없습니다.');
+        return;
+    }
+
+    if(protectflag=='Y'){
+
+        var newWidth   = 800;
+        var newHeight  = 485;
+        var newLeft    = (screen.availWidth - newWidth)/2;
+        var newTop     = (screen.availHeight - newHeight)/2;
+        var features   = "left=" + newLeft + ",top=" + newTop + ",width=400,height=160,scrollbars=no,resizable=no,status=no";
+
+        exeStr = "checkReadAuthforSendState( '" + docId + "','','','contentRead')";
+        objWindow = window.open("/bms/dct/protectreportview.do", "popup", features);
+
+    }else{
+        checkReadAuthforSendState( docId, "", "", "contentRead" );
+    }
+
+}
+// 기간 검색 조건 연단위 변경
+function addYear(gubun) {
+    var f = document.mainFrm;
+    var oper = gubun == 'plus' ? +1 : -1;
+    var curEday;
+    if (j$("#detailsearch").hasClass("none")) {
+        curEday = f.searcheday_value.value;
+    } else {
+        curEday = f.detaileday_value.value;
+    }
+    //0101 ~ 1231 데이터를 보여줌
+    var sday = (Number(curEday.substring(0,4)) + oper) + '0101';
+    var eday = (Number(curEday.substring(0,4)) + oper) + '1231';
+
+    //최대값은 오늘날짜까지
+    if(gubun == 'plus'){
+        if ( Number(eday) >= currDate ) {
+            sday = currDate.toString().substring(0,4) + '0101';
+            eday = currDate.toString();
+        }
+    }
+    if (j$("#detailsearch").hasClass("none")) {
+        f.searchsday_value.value = sday;
+        f.searcheday_value.value = eday;
+        f.searchsday_disp.value = sday.replace(/^(\d{4})(\d\d)(\d\d)$/, '$1.$2.$3');
+        f.searcheday_disp.value = eday.replace(/^(\d{4})(\d\d)(\d\d)$/, '$1.$2.$3');
+    } else {
+        f.detailsday_value.value = sday;
+        f.detaileday_value.value = eday;
+        f.detailsday_disp.value = sday.replace(/^(\d{4})(\d\d)(\d\d)$/, '$1.$2.$3');
+        f.detaileday_disp.value = eday.replace(/^(\d{4})(\d\d)(\d\d)$/, '$1.$2.$3');
+    }
+}
+
+// 붙임파일 열람 권한 확인
+function checkAttachFileAccessRights(myOrgYn, reqDocid, docttl, reqDrmUse, procgb, reqRcvFlag, reqProtectflag, reqCompId, toporgid) {
+    if (myOrgYn == 'Y') {
+        var parametersVar;
+
+        if( reqRcvFlag == "M" ) {
+
+            parametersVar = "opt=read&module=mtg&moduleID=" + encodeURIComponent(reqDocid)+ "&procgb="+procgb;
+
+        }else{
+
+            parametersVar = "opt=read&module=" + ( reqRcvFlag == "P" ? "dct" : "enf" ) + "&moduleID=" + encodeURIComponent(reqDocid) + "&procgb="+procgb;
+
+        }
+
+        new Ajax.Request("/bms/common/checkAuth.do", {
+            method: 'post',
+            parameters: parametersVar,
+            onSuccess: function(transport) {
+                var result = transport.responseText.strip();
+
+                if (result == "true") {
+                    openAttachFileList(reqDocid, docttl, reqDrmUse, procgb);
+                } else if (result == "false") {
+                    alert("권한이 없습니다.");
+                } else {
+                    alert("잘못된 호출입니다.");
+                }
+            }
+        });
+    } else {
+        var parametersVar;
+
+        if( reqRcvFlag == "M" ) {
+
+            parametersVar = "opt=read&module=mtg&moduleID=" + encodeURIComponent(reqDocid) + "&myOrgYn="+ myOrgYn + "&topOrgId=" + toporgid;
+
+        }else{
+
+            parametersVar = "opt=read&module=" + ( reqRcvFlag == "P" ? "dct" : "enf" ) + "&moduleID=" + encodeURIComponent(reqDocid) + "&myOrgYn="+ myOrgYn + "&topOrgId=" + toporgid;
+
+        }
+
+        new Ajax.Request("/bms/common/checkAuthOrg.do", {
+            method: 'post',
+            parameters: parametersVar,
+            onSuccess: function(transport) {
+                var result = transport.responseText.strip();
+
+                if (result == "true") {
+                    openAttachFileList(reqDocid, docttl, reqDrmUse, procgb);
+                } else if (result == "false") {
+                    alert("권한이 없습니다.");
+                } else {
+                    alert("잘못된 호출입니다.");
+                }
+            }
+        });
+    }
+
+}
+
+// 붙임읽기를 위한 붙임파일 목록 조회 팝업
+function openAttachFileList(docid, docttl, drmflag, procgb) {
+    var popWidth = 500;
+    var popHeight = 280;
+    var popLeft = (screen.availWidth - popWidth) / 2;
+    var popTop = (screen.availHeight - popHeight) / 2;
+    var attachFileListPop = window.open('', 'dupGradeWin', 'left='+popLeft+',top='+popTop+',width='+popWidth+',height='+popHeight+',scrollbars=no,resizable=no,status=yes');
+    j$('form[name="attachFileListForm"] input[name="docid"]').val(docid);
+    j$('form[name="attachFileListForm"] input[name="docttl"]').val(docttl);
+    j$('form[name="attachFileListForm"] input[name="drmflag"]').val(drmflag);
+    j$('form[name="attachFileListForm"] input[name="procgb"]').val(procgb);
+    j$('form[name="attachFileListForm"]').attr({action:'/bms/dctlist/attachfilelist.do', target:attachFileListPop.name}).submit();
+}
+</script>
+
+</head>
+
+<body onload="initBody();" >
+
+	<form name="mainFrm" id="mainFrm" method="post" action="/bms/dctlist/ctrldeptviewsource.do" target="_self">
+	  <input type="hidden" name="pagenum"           value="1">
+	  <input type="hidden" name="searchkey"         value="detail">
+	  <input type="hidden" name="searchtext"        value="">
+	  <input type="hidden" name="reportsday"        value="20250809">
+	  <input type="hidden" name="reporteday"        value="20250908">
+	
+	  <input type="hidden" name="desctitle"         value="">
+	  <input type="hidden" name="desckeyword"         value="">
+	  <input type="hidden" name="descstate"         value="">
+	  <input type="hidden" name="descobjname"       value="">
+	  <input type="hidden" name="descopenbasis"     value="">
+	  <input type="hidden" name="descdeptname"      value="">
+	  <input type="hidden" name="descapprdocnum"    value="">
+	  <input type="hidden" name="descpartflag"      value="">
+	  <input type="hidden" name="descrcvflag"       value=""  >
+	
+	  <input type="hidden" name="deptid"            value="6261962">
+	  <input type="hidden" name="deptname"          value="철도시설과">
+	  <input type="hidden" name="toporgid"          value="6260000">
+	  <input type="hidden" name="myOrgYn"          value="Y">
+	  
+	  <input type="hidden" name="docIds"            value="">
+	
+	  <input type="hidden" name="istotal"           value="">
+	
+	  <input type="hidden" name="adminAddFlag"      value="false">
+	
+	  <input type="hidden" name="orderby"           value="date">
+	  <input type="hidden" name="islastpage"        value=""  >
+	  <input type="hidden" name="partflag"          value=""  >
+	  <input type="hidden" name="pjtcardname"       value=""  >
+	  
+	  
+	  <input type="hidden" name="paperrecspecial"   value="">	
+	  <input type="hidden" name="paperrecgubun"   	value="">	
+
+    <!-- title -->
+    <div class="tit_block">
+        <h3>문서등록대장(철도시설과)</h3>
+        <span>
+            <button type="button" class="btnExcel" onclick="showExportMenu('excel')" title="엑셀다운로드"></button>
+            <button type="button" class="btnPrint" onclick="print()" title="인쇄"></button>
+            
+            <a href="javascript:void(0);" onclick="popupHwp();" title="인쇄" ><img src="/ref/images/icon/ico_attach_report.png" ></a>
+            
+            <button type="button" class="btnHelp" onclick="javascript:openHelp('BmsCtrlReportSourceV.hlp');" title="도움말 보기"></button>
+        </span>
+    </div>
+    <!-- //title --> 
+
+    
+
+    <!-- button -->
+    <h4 class="hide">공통버튼</h4>
+    <div class="btn_block">
+        
+        
+        <a herf="javascript:void(0);" onclick="BmsOrgSetDeptPopup( 'selectedDept', null, 1, '6261962' , '0', '', '', '', '', 'doc_only' );" class="btnDefault" title="부서선택" >부서선택</a>
+        
+        
+        <a herf="javascript:void(0);" onclick="showMenu();" class="btnDefault" title="종이문서 등록" >비전자문서</a>
+        
+        
+        <a herf="javascript:void(0);" onclick="addDctPart();" class="btnDefault" title="분리등록" >분리등록</a>
+        
+        
+        
+        <a herf="javascript:void(0);" onclick="addFavorite();" class="btnDefault" title="내 문서함 등록" >정리함</a>
+        
+        
+        <a herf="javascript:void(0);" onclick="modPjtCard();" class="btnDefault" title="과제카드 일괄변경" >과제카드일괄변경</a>
+        
+        <a herf="javascript:void(0);" onclick="viewSendState();" class="btnDefault" title="발송현황" >발송현황</a>
+        
+        <a herf="javascript:void(0);" onclick="ptintMainFile();" class="btnDefault" title="본문 일괄인쇄" >본문일괄인쇄</a>
+        
+        
+        <a herf="javascript:void(0);" onclick="ptintMainFile('enfprint');" class="btnDefault" title="시행문 일괄인쇄" >시행문일괄인쇄</a>
+        
+    </div>
+    <!-- //button --> 
+
+    <!-- search -->
+    <h4 class="hide">검색</h4>
+    <div class="tbl_srch_wrap">
+        <select name="rcvflagfilter" onChange="rcvflagfilterSearch();" style="width:55px !important;">
+          <option value="A" selected>구분</option>
+          <option value="P" >생산</option>
+          <option value="R" >접수</option>
+          
+        </select>
+
+        <select name="filter" onChange="filterSearch();" style="width:68px !important;">
+        
+          <!-- ############################### -->
+          <!-- 기능개선 - by 장재양 2016-04-28 -->
+          <!-- ############################### -->
+          
+          <option value="ALL"                             selected>상태</option>
+          <option value="DRDS3"    >종료</option>
+          <option value="DRDS0"                           >발송대기</option>
+          <option value="DRDS4"   >발송</option>
+          <option value="EDS05" >접수</option>
+          <option value="EDSY5"                           >담당확인</option>
+          
+          <!-- ############################### -->
+          
+        </select>
+
+        <select id="sSearchkey" name="sSearchkey" title="문서구분 선택" onChange="onSelSearch()" style="width:68px !important;">
+          <option value="docttl"     >제목</option>
+          <option value="authorname" >보고자</option>
+          <option value="descdocno"  >문서번호</option>
+          <option value="keyword"  >키워드</option>
+        </select>
+
+        <label for="searchtext_disp" class="hide">검색입력</label>
+        <input type="text" name="searchtext_disp" id="searchtext_disp" style="width:200px !important;" maxlength="50"
+               value=""
+               onkeyup="if (event.keyCode == 13) searchList();" >
+        <label for="searchsday_disp" class="hide">날짜입력</label><input type="text" id="searchsday_disp" name="searchsday_disp" class="cal" style="width:70px;" maxlength="10" value="2025.08.08" onFocus="this.select();" onBlur="validateDateFormat( this, document.mainFrm.searchsday_value,true );" >
+<button type="button" class="btnCal" onClick="useCalendar('start')" title="날짜 선택"></button>
+<input type="hidden" name="searchsday_value" value="20250808" >
+~
+		<label for="searcheday_disp" class="hide">날짜입력</label><input type="text" id="searcheday_disp" name="searcheday_disp" class="cal2" style="width:70px;" maxlength="10" value="2025.09.08" onFocus="this.select();" onBlur="validateDateFormat( this, document.mainFrm.searcheday_value,true );" >
+<button type="button" class="btnCal" onClick="useCalendar('end')" title="날짜 선택"></button>
+<input type="hidden" name="searcheday_value" value="20250908" >
+
+        <select name="autotype" onchange="checkAutoType(this);" title="시작일기준" style="width:92px !important;" />
+          <option value="S"  >시작일 기준</option>
+          <option value="E"  >종료일 기준</option>
+          <option value="N" selected >설정일 기준</option>
+        </select>
+        <select id="dateTerm" name="dateTerm" title="개월수 선택" onchange="setSearchTerm();" style="width:60px !important;">
+            <option value="1" selected >1개월</option>
+            <option value="2"  >2개월</option>
+            <option value="3"  >3개월</option>
+            <option value="6"  >6개월</option>
+    
+            <option value="2025">2025년</option>
+    
+            <option value="2024">2024년</option>
+    
+            <option value="2023">2023년</option>
+    
+            <option value="2022">2022년</option>
+    
+        </select>
+        <a href="javascript:void(0);" onclick="if (j$('#detailsearch').hasClass('none')) addYear('minus');" class="btnDefault" title="전년도 1월1일 ~ 12월31일까지 검색기간 설정">-1년</a>
+        <a href="javascript:void(0);" onclick="if (j$('#detailsearch').hasClass('none')) addYear('plus');" class="btnDefault" title="후년도 1월1일 ~ 12월31일까지 검색기간 설정">+1년</a>
+        <a href="javascript:void(0);" id="btnReset" onclick="searchClear();" class="btnReset" style="margin:-1px;"></a>
+        <a href="javascript:void(0);" id="btnSearch" onclick="searchList('DETAIL');" class="btnSrch" style="margin:-1px;"></a>
+        <a href="javascript:void(0);" id="btnDetail" onclick="searchView();" class="btnDetail" style="margin:-1px;">상세검색</a>
+        
+    </div>
+    <!-- //search --> 
+
+    <!-- search detail -->
+    <h4 class="hide">상세검색</h4>
+    <div id="detailsearch" class="tbl_srch2_wrap">
+        <table class="tbl_srch2" summary="제목,문서번호,보고경로내 사용자,상태,공개여부,단위과제카드,보고일자,수(발)신자,문서구분,문서종류,시행구분,분리등록여부,생산등록번호,이미지검색관련 상세검색표">
+            <caption>상세검색조건</caption>
+            <colgroup>
+	            <col width="12%;" />
+	            <col width="39%;" />
+	            <col width="15%;" />
+	            <col width="*" />
+            </colgroup>
+            <tbody>
+          
+          <tr>
+            <th scope="row">제목</th>
+            <td colspan="3">
+              <input name="desctitle_disp"
+                     type="text"
+                     class="input"
+                     style="width:50%;"
+                     value=""
+                     onkeyup="JavaScript: if(event.keyCode==13) searchList('DETAIL');"
+                     maxlength="50"> <font color='red'> [AND] 검색 구분자는 [&] 입니다. EX) 상세 이용 & 설명서</font>
+            </td>
+          </tr>
+          
+          <tr>
+              <th scope="row">키워드</th>
+              <td colspan="3">
+                  <input name="desckeyword_disp"
+                         type="text"
+                         class="input"
+                         style="width:50%;"
+                         value=""
+                         onkeyup="JavaScript: if(event.keyCode==13) searchList('DETAIL');"
+                         maxlength="50">
+              </td>
+          </tr>
+          <tr>
+            
+            <th scope="row">문서번호</th>
+            <td>
+              <input type="text"
+                     name="descdocno"
+                     class="input"
+                     style="width:97%; ime-mode:disabled;"
+                     onKeydown="JavaScript: onlyNum();"
+                     value=""
+                     onkeyup="JavaScript: if(event.keyCode==13) searchList('DETAIL');"
+                     maxlength="6">
+            </td>
+            
+            <th scope="row">보고경로내 사용자</th>
+            <td>
+              <select name="descasktype" class="input" style="width:30%;" onkeyup="JavaScript: if(event.keyCode==13) searchList('DETAIL');">
+                
+                    <option value="ALL" selected >
+                      전체
+                    </option>
+                
+                    <option value="DEA11"  >
+                      기안
+                    </option>
+                
+                    <option value="DEA21"  >
+                      검토
+                    </option>
+                
+                    <option value="DEA31"  >
+                      협조
+                    </option>
+                
+                    <option value="DEA32"  >
+                      병렬협조
+                    </option>
+                
+                    <option value="DEA41"  >
+                      결재
+                    </option>
+                
+                    <option value="DEA45"  >
+                      1인결재
+                    </option>
+                
+                    <option value="DEA46"  >
+                      1인전결
+                    </option>
+                
+                    <option value="DEA47"  >
+                      1인대결
+                    </option>
+                
+                    <option value="DEA51"  >
+                      전결
+                    </option>
+                
+                    <option value="DEA61"  >
+                      대결
+                    </option>
+                
+                    <option value="DEA71"  >
+                      전대결
+                    </option>
+                
+                    <option value="EPR02"  >
+                      업무관리
+                    </option>
+                
+                    <option value="EPR03"  >
+                      업무담당
+                    </option>
+                
+              </select>
+               <input type="text"
+                     name="descobjname_disp"
+                     class="input"
+                     style="width:55%;"
+                     value=""
+                     onkeyup="JavaScript: if(event.keyCode==13) searchList('DETAIL');"
+                     maxlength="50">
+            </td>
+          </tr>
+          <tr>
+            
+            <th scope="row">상태</th>
+            <td colspan="3">
+              <input type="checkbox" name="sState" value="DRDS3" onkeyup="JavaScript: if(event.keyCode==13) searchList('DETAIL');" >종료
+              <input type="checkbox" name="sState" value="DRDS0"                            onkeyup="JavaScript: if(event.keyCode==13) searchList('DETAIL');" >발송대기
+              <input type="checkbox" name="sState" value="DRDS4" onkeyup="JavaScript: if(event.keyCode==13) searchList('DETAIL');" >발송
+              <input type="checkbox" name="sState" value="EDS05" onkeyup="JavaScript: if(event.keyCode==13) searchList('DETAIL');" >접수
+              <input type="checkbox" name="sState" value="EDSY5"                            onkeyup="JavaScript: if(event.keyCode==13) searchList('DETAIL');" >담당확인
+              <input type="checkbox" name="sState" value="EDS06"                            onkeyup="JavaScript: if(event.keyCode==13) searchList('DETAIL');" >반송
+              <input type="checkbox" name="sState" value="EDS07"                            onkeyup="JavaScript: if(event.keyCode==13) searchList('DETAIL');" >이송
+              <input type="checkbox" name="sState" value="EDS08"                            onkeyup="JavaScript: if(event.keyCode==13) searchList('DETAIL');" >경유
+              <input type="checkbox" name="sState" value="DRDS5"                            onkeyup="JavaScript: if(event.keyCode==13) searchList('DETAIL');" >발송안함
+            </td>
+          </tr>
+          
+          <tr>
+            <th scope="row">공개여부</th>
+            <td>
+              <select name="descopen" class="input" onChange="JavaScript: openChange();" onkeyup="JavaScript: if(event.keyCode==13) searchList('DETAIL');">
+                
+                    <option value="ALL" selected>
+                      전체
+                    </option>
+                
+                    <option value="DPBT1" >
+                      대국민공개
+                    </option>
+                
+                    <option value="DPBT2" >
+                      비공개
+                    </option>
+                
+                    <option value="DPBT3" >
+                      부분공개
+                    </option>
+                
+              </select>
+
+              <span id="openbasis" style="display:none">
+                <input type="checkbox" name="sOpenbasis" id="sOpenbasis1" value="1|" onkeyup="if(event.keyCode==13) searchList('DETAIL');" ><label for="sOpenbasis1" >1호</label>
+                <input type="checkbox" name="sOpenbasis" id="sOpenbasis2" value="2|" onkeyup="if(event.keyCode==13) searchList('DETAIL');" ><label for="sOpenbasis2" >2호</label>
+                <input type="checkbox" name="sOpenbasis" id="sOpenbasis3" value="3|" onkeyup="if(event.keyCode==13) searchList('DETAIL');" ><label for="sOpenbasis3" >3호</label>
+                <input type="checkbox" name="sOpenbasis" id="sOpenbasis4" value="4|" onkeyup="if(event.keyCode==13) searchList('DETAIL');" ><label for="sOpenbasis4" >4호</label>
+                <input type="checkbox" name="sOpenbasis" id="sOpenbasis5" value="5|" onkeyup="if(event.keyCode==13) searchList('DETAIL');" ><label for="sOpenbasis5" >5호</label>
+                <input type="checkbox" name="sOpenbasis" id="sOpenbasis6" value="6|" onkeyup="if(event.keyCode==13) searchList('DETAIL');" ><label for="sOpenbasis6" >6호</label>
+                <input type="checkbox" name="sOpenbasis" id="sOpenbasis7" value="7|" onkeyup="if(event.keyCode==13) searchList('DETAIL');" ><label for="sOpenbasis7" >7호</label>
+                <input type="checkbox" name="sOpenbasis" id="sOpenbasis8" value="8|" onkeyup="if(event.keyCode==13) searchList('DETAIL');" ><label for="sOpenbasis8" >8호</label>
+              </span>
+            </td>
+            
+            
+            <th scope="row">단위과제카드</th>
+            <td>
+            	<span id="taskNm"></span>&nbsp;
+            	<a href="javascript:goSetTask();" class="btnClick"></a>
+            	<input type="hidden" name="taskId" value="">
+            	<input type="hidden" name="taskNm" value="">
+            </td>
+          </tr>
+          <tr>
+            
+            <th scope="row">보고일자</th>
+            <td>
+              <label for="detailsday_disp" class="hide">날짜입력</label><input type="text" id="detailsday_disp" name="detailsday_disp" class="cal" style="width:70px;" maxlength="10" value="2025.08.09" onFocus="this.select();" onBlur="validateDateFormat( this, document.mainFrm.detailsday_value,true );" >
+<button type="button" class="btnCal" onClick="useCalendar('detailstart')" title="날짜 선택"></button>
+<input type="hidden" name="detailsday_value" value="20250809" >
+~
+              <label for="detaileday_disp" class="hide">날짜입력</label><input type="text" id="detaileday_disp" name="detaileday_disp" class="cal2" style="width:70px;" maxlength="10" value="2025.09.08" onFocus="this.select();" onBlur="validateDateFormat( this, document.mainFrm.detaileday_value,true );" >
+<button type="button" class="btnCal" onClick="useCalendar('detailend')" title="날짜 선택"></button>
+<input type="hidden" name="detaileday_value" value="20250908" >
+
+              <a href="javascript:void(0);" onclick="addYear('minus');" class="btnDefault" title="전년도 1월1일 ~ 12월31일까지 검색기간 설정">-1년</a>
+              <a href="javascript:void(0);" onclick="addYear('plus');" class="btnDefault" title="후년도 1월1일 ~ 12월31일까지 검색기간 설정">+1년</a>
+            </td>
+
+            
+            <th scope="row">수(발)신자</th>
+            <td>
+              <input type="text" name="descdeptname_disp" class="input" style="width:97%;" maxlength="50"
+                     value=""
+                     onkeyup="if( event.keyCode == 13 ) searchList('DETAIL');">
+            </td>
+          </tr>
+          <tr>
+            <th scope="row">문서구분</th>
+            <!--검색조건 초기화를 위해 클래스 추가 2017.02.13 유연수  -->
+            <td>
+              <input type="checkbox" class="descrcvflag" name="descrcvflagP_disp" id="descrcvflagP" value="P" ><label for="descrcvflagP" >생산문서</label>
+              <input type="checkbox" class="descrcvflag" name="descrcvflagR_disp" id="descrcvflagR" value="R" ><label for="descrcvflagR" >접수문서</label>
+            </td>
+            <th scope="row">문서종류</th>
+            <td>
+              <input type="checkbox" class="ispaper" name="ispaperN" id="ispaperN" value="N" ><label for="ispaperN" >전자</label>
+              <input type="checkbox" class="ispaper" name="ispaperY" id="ispaperY" value="Y" ><label for="ispaperY" >비전자</label>
+            </td>
+          </tr>
+          <tr>
+            <th scope="row">시행구분</th>
+            <td>
+              <input type="checkbox" class="enfgubun" name="enfgubunN" value="N"  id="enfgubunN" ><label for="enfgubunN" >대내</label>
+              <input type="checkbox" class="enfgubun" name="enfgubunY" value="Y"  id="enfgubunY" ><label for="enfgubunY" >대외</label>
+              <input type="checkbox" class="enfgubun" name="enfgubunT" value="T"  id="enfgubunT" ><label for="enfgubunT" >대내외</label>
+            </td>
+            <th scope="row">분리등록여부</th>
+            <td>
+              <input type="checkbox" class="partflag" name="descpartflagY_disp" id="partflagY" value="Y"  ><label for="partflagY" >분리등록 문서</label>
+              <input type="checkbox" class="partflag" name="descpartflagN_disp" id="partflagN" value="N"  ><label for="partflagN" >미분리등록 문서</label>
+            </td>
+          </tr>
+          <tr>
+            <th scope="row">생산등록번호</th>
+            <td colspan="3" >
+              <input type="text" name="descapprdocnum_disp" class="input" style="width:50%;"
+                     value=""
+                     onkeyup="if( event.keyCode == 13 ) searchList('DETAIL');" >
+              (ex. 문서접수과, 문서접수과-10)
+            </td>
+          </tr>
+          
+          <tr>
+            <th scope="row">이미지검색</th>
+            <td colspan="3" >
+              <input type="checkbox" name="schForImage" id="schForImage" value="Y"  ><label for="schForImage" >붙임에 이미지(JPG, GIF, PNG, BMP, TIF)가 첨부된 문서를 검색</label>
+              <font color="red"> ( 검색시간이 오래 걸리거나 검색시간(30초) 타임아웃 오류 발생할 수 있음 )</font>
+            </td>
+          </tr>
+	        <!-- 기록관리시스템(고도화) 상세검색 등록구분, 특수기록물 검색조건 추가 start - KWH 20200824 -->
+	        <tr>
+				<th scope="row">등록구분</th>
+				<td colspan="3">
+					<input type="checkbox" name="chkpaperrecgubun" id="chkpaperrecgubun1" value="1">
+						<label for="chkpaperrecgubun1">일반문서</label>
+					<input type="checkbox" name="chkpaperrecgubun" id="chkpaperrecgubun2" value="2">
+						<label for="chkpaperrecgubun2">일반문서 접수</label>
+					<input type="checkbox" name="chkpaperrecgubun" id="chkpaperrecgubun3" value="3">
+						<label for="chkpaperrecgubun3">도면류</label>
+					<input type="checkbox" name="chkpaperrecgubun" id="chkpaperrecgubun4" value="4">
+						<label for="chkpaperrecgubun4">도면류 접수</label>
+					<input type="checkbox" name="chkpaperrecgubun" id="chkpaperrecgubun5" value="5">
+						<label for="chkpaperrecgubun5">사진.필름류</label>
+					<input type="checkbox" name="chkpaperrecgubun" id="chkpaperrecgubun6" value="6">
+						<label for="chkpaperrecgubun6">녹음.동영상류</label>
+					<input type="checkbox" name="chkpaperrecgubun" id="chkpaperrecgubun7" value="7">
+						<label for="chkpaperrecgubun7">카드류</label>
+				</td>
+			</tr>
+			<tr>
+				<th scope="row">특수기록물</th>
+				<td colspan="3">
+					<input type="checkbox" name="chkpaperrecspecial" id="chkpaperrecspecial01" value="Y">
+						<label for="chkpaperrecspecial01">대통령관련</label>
+					<input type="checkbox" name="chkpaperrecspecial" id="chkpaperrecspecial02" value="Y">
+						<label for="chkpaperrecspecial02">비밀</label>
+					<input type="checkbox" name="chkpaperrecspecial" id="chkpaperrecspecial03" value="Y">
+						<label for="chkpaperrecspecial03">개별관리</label>
+					<input type="checkbox" name="chkpaperrecspecial" id="chkpaperrecspecial04" value="Y">
+						<label for="chkpaperrecspecial04">저작권보호</label>
+					<input type="checkbox" name="chkpaperrecspecial" id="chkpaperrecspecial05" value="Y">
+						<label for="chkpaperrecspecial05">특수규격</label>
+				</td>
+			</tr>
+			<!-- 기록관리시스템(고도화) 상세검색 등록구분, 특수기록물 검색조건 추가 end - KWH 20200824 -->
+		</tbody>
+	</table>
+    </div>
+
+    <!-- list -->
+    <h4 class="hide">상세검색 결과 리스트</h4>
+    <div class="tbl_list_wrap">
+        <table id="dctList" class="tbl_list" summary="문서번호,보고일자,제목,수(발)신자,보고자,검토자,붙임,상태,종류,분리 관련 문서목록">
+            <caption>
+            문서 목록
+            </caption>
+            <colgroup>
+	            <col width="20" />
+	            <col width="55" />
+	            <col width="70" />
+	            <col width="*" />
+                
+	            <col width="200" />
+	            <col width="60" />
+	            <col width="60" />
+                <col width="90" />
+	            <col width="55" />
+	            <col width="45" />
+	            <col width="45" />
+	            <col width="35" />
+	            <col width="80" />
+            </colgroup>
+            <thead>
+                <tr>
+					<th scope="col" >
+                        <label for="checkboxf01" class="hide">전체선택</label>
+                        <input type="checkbox" onkeypress="handleEnterClick(event)" id="checkboxf01" onclick="chkAll('chkDocId')">
+                    </th>
+					<th scope="col" >
+					   <span tabindex="0" onclick="sortDocno()" style="cursor:pointer;">번호</span><button type="button" class="btnReplace" onclick="sortDocno()" title="내림차순 정렬"></button>
+					</th> 
+					<th scope="col" ><span tabindex="0">보고일자</span></th>
+                    <th scope="col" ><span tabindex="0">제목</span><button type="button" class="btnOpen2" onclick="expandColumn( this );" title="제목 열림"></button></th>
+                    
+                    <th scope="col" ><span tabindex="0">수(발)신자</span><button type="button" class="btnOpen2" onclick="expandColumn( this );" title="제목 열림"></button></th>
+                    <th scope="col" ><span tabindex="0">보고자</span></th>
+                    <th scope="col" ><span tabindex="0">검토자</span></th>
+                    <th scope="col" ><span tabindex="0">검토자직위</span></th>
+                    <th scope="col" ><span tabindex="0">상태</span><button type="button" class="btnOpen2"  onclick="expandColumn( this, 'all' );" title="제목 열림"></button></th>
+                	<th scope="col" >붙임</th>
+					<th scope="col" >종류</th>
+					<th scope="col" >분리</th>
+					
+					<th scope="col" >등록구분</th>
+                </tr>
+            </thead>
+            <tbody>
+
+
+		      <tr>
+		
+		        
+		        <td>
+		          <input type="checkbox" name="chkDocId"        value="ENFF4D9D2ED69CAF1E661FA3F60736C00B5"           > 
+		          <input type="hidden"   name="chkDocTitle"     value="시유재산 무상 사용허가(대부) 기준 알림"              > 
+		          <input type="hidden"   name="chkCardType"     value="COF04"                               > 
+		          <input type="hidden"   name="chkDocState"     value="EDS05"         > 
+		          <input type="hidden"   name="chkDocStateName" value="담당확인"     > 
+		          <input type="hidden"   name="chkSetCardFlag"  value="Y"   > 
+		          <input type="hidden"   name="chkProtectFlag"  value="N"   > 
+		          <input type="hidden"   name="chkPaperFlag"    value="N"     > 
+		          <input type="hidden"   name="chkRcvFlag"      value="R"       > 
+		          <input type="hidden"   name="chkRocNumber"    value="철도시설과-8044"            > 
+		          <input type="hidden"   name="chkPartFlag"     value="N"      > 
+		          <input type="hidden"   name="chkAttachFlag"   value="N"  > 
+		          <input type="hidden"   name="chkAuthorName"   value="조상환"  > 
+		        </td>
+		
+		        
+		        <td>
+                    <span tabindex="0">8044</span>
+		        </td>
+		
+		        
+		        <td>
+                    <span tabindex="0">2025.09.08</span>
+		        </td>
+		
+		        
+		        <td class="left" >
+		        <button type="button" class="btnView2" ondblclick="goPopup();" title="접수문서"></button>  
+		        
+		        
+		        <img src="/ref/images/icon/ico_sc_icon01.png" alt="1인결재" title="1인결재" class="titleIcon" ondblClick="goPopup()">
+		        
+                
+                
+		          <font title="시유재산 무상 사용허가(대부) 기준 알림" id="ENFF4D9D2ED69CAF1E661FA3F60736C00B5" onClick="JavaScript: viewDoc('R', 'N', 'ENFF4D9D2ED69CAF1E661FA3F60736C00B5', 'N', 'Y', 'N', 'EDS05', 'N', '', 'A', 'Y', 'A83E45A15DC45FBD2CFFFFD105B21A48', '6260000', 'DRT04', 'DPBT1', 'N', '20250908153057', '');" style="cursor:pointer;">
+		            <span tabindex="0" onkeypress="handleEnterClick(event)" id="TTL_ENFF4D9D2ED69CAF1E661FA3F60736C00B5" >시유재산 무상 사용허가(대부) 기준 알림</span>
+		         </font>
+		        </td>
+
+                
+
+		        
+		        <td>
+		          <font tabindex="0" title="부산광역시 회계재산담당관">
+		            부산광역시 회계재산담당관
+		          </font>
+		        </td>
+		
+		        
+		        <td>
+		          <font  tabindex='0' onkeypress='handleEnterClick(event)' onClick="JavaScript: comOpenUserDetail('A83E45A15DC45FBD2CFFFFD105B21A48');" style="cursor:pointer;" title="">조상환</font>
+		        </td>
+		
+		        
+		        <td>
+		          &nbsp;
+		        </td>
+                
+                <td title="">
+                    <span tabindex="0"></span>
+                </td>
+                
+                <td>
+                    <span tabindex="0">담당확인</span>
+                </td>
+        
+		        
+		        <td>
+		          -
+		        </td>
+		
+		        
+		        <td>
+		          전자
+		        </td>
+		
+		        
+		        <td>
+		          -
+		        </td>
+		        
+		        
+                <td>
+                  <font title="">
+                	&nbsp;
+                  </font>
+                </td>
+		      </tr>
+
+
+		      <tr>
+		
+		        
+		        <td>
+		          <input type="checkbox" name="chkDocId"        value="ENFAE700C49B5EF33A74912C8379C80100D"           > 
+		          <input type="hidden"   name="chkDocTitle"     value="지자체 공공서비스 등록시스템 내 구비서류 세부내용 수정 협조 요청"              > 
+		          <input type="hidden"   name="chkCardType"     value="COF04"                               > 
+		          <input type="hidden"   name="chkDocState"     value="EDS05"         > 
+		          <input type="hidden"   name="chkDocStateName" value="담당확인"     > 
+		          <input type="hidden"   name="chkSetCardFlag"  value="Y"   > 
+		          <input type="hidden"   name="chkProtectFlag"  value="N"   > 
+		          <input type="hidden"   name="chkPaperFlag"    value="N"     > 
+		          <input type="hidden"   name="chkRcvFlag"      value="R"       > 
+		          <input type="hidden"   name="chkRocNumber"    value="철도시설과-8043"            > 
+		          <input type="hidden"   name="chkPartFlag"     value="N"      > 
+		          <input type="hidden"   name="chkAttachFlag"   value="Y"  > 
+		          <input type="hidden"   name="chkAuthorName"   value="조상환"  > 
+		        </td>
+		
+		        
+		        <td>
+                    <span tabindex="0">8043</span>
+		        </td>
+		
+		        
+		        <td>
+                    <span tabindex="0">2025.09.08</span>
+		        </td>
+		
+		        
+		        <td class="left" >
+		        <button type="button" class="btnView2" ondblclick="goPopup();" title="접수문서"></button>  
+		        
+		        <img src="/ref/images/icon/ico_3.png" alt="비공개문서" title="비공개문서" class="titleIcon" ondblClick="goPopup()"> 
+		        <img src="/ref/images/icon/ico_sc_icon01.png" alt="1인결재" title="1인결재" class="titleIcon" ondblClick="goPopup()">
+		        
+                
+                
+		          <font title="지자체 공공서비스 등록시스템 내 구비서류 세부내용 수정 협조 요청" id="ENFAE700C49B5EF33A74912C8379C80100D" onClick="JavaScript: viewDoc('R', 'N', 'ENFAE700C49B5EF33A74912C8379C80100D', 'N', 'Y', 'N', 'EDS05', 'N', '', 'A', 'Y', 'A83E45A15DC45FBD2CFFFFD105B21A48', '6260000', 'DRT04', 'DPBT2', 'N', '20250908150945', '');" style="cursor:pointer;">
+		            <span tabindex="0" onkeypress="handleEnterClick(event)" id="TTL_ENFAE700C49B5EF33A74912C8379C80100D" >지자체 공공서비스 등록시스템 내 구비서류 세부내용 수정 협조 요청</span>
+		         </font>
+		        </td>
+
+                
+
+		        
+		        <td>
+		          <font tabindex="0" title="부산광역시 정보화정책과">
+		            부산광역시 정보화정책과
+		          </font>
+		        </td>
+		
+		        
+		        <td>
+		          <font  tabindex='0' onkeypress='handleEnterClick(event)' onClick="JavaScript: comOpenUserDetail('A83E45A15DC45FBD2CFFFFD105B21A48');" style="cursor:pointer;" title="">조상환</font>
+		        </td>
+		
+		        
+		        <td>
+		          &nbsp;
+		        </td>
+                
+                <td title="">
+                    <span tabindex="0"></span>
+                </td>
+                
+                <td>
+                    <span tabindex="0">담당확인</span>
+                </td>
+        
+		        
+		        <td>
+		          <img src="/images/common/ico_att.gif" align="absmiddle" onmouseover="checkReadAuthforattach(this, 'ENFAE700C49B5EF33A74912C8379C80100D', 'R', '0', 'N', '6260000' );" onmouseout="clearTimeout(attachTimeOutID);" style="cursor:pointer;">
+		        </td>
+		
+		        
+		        <td>
+		          전자
+		        </td>
+		
+		        
+		        <td>
+		          -
+		        </td>
+		        
+		        
+                <td>
+                  <font title="">
+                	&nbsp;
+                  </font>
+                </td>
+		      </tr>
+
+
+		      <tr>
+		
+		        
+		        <td>
+		          <input type="checkbox" name="chkDocId"        value="ENF8F68B7D4604A124E5DA6AAC16E382A65"           > 
+		          <input type="hidden"   name="chkDocTitle"     value="「2024년도 시의회 행정사무감사 지적사항」 2025년 3분기 처리결과 제출"              > 
+		          <input type="hidden"   name="chkCardType"     value="COF04"                               > 
+		          <input type="hidden"   name="chkDocState"     value="EDS05"         > 
+		          <input type="hidden"   name="chkDocStateName" value="접수"     > 
+		          <input type="hidden"   name="chkSetCardFlag"  value="N"   > 
+		          <input type="hidden"   name="chkProtectFlag"  value="N"   > 
+		          <input type="hidden"   name="chkPaperFlag"    value="N"     > 
+		          <input type="hidden"   name="chkRcvFlag"      value="R"       > 
+		          <input type="hidden"   name="chkRocNumber"    value="철도시설과-8042"            > 
+		          <input type="hidden"   name="chkPartFlag"     value="N"      > 
+		          <input type="hidden"   name="chkAttachFlag"   value="Y"  > 
+		          <input type="hidden"   name="chkAuthorName"   value="이유경"  > 
+		        </td>
+		
+		        
+		        <td>
+                    <span tabindex="0">8042</span>
+		        </td>
+		
+		        
+		        <td>
+                    <span tabindex="0">2025.09.08</span>
+		        </td>
+		
+		        
+		        <td class="left" >
+		        <button type="button" class="btnView2" ondblclick="goPopup();" title="접수문서"></button>  
+		        
+		        
+		        <img src="/ref/images/icon/ico_sc_icon01.png" alt="1인결재" title="1인결재" class="titleIcon" ondblClick="goPopup()">
+		        
+                
+                
+		          <font title="「2024년도 시의회 행정사무감사 지적사항」 2025년 3분기 처리결과 제출" id="ENF8F68B7D4604A124E5DA6AAC16E382A65" onClick="JavaScript: viewDoc('R', 'N', 'ENF8F68B7D4604A124E5DA6AAC16E382A65', 'N', 'N', 'N', 'EDS05', 'N', 'EPR03', 'A', 'Y', 'A83E45A15DC45FBD2CFFFFD105B21A48', '6260000', 'DRT04', 'DPBT3', 'N', '20250908150942', '');" style="cursor:pointer;">
+		            <span tabindex="0" onkeypress="handleEnterClick(event)" id="TTL_ENF8F68B7D4604A124E5DA6AAC16E382A65" >「2024년도 시의회 행정사무감사 지적사항」 2025년 3분기 처리결과 제출</span>
+		         </font>
+		        </td>
+
+                
+
+		        
+		        <td>
+		          <font tabindex="0" title="부산광역시 기획담당관">
+		            부산광역시 기획담당관
+		          </font>
+		        </td>
+		
+		        
+		        <td>
+		          <font  tabindex='0' onkeypress='handleEnterClick(event)' onClick="JavaScript: comOpenUserDetail('5E6AF421910684B959FFFFFF282AD52E');" style="cursor:pointer;" title="본청 철도시설과">이유경</font>
+		        </td>
+		
+		        
+		        <td>
+		          
+		        </td>
+                
+                <td title="">
+                    <span tabindex="0"></span>
+                </td>
+                
+                <td>
+                    <span tabindex="0">접수</span>
+                </td>
+        
+		        
+		        <td>
+		          <img src="/images/common/ico_att.gif" align="absmiddle" onmouseover="checkReadAuthforattach(this, 'ENF8F68B7D4604A124E5DA6AAC16E382A65', 'R', '0', 'N', '6260000' );" onmouseout="clearTimeout(attachTimeOutID);" style="cursor:pointer;">
+		        </td>
+		
+		        
+		        <td>
+		          전자
+		        </td>
+		
+		        
+		        <td>
+		          -
+		        </td>
+		        
+		        
+                <td>
+                  <font title="">
+                	&nbsp;
+                  </font>
+                </td>
+		      </tr>
+
+
+		      <tr>
+		
+		        
+		        <td>
+		          <input type="checkbox" name="chkDocId"        value="ENF7EABCA631B1C5B83128B03649D24412A"           > 
+		          <input type="hidden"   name="chkDocTitle"     value="도시철도 강서선(트램) 추진관련 의견 제출 회신"              > 
+		          <input type="hidden"   name="chkCardType"     value="COF04"                               > 
+		          <input type="hidden"   name="chkDocState"     value="EDS05"         > 
+		          <input type="hidden"   name="chkDocStateName" value="담당확인"     > 
+		          <input type="hidden"   name="chkSetCardFlag"  value="Y"   > 
+		          <input type="hidden"   name="chkProtectFlag"  value="N"   > 
+		          <input type="hidden"   name="chkPaperFlag"    value="N"     > 
+		          <input type="hidden"   name="chkRcvFlag"      value="R"       > 
+		          <input type="hidden"   name="chkRocNumber"    value="철도시설과-8041"            > 
+		          <input type="hidden"   name="chkPartFlag"     value="N"      > 
+		          <input type="hidden"   name="chkAttachFlag"   value="N"  > 
+		          <input type="hidden"   name="chkAuthorName"   value="신혜진"  > 
+		        </td>
+		
+		        
+		        <td>
+                    <span tabindex="0">8041</span>
+		        </td>
+		
+		        
+		        <td>
+                    <span tabindex="0">2025.09.08</span>
+		        </td>
+		
+		        
+		        <td class="left" >
+		        <button type="button" class="btnView2" ondblclick="goPopup();" title="접수문서"></button>  
+		        
+		        <img src="/ref/images/icon/ico_3.png" alt="비공개문서" title="비공개문서" class="titleIcon" ondblClick="goPopup()"> 
+		        <img src="/ref/images/icon/ico_sc_icon01.png" alt="1인결재" title="1인결재" class="titleIcon" ondblClick="goPopup()">
+		        
+                
+                
+		          <font title="도시철도 강서선(트램) 추진관련 의견 제출 회신" id="ENF7EABCA631B1C5B83128B03649D24412A" onClick="JavaScript: viewDoc('R', 'N', 'ENF7EABCA631B1C5B83128B03649D24412A', 'N', 'Y', 'N', 'EDS05', 'Y', '', 'A', 'Y', 'A83E45A15DC45FBD2CFFFFD105B21A48', '6260000', 'DRT01', 'DPBT2', 'N', '20250908150935', '');" style="cursor:pointer;">
+		            <span tabindex="0" onkeypress="handleEnterClick(event)" id="TTL_ENF7EABCA631B1C5B83128B03649D24412A" >도시철도 강서선(트램) 추진관련 의견 제출 회신</span>
+		         </font>
+		        </td>
+
+                
+
+		        
+		        <td>
+		          <font tabindex="0" title="한국수자원공사">
+		            한국수자원공사
+		          </font>
+		        </td>
+		
+		        
+		        <td>
+		          <font  tabindex='0' onkeypress='handleEnterClick(event)' onClick="JavaScript: comOpenUserDetail('07E6E1A81531330501235F3045A3752C');" style="cursor:pointer;" title="본청 철도시설과">신혜진</font>
+		        </td>
+		
+		        
+		        <td>
+		          &nbsp;
+		        </td>
+                
+                <td title="">
+                    <span tabindex="0"></span>
+                </td>
+                
+                <td>
+                    <span tabindex="0">담당확인</span>
+                </td>
+        
+		        
+		        <td>
+		          -
+		        </td>
+		
+		        
+		        <td>
+		          전자
+		        </td>
+		
+		        
+		        <td>
+		          -
+		        </td>
+		        
+		        
+                <td>
+                  <font title="">
+                	&nbsp;
+                  </font>
+                </td>
+		      </tr>
+
+
+		      <tr>
+		
+		        
+		        <td>
+		          <input type="checkbox" name="chkDocId"        value="ENFEE81ADD05D418DCDC287373B78EC7899"           > 
+		          <input type="hidden"   name="chkDocTitle"     value="의원발의「산업안전보건법」일부개정법률안에 대한 관계부서 의견조회"              > 
+		          <input type="hidden"   name="chkCardType"     value="COF04"                               > 
+		          <input type="hidden"   name="chkDocState"     value="EDS05"         > 
+		          <input type="hidden"   name="chkDocStateName" value="담당확인"     > 
+		          <input type="hidden"   name="chkSetCardFlag"  value="Y"   > 
+		          <input type="hidden"   name="chkProtectFlag"  value="N"   > 
+		          <input type="hidden"   name="chkPaperFlag"    value="N"     > 
+		          <input type="hidden"   name="chkRcvFlag"      value="R"       > 
+		          <input type="hidden"   name="chkRocNumber"    value="철도시설과-8038"            > 
+		          <input type="hidden"   name="chkPartFlag"     value="N"      > 
+		          <input type="hidden"   name="chkAttachFlag"   value="Y"  > 
+		          <input type="hidden"   name="chkAuthorName"   value="조상환"  > 
+		        </td>
+		
+		        
+		        <td>
+                    <span tabindex="0">8038</span>
+		        </td>
+		
+		        
+		        <td>
+                    <span tabindex="0">2025.09.08</span>
+		        </td>
+		
+		        
+		        <td class="left" >
+		        <button type="button" class="btnView2" ondblclick="goPopup();" title="접수문서"></button>  
+		        
+		        <img src="/ref/images/icon/ico_3.png" alt="비공개문서" title="비공개문서" class="titleIcon" ondblClick="goPopup()"> 
+		        <img src="/ref/images/icon/ico_sc_icon01.png" alt="1인결재" title="1인결재" class="titleIcon" ondblClick="goPopup()">
+		        
+                
+                
+		          <font title="의원발의「산업안전보건법」일부개정법률안에 대한 관계부서 의견조회" id="ENFEE81ADD05D418DCDC287373B78EC7899" onClick="JavaScript: viewDoc('R', 'N', 'ENFEE81ADD05D418DCDC287373B78EC7899', 'N', 'Y', 'N', 'EDS05', 'N', '', 'A', 'Y', 'A83E45A15DC45FBD2CFFFFD105B21A48', '6260000', 'DRT04', 'DPBT2', 'N', '20250908134733', '');" style="cursor:pointer;">
+		            <span tabindex="0" onkeypress="handleEnterClick(event)" id="TTL_ENFEE81ADD05D418DCDC287373B78EC7899" >의원발의「산업안전보건법」일부개정법률안에 대한 관계부서 의견조회</span>
+		         </font>
+		        </td>
+
+                
+
+		        
+		        <td>
+		          <font tabindex="0" title="부산광역시 일자리노동과">
+		            부산광역시 일자리노동과
+		          </font>
+		        </td>
+		
+		        
+		        <td>
+		          <font  tabindex='0' onkeypress='handleEnterClick(event)' onClick="JavaScript: comOpenUserDetail('A83E45A15DC45FBD2CFFFFD105B21A48');" style="cursor:pointer;" title="">조상환</font>
+		        </td>
+		
+		        
+		        <td>
+		          &nbsp;
+		        </td>
+                
+                <td title="">
+                    <span tabindex="0"></span>
+                </td>
+                
+                <td>
+                    <span tabindex="0">담당확인</span>
+                </td>
+        
+		        
+		        <td>
+		          <img src="/images/common/ico_att.gif" align="absmiddle" onmouseover="checkReadAuthforattach(this, 'ENFEE81ADD05D418DCDC287373B78EC7899', 'R', '0', 'N', '6260000' );" onmouseout="clearTimeout(attachTimeOutID);" style="cursor:pointer;">
+		        </td>
+		
+		        
+		        <td>
+		          전자
+		        </td>
+		
+		        
+		        <td>
+		          -
+		        </td>
+		        
+		        
+                <td>
+                  <font title="">
+                	&nbsp;
+                  </font>
+                </td>
+		      </tr>
+
+
+		      <tr>
+		
+		        
+		        <td>
+		          <input type="checkbox" name="chkDocId"        value="ENF20C09CB0ECB711A07D41689426BDBBD5"           > 
+		          <input type="hidden"   name="chkDocTitle"     value="시도지사협의회 지방정부의 정부위원회 참여 확대 추진계획 알림"              > 
+		          <input type="hidden"   name="chkCardType"     value="COF04"                               > 
+		          <input type="hidden"   name="chkDocState"     value="EDS05"         > 
+		          <input type="hidden"   name="chkDocStateName" value="담당확인"     > 
+		          <input type="hidden"   name="chkSetCardFlag"  value="Y"   > 
+		          <input type="hidden"   name="chkProtectFlag"  value="N"   > 
+		          <input type="hidden"   name="chkPaperFlag"    value="N"     > 
+		          <input type="hidden"   name="chkRcvFlag"      value="R"       > 
+		          <input type="hidden"   name="chkRocNumber"    value="철도시설과-8037"            > 
+		          <input type="hidden"   name="chkPartFlag"     value="N"      > 
+		          <input type="hidden"   name="chkAttachFlag"   value="Y"  > 
+		          <input type="hidden"   name="chkAuthorName"   value="조상환"  > 
+		        </td>
+		
+		        
+		        <td>
+                    <span tabindex="0">8037</span>
+		        </td>
+		
+		        
+		        <td>
+                    <span tabindex="0">2025.09.08</span>
+		        </td>
+		
+		        
+		        <td class="left" >
+		        <button type="button" class="btnView2" ondblclick="goPopup();" title="접수문서"></button>  
+		        
+		        <img src="/ref/images/icon/ico_3.png" alt="비공개문서" title="비공개문서" class="titleIcon" ondblClick="goPopup()"> 
+		        <img src="/ref/images/icon/ico_sc_icon01.png" alt="1인결재" title="1인결재" class="titleIcon" ondblClick="goPopup()">
+		        
+                
+                
+		          <font title="시도지사협의회 지방정부의 정부위원회 참여 확대 추진계획 알림" id="ENF20C09CB0ECB711A07D41689426BDBBD5" onClick="JavaScript: viewDoc('R', 'N', 'ENF20C09CB0ECB711A07D41689426BDBBD5', 'N', 'Y', 'N', 'EDS05', 'N', '', 'A', 'N', 'A83E45A15DC45FBD2CFFFFD105B21A48', '6260000', 'DRT04', 'DPBT2', 'N', '20250908133740', '');" style="cursor:pointer;">
+		            <span tabindex="0" onkeypress="handleEnterClick(event)" id="TTL_ENF20C09CB0ECB711A07D41689426BDBBD5" >시도지사협의회 지방정부의 정부위원회 참여 확대 추진계획 알림</span>
+		         </font>
+		        </td>
+
+                
+
+		        
+		        <td>
+		          <font tabindex="0" title="부산광역시 기획담당관">
+		            부산광역시 기획담당관
+		          </font>
+		        </td>
+		
+		        
+		        <td>
+		          <font  tabindex='0' onkeypress='handleEnterClick(event)' onClick="JavaScript: comOpenUserDetail('A83E45A15DC45FBD2CFFFFD105B21A48');" style="cursor:pointer;" title="본청 철도시설과">조상환</font>
+		        </td>
+		
+		        
+		        <td>
+		          &nbsp;
+		        </td>
+                
+                <td title="">
+                    <span tabindex="0"></span>
+                </td>
+                
+                <td>
+                    <span tabindex="0">담당확인</span>
+                </td>
+        
+		        
+		        <td>
+		          <img src="/images/common/ico_att.gif" align="absmiddle" onmouseover="checkReadAuthforattach(this, 'ENF20C09CB0ECB711A07D41689426BDBBD5', 'R', '0', 'N', '6260000' );" onmouseout="clearTimeout(attachTimeOutID);" style="cursor:pointer;">
+		        </td>
+		
+		        
+		        <td>
+		          전자
+		        </td>
+		
+		        
+		        <td>
+		          -
+		        </td>
+		        
+		        
+                <td>
+                  <font title="">
+                	&nbsp;
+                  </font>
+                </td>
+		      </tr>
+
+
+		      <tr>
+		
+		        
+		        <td>
+		          <input type="checkbox" name="chkDocId"        value="ENF421330EC096431C7381F0B31ADC6DF42"           > 
+		          <input type="hidden"   name="chkDocTitle"     value="2025년 3분기 퇴직격려금 신청 안내(정년 및 명예퇴직자)"              > 
+		          <input type="hidden"   name="chkCardType"     value="COF04"                               > 
+		          <input type="hidden"   name="chkDocState"     value="EDS05"         > 
+		          <input type="hidden"   name="chkDocStateName" value="담당확인"     > 
+		          <input type="hidden"   name="chkSetCardFlag"  value="Y"   > 
+		          <input type="hidden"   name="chkProtectFlag"  value="N"   > 
+		          <input type="hidden"   name="chkPaperFlag"    value="N"     > 
+		          <input type="hidden"   name="chkRcvFlag"      value="R"       > 
+		          <input type="hidden"   name="chkRocNumber"    value="철도시설과-8036"            > 
+		          <input type="hidden"   name="chkPartFlag"     value="N"      > 
+		          <input type="hidden"   name="chkAttachFlag"   value="Y"  > 
+		          <input type="hidden"   name="chkAuthorName"   value="조상환"  > 
+		        </td>
+		
+		        
+		        <td>
+                    <span tabindex="0">8036</span>
+		        </td>
+		
+		        
+		        <td>
+                    <span tabindex="0">2025.09.08</span>
+		        </td>
+		
+		        
+		        <td class="left" >
+		        <button type="button" class="btnView2" ondblclick="goPopup();" title="접수문서"></button>  
+		        
+		        
+		        <img src="/ref/images/icon/ico_sc_icon01.png" alt="1인결재" title="1인결재" class="titleIcon" ondblClick="goPopup()">
+		        
+                
+                
+		          <font title="2025년 3분기 퇴직격려금 신청 안내(정년 및 명예퇴직자)" id="ENF421330EC096431C7381F0B31ADC6DF42" onClick="JavaScript: viewDoc('R', 'N', 'ENF421330EC096431C7381F0B31ADC6DF42', 'N', 'Y', 'N', 'EDS05', 'N', '', 'A', 'N', 'A83E45A15DC45FBD2CFFFFD105B21A48', '6260000', 'DRT04', 'DPBT1', 'N', '20250908133740', '');" style="cursor:pointer;">
+		            <span tabindex="0" onkeypress="handleEnterClick(event)" id="TTL_ENF421330EC096431C7381F0B31ADC6DF42" >2025년 3분기 퇴직격려금 신청 안내(정년 및 명예퇴직자)</span>
+		         </font>
+		        </td>
+
+                
+
+		        
+		        <td>
+		          <font tabindex="0" title="부산광역시 인사과">
+		            부산광역시 인사과
+		          </font>
+		        </td>
+		
+		        
+		        <td>
+		          <font  tabindex='0' onkeypress='handleEnterClick(event)' onClick="JavaScript: comOpenUserDetail('A83E45A15DC45FBD2CFFFFD105B21A48');" style="cursor:pointer;" title="본청 철도시설과">조상환</font>
+		        </td>
+		
+		        
+		        <td>
+		          &nbsp;
+		        </td>
+                
+                <td title="">
+                    <span tabindex="0"></span>
+                </td>
+                
+                <td>
+                    <span tabindex="0">담당확인</span>
+                </td>
+        
+		        
+		        <td>
+		          <img src="/images/common/ico_att.gif" align="absmiddle" onmouseover="checkReadAuthforattach(this, 'ENF421330EC096431C7381F0B31ADC6DF42', 'R', '0', 'N', '6260000' );" onmouseout="clearTimeout(attachTimeOutID);" style="cursor:pointer;">
+		        </td>
+		
+		        
+		        <td>
+		          전자
+		        </td>
+		
+		        
+		        <td>
+		          -
+		        </td>
+		        
+		        
+                <td>
+                  <font title="">
+                	&nbsp;
+                  </font>
+                </td>
+		      </tr>
+
+
+		      <tr>
+		
+		        
+		        <td>
+		          <input type="checkbox" name="chkDocId"        value="ENF599F0E15F2AFBB63A7BF01F2739DE361"           > 
+		          <input type="hidden"   name="chkDocTitle"     value="도시관리계획(지구단위계획) 결정 관련 의견 협의(덕포동 한일시멘트부지)"              > 
+		          <input type="hidden"   name="chkCardType"     value="COF04"                               > 
+		          <input type="hidden"   name="chkDocState"     value="EDS05"         > 
+		          <input type="hidden"   name="chkDocStateName" value="접수"     > 
+		          <input type="hidden"   name="chkSetCardFlag"  value="N"   > 
+		          <input type="hidden"   name="chkProtectFlag"  value="N"   > 
+		          <input type="hidden"   name="chkPaperFlag"    value="N"     > 
+		          <input type="hidden"   name="chkRcvFlag"      value="R"       > 
+		          <input type="hidden"   name="chkRocNumber"    value="철도시설과-8035"            > 
+		          <input type="hidden"   name="chkPartFlag"     value="N"      > 
+		          <input type="hidden"   name="chkAttachFlag"   value="Y"  > 
+		          <input type="hidden"   name="chkAuthorName"   value="최세운"  > 
+		        </td>
+		
+		        
+		        <td>
+                    <span tabindex="0">8035</span>
+		        </td>
+		
+		        
+		        <td>
+                    <span tabindex="0">2025.09.08</span>
+		        </td>
+		
+		        
+		        <td class="left" >
+		        <button type="button" class="btnView2" ondblclick="goPopup();" title="접수문서"></button>  
+		        
+		        <img src="/ref/images/icon/ico_3.png" alt="비공개문서" title="비공개문서" class="titleIcon" ondblClick="goPopup()"> 
+		        <img src="/ref/images/icon/ico_sc_icon01.png" alt="1인결재" title="1인결재" class="titleIcon" ondblClick="goPopup()">
+		        
+                
+                
+		          <font title="도시관리계획(지구단위계획) 결정 관련 의견 협의(덕포동 한일시멘트부지)" id="ENF599F0E15F2AFBB63A7BF01F2739DE361" onClick="JavaScript: viewDoc('R', 'N', 'ENF599F0E15F2AFBB63A7BF01F2739DE361', 'N', 'N', 'N', 'EDS05', 'N', 'EPR03', 'A', 'Y', '01EDD85DE189AA63380664AB18728579', '6260000', 'DRT04', 'DPBT2', 'N', '20250908133733', '');" style="cursor:pointer;">
+		            <span tabindex="0" onkeypress="handleEnterClick(event)" id="TTL_ENF599F0E15F2AFBB63A7BF01F2739DE361" >도시관리계획(지구단위계획) 결정 관련 의견 협의(덕포동 한일시멘트부지)</span>
+		         </font>
+		        </td>
+
+                
+
+		        
+		        <td>
+		          <font tabindex="0" title="부산광역시 도시공간조성과">
+		            부산광역시 도시공간조성과
+		          </font>
+		        </td>
+		
+		        
+		        <td>
+		          <font  tabindex='0' onkeypress='handleEnterClick(event)' onClick="JavaScript: comOpenUserDetail('7C71A79015A0168D5A4FFFFFD4357F9E');" style="cursor:pointer;" title="본청 철도시설과">최세운</font>
+		        </td>
+		
+		        
+		        <td>
+		          
+		        </td>
+                
+                <td title="">
+                    <span tabindex="0"></span>
+                </td>
+                
+                <td>
+                    <span tabindex="0">접수</span>
+                </td>
+        
+		        
+		        <td>
+		          <img src="/images/common/ico_att.gif" align="absmiddle" onmouseover="checkReadAuthforattach(this, 'ENF599F0E15F2AFBB63A7BF01F2739DE361', 'R', '0', 'N', '6260000' );" onmouseout="clearTimeout(attachTimeOutID);" style="cursor:pointer;">
+		        </td>
+		
+		        
+		        <td>
+		          전자
+		        </td>
+		
+		        
+		        <td>
+		          -
+		        </td>
+		        
+		        
+                <td>
+                  <font title="">
+                	&nbsp;
+                  </font>
+                </td>
+		      </tr>
+
+
+		      <tr>
+		
+		        
+		        <td>
+		          <input type="checkbox" name="chkDocId"        value="ENFE4305B55E596E1B03D7FD70AA1DD4ACB"           > 
+		          <input type="hidden"   name="chkDocTitle"     value="2025년 하반기 상시 통계수요조사 실시 안내"              > 
+		          <input type="hidden"   name="chkCardType"     value="COF04"                               > 
+		          <input type="hidden"   name="chkDocState"     value="EDS05"         > 
+		          <input type="hidden"   name="chkDocStateName" value="담당확인"     > 
+		          <input type="hidden"   name="chkSetCardFlag"  value="Y"   > 
+		          <input type="hidden"   name="chkProtectFlag"  value="N"   > 
+		          <input type="hidden"   name="chkPaperFlag"    value="N"     > 
+		          <input type="hidden"   name="chkRcvFlag"      value="R"       > 
+		          <input type="hidden"   name="chkRocNumber"    value="철도시설과-8034"            > 
+		          <input type="hidden"   name="chkPartFlag"     value="N"      > 
+		          <input type="hidden"   name="chkAttachFlag"   value="Y"  > 
+		          <input type="hidden"   name="chkAuthorName"   value="조상환"  > 
+		        </td>
+		
+		        
+		        <td>
+                    <span tabindex="0">8034</span>
+		        </td>
+		
+		        
+		        <td>
+                    <span tabindex="0">2025.09.08</span>
+		        </td>
+		
+		        
+		        <td class="left" >
+		        <button type="button" class="btnView2" ondblclick="goPopup();" title="접수문서"></button>  
+		        
+		        <img src="/ref/images/icon/ico_3.png" alt="비공개문서" title="비공개문서" class="titleIcon" ondblClick="goPopup()"> 
+		        <img src="/ref/images/icon/ico_sc_icon01.png" alt="1인결재" title="1인결재" class="titleIcon" ondblClick="goPopup()">
+		        
+                
+                
+		          <font title="2025년 하반기 상시 통계수요조사 실시 안내" id="ENFE4305B55E596E1B03D7FD70AA1DD4ACB" onClick="JavaScript: viewDoc('R', 'N', 'ENFE4305B55E596E1B03D7FD70AA1DD4ACB', 'N', 'Y', 'N', 'EDS05', 'N', '', 'A', 'Y', 'A83E45A15DC45FBD2CFFFFD105B21A48', '6260000', 'DRT04', 'DPBT2', 'N', '20250908130046', '');" style="cursor:pointer;">
+		            <span tabindex="0" onkeypress="handleEnterClick(event)" id="TTL_ENFE4305B55E596E1B03D7FD70AA1DD4ACB" >2025년 하반기 상시 통계수요조사 실시 안내</span>
+		         </font>
+		        </td>
+
+                
+
+		        
+		        <td>
+		          <font tabindex="0" title="부산광역시 빅데이터과">
+		            부산광역시 빅데이터과
+		          </font>
+		        </td>
+		
+		        
+		        <td>
+		          <font  tabindex='0' onkeypress='handleEnterClick(event)' onClick="JavaScript: comOpenUserDetail('A83E45A15DC45FBD2CFFFFD105B21A48');" style="cursor:pointer;" title="">조상환</font>
+		        </td>
+		
+		        
+		        <td>
+		          &nbsp;
+		        </td>
+                
+                <td title="">
+                    <span tabindex="0"></span>
+                </td>
+                
+                <td>
+                    <span tabindex="0">담당확인</span>
+                </td>
+        
+		        
+		        <td>
+		          <img src="/images/common/ico_att.gif" align="absmiddle" onmouseover="checkReadAuthforattach(this, 'ENFE4305B55E596E1B03D7FD70AA1DD4ACB', 'R', '0', 'N', '6260000' );" onmouseout="clearTimeout(attachTimeOutID);" style="cursor:pointer;">
+		        </td>
+		
+		        
+		        <td>
+		          전자
+		        </td>
+		
+		        
+		        <td>
+		          -
+		        </td>
+		        
+		        
+                <td>
+                  <font title="">
+                	&nbsp;
+                  </font>
+                </td>
+		      </tr>
+
+
+		      <tr>
+		
+		        
+		        <td>
+		          <input type="checkbox" name="chkDocId"        value="ENF14CC5B6836C3DFA2BD19B53570500A15"           > 
+		          <input type="hidden"   name="chkDocTitle"     value="부산도시철도 사상~하단선 기본계획 변경(안) 승인 신청"              > 
+		          <input type="hidden"   name="chkCardType"     value="COF04"                               > 
+		          <input type="hidden"   name="chkDocState"     value="EDS05"         > 
+		          <input type="hidden"   name="chkDocStateName" value="접수"     > 
+		          <input type="hidden"   name="chkSetCardFlag"  value="N"   > 
+		          <input type="hidden"   name="chkProtectFlag"  value="N"   > 
+		          <input type="hidden"   name="chkPaperFlag"    value="N"     > 
+		          <input type="hidden"   name="chkRcvFlag"      value="R"       > 
+		          <input type="hidden"   name="chkRocNumber"    value="철도시설과-8033"            > 
+		          <input type="hidden"   name="chkPartFlag"     value="N"      > 
+		          <input type="hidden"   name="chkAttachFlag"   value="Y"  > 
+		          <input type="hidden"   name="chkAuthorName"   value="김소연"  > 
+		        </td>
+		
+		        
+		        <td>
+                    <span tabindex="0">8033</span>
+		        </td>
+		
+		        
+		        <td>
+                    <span tabindex="0">2025.09.08</span>
+		        </td>
+		
+		        
+		        <td class="left" >
+		        <button type="button" class="btnView2" ondblclick="goPopup();" title="접수문서"></button>  
+		        
+		        
+		        <img src="/ref/images/icon/ico_sc_icon01.png" alt="1인결재" title="1인결재" class="titleIcon" ondblClick="goPopup()">
+		        
+                
+                
+		          <font title="부산도시철도 사상~하단선 기본계획 변경(안) 승인 신청" id="ENF14CC5B6836C3DFA2BD19B53570500A15" onClick="JavaScript: viewDoc('R', 'N', 'ENF14CC5B6836C3DFA2BD19B53570500A15', 'N', 'N', 'N', 'EDS05', 'Y', 'EPR03', 'A', 'Y', '01EDD85DE189AA63380664AB18728579', '6260000', 'DRT01', 'DPBT1', 'N', '20250908130042', '');" style="cursor:pointer;">
+		            <span tabindex="0" onkeypress="handleEnterClick(event)" id="TTL_ENF14CC5B6836C3DFA2BD19B53570500A15" >부산도시철도 사상~하단선 기본계획 변경(안) 승인 신청</span>
+		         </font>
+		        </td>
+
+                
+
+		        
+		        <td>
+		          <font tabindex="0" title="부 산 교 통 공 사 부산교통공사">
+		            부 산 교 통 공 사 부산교통공사
+		          </font>
+		        </td>
+		
+		        
+		        <td>
+		          <font  tabindex='0' onkeypress='handleEnterClick(event)' onClick="JavaScript: comOpenUserDetail('078EB691F17B1A25BCC064854F286D83');" style="cursor:pointer;" title="본청 철도시설과">김소연</font>
+		        </td>
+		
+		        
+		        <td>
+		          
+		        </td>
+                
+                <td title="">
+                    <span tabindex="0"></span>
+                </td>
+                
+                <td>
+                    <span tabindex="0">접수</span>
+                </td>
+        
+		        
+		        <td>
+		          <img src="/images/common/ico_att.gif" align="absmiddle" onmouseover="checkReadAuthforattach(this, 'ENF14CC5B6836C3DFA2BD19B53570500A15', 'R', '0', 'N', '6260000' );" onmouseout="clearTimeout(attachTimeOutID);" style="cursor:pointer;">
+		        </td>
+		
+		        
+		        <td>
+		          전자
+		        </td>
+		
+		        
+		        <td>
+		          -
+		        </td>
+		        
+		        
+                <td>
+                  <font title="">
+                	&nbsp;
+                  </font>
+                </td>
+		      </tr>
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- description -->
+    <h4 class="hide">설명글</h4>
+    <div class="description">
+      ※ 아이콘 (ex: <button type="button" class="btnDetail2" ondblclick="goPopup()" title="상세보기"></button>, <button type="button" class="btnView2" ondblclick="goPopup()" title="상세보기"></button> 등)을 더블클릭하면 자세한 설명을 확인할 수 있습니다.
+    </div>
+    <!-- //description -->
+
+    <div class="paging"><a href="#" class="active" ><span style="position:absolute;width: 1px;height: 1px;margin:-1px;overflow: hidden;clip-path:polygon(0 0, 0 0, 0 0)">현재 페이지</span>1</a>&nbsp;<a href="javascript:movePage(2);" >2</a>&nbsp;<a href="javascript:movePage(3);" >3</a>&nbsp;<a href="javascript:movePage(4);" >4</a>&nbsp;<a href="javascript:movePage(5);" >5</a>&nbsp;<a href="javascript:movePage(6);" >6</a>&nbsp;<a href="javascript:movePage(7);" >7</a>&nbsp;<a href="javascript:movePage(8);" >8</a>&nbsp;<a href="javascript:movePage(9);" >9</a>&nbsp;<a href="javascript:movePage(10);" >10</a>&nbsp;<a href="javascript:movePage(11);" title='다음' class="next"><span>다음</span></a>&nbsp;<a href="javascript:movePage('lastpage');" title='마지막 이동' class="last"><span>끝</span></a>&nbsp;</div>
+
+</form>
+
+
+<form id="bodyfileviewform" name="bodyfileviewform" method="post" action="">
+    <input type="hidden" name="editortype" value="">
+    <input type="hidden" name="docid" value="">
+    <input type="hidden" name="fileid" value="">
+    <input type="hidden" name="sfilename" value="">
+    <input type="hidden" name="guidfilename" value="">
+    <input type="hidden" name="drmflag" value="">
+</form>
+
+<!-- 붙임 읽기 form -->
+<form name="attachFileListForm" method="post">
+    <input type="hidden" name="docid" value="" />
+    <input type="hidden" name="docttl" value="" />
+    <input type="hidden" name="drmflag" value="" />
+    <input type="hidden" name="procgb" value="" />
+</form>
+
+
+<IFRAME name="hidiFrame" class="ihide" border="0" src="" height="0" width="0" onreadystatechange="execAfterExcelDowonload(this);" ></IFRAME>
+
+
+
+
+
+
+    
+    <script language="javascript" src="/ref/js/calendar.js"></script>
+
+    <script language="javascript">
+    	var tempStr = ''; // [hjh790] 20181003 모바일 사용통계 메뉴 추가
+    	var putDate = ''; // [hjh790] 20181003 모바일 사용통계 메뉴 추가
+        function del_period ( para ) {
+            for ( i = 0; i < para.length; )
+                if ( para.substring ( i, i + 1 ) == "." )
+                    para = para.substring( 0, i ) + para.substring( i + 1, para.length );
+                else
+                    i++;
+            return para;
+        }
+
+        function open_cal ( in_date, out_date, tag ) {
+            out_date.value = in_date.value;
+            tempStr = in_date; // [hjh790] 20181003 모바일 사용통계 메뉴 추가
+            
+            switch ( tag ) {
+                case 0 : show_cal( out_date, "", "YYYY.MM.DD", 1 );
+                         break;
+
+                case 1 : show_cal( out_date, out_date, "YYYY.MM.DD", 1 );
+                         break;
+
+                case 2 : out_date.value = del_period( out_date.value );
+                         show_cal( out_date, out_date, "YYYY.MM.DD", 1 );
+                         break;
+            }
+
+            out_date.value = "";
+        }
+
+        function getRecYear() {
+            return "";
+        }
+    </script>
+<!--  calendar.jsp 시작 -->
+	<script language="javascript">
+	
+	var public_description  = new initCalendar();
+	var curObj;
+	var curObj2;
+	
+	//get current date..
+	var now_date            = new Date();
+	var s_year              = now_date.getYear();
+	
+	if ( s_year < 1900 ) {
+	    s_year = s_year + 1900;
+	}
+	
+	var s_month             = return0( now_date.getMonth() + 1 );
+	var s_day               = return0( now_date.getDate() );
+	var ndate               = "" + s_year + s_month + s_day;
+	var dtype               = "YYYY/MM/DD";
+	var full_month_name     = new Array( "1월", "2월", "3월", "4월", "5월", "6월", "7월", "8월", "9월", "10월", "11월", "12월" );
+	var month_name          = new Array( "1월", "2월", "3월", "4월", "5월", "6월", "7월", "8월", "9월", "10월", "11월", "12월" );
+	var day_name            = new Array( "일", "월", "화", "수", "목", "금", "토" );
+	var year_str            = "년";
+	var day_str             = "일";
+	var calWidth            = 180;
+	var img_path            = "/ref/images/cal/";
+	var recyear             = new Array();
+	var compareType         = "";
+	var compareTargetDate;
+	var isValidateDate      = false;
+	var isValidateRecDate   = false;
+	
+	
+	function initCalendar() {
+	    this.put_validateDate       = put_validateDate;
+	    this.put_validateRecDate    = put_validateRecDate;
+	    this.put_recyear            = put_recyear;
+	    this.put_compareType        = put_compareType;
+	    this.put_compareTargetDate  = put_compareTargetDate;
+	    this.put_datetype           = put_datetype;
+	    this.put_calWidth           = put_calWidth;
+	    this.put_curDate            = put_curDate;
+	}
+	
+	
+	function hover( on ) {
+	    var e = event ? event : window.event;
+	    var el = e.target || e.srcElement;
+	   
+	   if ( el && el.nodeName == "TD" ) {
+	      if ( el.datetitle == "" ) return;
+	
+	      if ( on ) {
+	          el.style.backgroundColor = "#E1E1E1";
+	      } else {
+	          el.style.backgroundColor = "";
+	      }
+	   }
+	}
+	
+	
+	function choose( y, m, d ) {
+	    
+	 	// [hjh790] 20181003 모바일 사용통계 메뉴 추가 START
+	 	y=y+''; m=m+''; d=d+'';
+	    if(m.length == 1){m = '0'+m}
+	    if(d.length == 1){d = '0'+d}
+	    putDate = y + m + d;
+	 	// [hjh790] 20181003 모바일 사용통계 메뉴 추가 END
+	    
+	    var e = event ? event : window.event;
+	    var el = e.target || e.srcElement;
+
+	   if ( el && el.nodeName == "TD" ) {
+	      if ( d == "" ) return;
+	      return_date( y, m, d );
+	   }
+	}
+	
+	function closeDiv(id,view){
+	    view = view.replace("/",".").replace("/",".");
+	    set_cal ( id,view );
+	    try {
+	        pst_set_date( cur_id );
+	    } catch(e){ }
+	}
+	
+	function put_validateDate( str ) {
+	    isValidateDate = str;
+	}
+	
+	
+	function put_validateRecDate( str ) {
+	    isValidateRecDate = str;
+	}
+	
+	function put_compareType( str ) {
+	    compareType = str;
+	}
+	
+	
+	function put_compareTargetDate( str ) {
+	    compareTargetDate = str.replace(/\./g,'');
+	}
+	
+	
+	function put_datetype( str ) {
+	   dtype = str;
+	}
+	
+	
+	function put_calWidth( str ) {
+	   calWidth = str;
+	}
+	
+	
+	function put_recyear( str ) {
+	    if ( str.indexOf( "," ) > -1 ) {
+	        recyear = str.split(",");
+	    }
+	    else {
+	        recyear.push( str );
+	    }
+	    
+	    recyear = recyear.sort();
+	}
+	
+	
+	function put_curDate( str ) {
+
+	 	// [hjh790] 20181003 모바일 사용통계 메뉴 추가 START
+	    if(str == "undefined" || typeof(str) == "undefined"){
+	        str = tempStr;
+	    }
+	 	// [hjh790] 20181003 모바일 사용통계 메뉴 추가 END
+	 
+	    var y = s_year;
+	    var m = s_month;
+	    var d = s_day;
+	
+	    if ( str.length != 0 && str.length == 8) {
+	        y = parseInt( str.substring( 0, 4 ), 10 );
+	        m = parseInt( str.substring( 4, 6 ), 10 );
+	        d = parseInt( str.substring( 6, 8 ), 10 );
+	    }
+	
+	    show_current( y, m, d );
+	
+	    return(false);
+	}
+	
+	
+	function return0( str ) {
+	    str = "" + str;
+	
+	    if ( str.length == 1 ) str = "0" + str;
+	
+	    return str;
+	}
+	
+	
+	function dreplace( str , old_char , new_char ) {
+	    if( str == null || str == "" ) return;
+	    else {
+	        var fromindex = 0;
+	        var temp      = "";
+	
+	        for ( var i = 0 ; i < str.length ; i++ ) {
+	            fromindex    = i;
+	            pos          = str.indexOf( old_char, fromindex );
+	
+	            if ( pos != -1 ) {
+	                temp    = str.substring( 0, pos ) + new_char + str.substring( pos + old_char.length );
+	                str     = temp;
+	                i       = pos+new_char.length - 1;
+	            } else break;
+	        }
+	        return str;
+	    }
+	}
+	
+	
+	//open calendar
+	function show_current( y, m, d ) {
+	    s_year     = y;
+	    s_month    = m;
+	    s_day      = d;
+	
+	    make_calendar( s_year, s_month, s_day );
+	}
+	
+	
+	//processing changed date
+	function return_date( year_item, month_item, day_item ) {
+	    if ( year_item < 1900 ) year_item = 1900 + year_item;
+	
+	    month_item = return0( month_item );
+	    day_item   = return0( day_item );
+	    //make_calendar( year_item, month_item, day_item );
+	    input_date( year_item, month_item, day_item );
+	}
+	
+	
+	// 선택된 날자정보를 반환한다.
+	function input_date( year_item, month_item, day_item ) {
+	    //var m_name = new Array( "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" );
+	    if ( year_item < 1900 ) year_item = 1900 + year_item;
+	
+	    month_item      = "" + month_item;
+	    day_item        = "" + day_item;
+	    month_item2     = return0( month_item );
+	    day_item2       = return0( day_item );
+	    var backupidval = year_item + month_item2 + day_item2;
+	
+	    realDate = dtype;
+		
+	    if ( realDate.indexOf("DD") != -1 )        realDate = dreplace( realDate, "DD", day_item2 );
+	    else if( realDate.indexOf("dd") != -1 )    realDate = dreplace( realDate, "dd", day_item2 );
+	    else if( realDate.indexOf("D") != -1 )     realDate = dreplace( realDate, "D",  day_item );
+	    else if( realDate.indexOf("d") != -1 )     realDate = dreplace( realDate, "d",  day_item );
+		
+	    if ( realDate.indexOf("MMMM") != -1 )      realDate = dreplace( realDate, "MMMM",  full_month_name[parseInt(month_item,10)-1] );
+	    else if( realDate.indexOf("MON") != -1 )   realDate = dreplace( realDate, "MON",   month_name[parseInt(month_item,10)-1] );
+	    else if( realDate.indexOf("MMM") != -1 )   realDate = dreplace( realDate, "MMM",   month_name[parseInt(month_item,10)-1] );
+	    else if( realDate.indexOf("MM") != -1 )    realDate = dreplace( realDate, "MM",    month_item2 );
+	    else if( realDate.indexOf("M") != -1 )     realDate = dreplace( realDate, "M",     month_item );
+	
+	    if ( realDate.indexOf("YYYY") != -1 )      realDate = dreplace( realDate, "YYYY",  year_item );
+	    else if( realDate.indexOf("yyyy") !=-1 )   realDate = dreplace( realDate, "yyyy",  year_item );
+	    else if( realDate.indexOf("YY") !=-1 )     realDate = dreplace( realDate, "YY",    year_item.substring(2) );
+	    else if( realDate.indexOf("yy") !=-1 )     realDate = dreplace( realDate, "yy",    year_item.substring(2) );
+	
+	    var backupval = realDate;
+	
+	    // 날자 선택시 조건 체크
+	    if ( isValidateDate && !validateDateCal( backupidval ) ) {
+	        return;
+	    }
+	
+	    // 기록관 이관년도의 실적을 검색에서 제외할 때 체크 
+	    if ( isValidateRecDate && !validateRecDate( backupidval ) ) {
+	        return;
+	    }
+	    closeDiv(backupidval,backupval);
+	}
+	
+	
+	function validateDateCal ( date ) {
+	    alert(date);
+	    alert(ndate);
+	    if ( 0 > compareDate( ndate, date ) ) {
+	        alert( "선택된 일자가 현재일보다 늦습니다. 다시 선택해 주십시오." );
+	        return false;
+	    }
+	
+	    if ( ( compareType == "start" && 0 < compareDate( compareTargetDate, date )  ) || ( compareType == "end" && 0 < compareDate( date, compareTargetDate ) ) ) {
+	        alert( "검색시작일이 검색종료일보다 늦습니다. 다시 선택해 주십시오." );
+	        return false;
+	    }
+	    
+	    return true;
+	}
+	
+	
+	function validateRecDate ( date ) {
+	    var cntRecyear  = recyear.length;
+	    var isMin       = false;   // 기록관 이관 관련 검색제외 년도를 벗어났다. 
+	    var isMax       = false;   // 기록관 이관 관련 검색제외 년도를 벗어났다.
+	
+	    if ( parseInt( date.substring( 0, 4 ), 10 ) < parseInt( recyear[ 0 ], 10 ) && parseInt( compareTargetDate.substring( 0, 4 ), 10 ) < parseInt( recyear[ 0 ], 10 ) ) {
+	        isMin = true;
+	    }
+	
+	    if ( parseInt( date.substring( 0, 4 ), 10 ) > parseInt( recyear[ cntRecyear - 1 ], 10 ) && parseInt( compareTargetDate.substring( 0, 4 ), 10 ) > parseInt( recyear[ cntRecyear - 1 ], 10 ) ) {
+	        isMax = true;
+	    }
+	
+	    if ( !isMin && !isMax ) {
+	        alert("목록 검색기간에 기록관 이관 완료 연도의 날짜는 포함할 수 없습니다.\n\n( 기록관 이관 완료 연도 : " + recyear[ 0 ] + "년 ~ " + recyear[ cntRecyear - 1 ] + "년 )" );
+	        return false;
+	    }
+	    
+	    for ( var i = 0; i < recyear.length; i++ ) {
+	        if ( parseInt( date.substring( 0, 4 ), 10 ) == recyear[i] ) {
+	            alert( "기록관 이관으로 조회할 수 없는 년도 입니다." );
+	            return false;
+	        }
+	    }
+	    
+	    return true;
+	}
+	
+	
+	function compareDate( baseDate, targetDate ) {
+	    var bDate = new Date( parseInt( baseDate.substring( 0, 4 ), 10 ), parseInt( baseDate.substring( 4, 6 ), 10 ) - 1, parseInt( baseDate.substring( 6, 8 ), 10 ) );
+	    var tDate = new Date( parseInt( targetDate.substring( 0, 4 ), 10 ), parseInt( targetDate.substring( 4, 6 ), 10 ) - 1, parseInt( targetDate.substring( 6, 8 ), 10 ) );
+	
+	    return bDate - tDate;
+	}
+	
+	
+	// 2007.05.04 추가  월 선택에 선택 박스 기능 추가
+	function setMonths( y, m, d ) {
+	    var contents = "<select name=\"months\" onChange=\"changMonth( " + y + ", " + d +" )\" class=\"input\" style=\"width:39px;\">";
+	    for( i = 1; i <= 12; i++ ) {
+	        if ( i == m ) {
+	            contents += "<option value=\""+ i + "\" selected=\"true\" >" + i + " </option>";
+	        }else {
+	            contents += "<option value=\""+ i + "\" >" + i + " </option>";
+	        }
+	
+	    }
+	    contents += "</select>";
+	
+	    return contents;
+	}
+	
+	
+	function changMonth( y, d ){
+	    var m = document.all.months.selectedIndex;
+	
+	    make_calendar( y, m + 1, d );
+	}
+	
+	
+	// 달력 UI를 만든다.
+	function make_calendar( y, m, d ) {
+	    var content    = "";
+	    var day_num    = new Array( 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 );
+	    var preyear    = 0;
+	    var nextyear   = 0;
+	
+	    m = parseInt( m, 10 );
+	    if ( m == 0 ) {
+	        y = y - 1;
+	        m = 12;
+	//        if ( y == recyear ) {
+	//            y = y - 1;
+	//        }
+	    }
+	    else if ( m == 13 ) {
+	        y = y + 1;
+	        m = 1;
+	//        if ( y == recyear ) {
+	//            y = y + 1;
+	//        }
+	    }
+	
+	    preyear    = y - 1;
+	    nextyear   = y + 1;
+	
+	//    if ( preyear  == recyear )  preyear     = preyear - 1;
+	//    if ( nextyear == recyear )  nextyear    = nextyear + 1;
+	
+	    // 윤달 체크
+	    if ( ( ( y % 4 == 0 ) && ( y % 100 != 0 ) ) || ( y % 400 == 0 ) ) day_num[1] = 29;
+	
+	    var first = new Date( y, m - 1, 1 );
+	    firstday    = first.getDay() + 1;
+	    DaysInMonth = day_num[ m - 1 ];
+	
+	    if ( ( m - 2 ) == -1 ) DaysInBefMonth = day_num[11];
+	    else DaysInBefMonth = day_num[ m - 2 ];
+	
+	    if ( d > DaysInMonth ) day = DaysInMonth;
+	    else day = d;
+	
+	    var cur_date = new Date(y,m-1,day);
+	    var c_dayof  = day_name[cur_date.getDay()];
+	
+	    //content += "<FORM NAME=\"calendar\" onSubmit=\"return false;\">";
+	    content += "<table width=\"190\" border=\"0\" cellspacing=\"1\" cellpadding=\"4\" bgcolor=\"#ffffff\" >";
+	    content +=   "<tr>";
+	    content +=     "<td bgcolor=\"#ffffff\" >";
+	    content +=     "<table width=\"100%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\" style=\"border:1px solid #e5e5e5;\" >";
+	    content +=       "<tr>";
+	    content +=         "<td height=\"70\" valign=\"top\">";
+	    content +=         "<table border=\"0\" width=\"100%\" cellspacing=\"0\" cellpadding=\"0\" >";
+	
+	    // close
+	    content +=           "<tr>";
+	    content +=             "<td class=\"calda01\" height=\"11\" align=\"right\" valign=\"top\" colspan=\"3\" >";
+	    content +=               "<img src=\"" + img_path + "close.gif\" style=\"cursor:pointer;margin-top:7px;margin-right:5px;\" onclick=\"closeDiv('','');\" >";
+	    content +=             "</td>";
+	    content +=           "</tr>";
+	
+	    //year
+	    content +=           "<tr>";
+	    content +=             "<td class=\"calda01\" height=\"22\" align=\"center\" valign=\"middle\" width=\"70\" nowrap>";
+	    content +=               "<img class=\"calarrow\" src=\"" + img_path + "ico_left2.gif\" onClick=\"make_calendar( " + preyear + ", " + m + ", " + day + " );\" >";
+	    content +=               y + year_str;
+	    content +=               "<img class=\"calarrow\" src=\"" + img_path + "ico_right2.gif\" onClick=\"make_calendar( " + nextyear + ", " + m + ", " + day + " );\" >";
+	    content +=             "</td>";
+	    content +=             "<td width=\"10\"></td>";
+	    content +=             "<td width=\"120\" class=\"calto\" style=\"text-align:left\" nowrap valign=\"top\" style=\"padding-bottom:14\" rowspan=\"2\">";
+	    content +=               "<img class=\"calarrow\" src=\"" + img_path + "ico_left.gif\" onClick=\"make_calendar( " + y + ", " + ( m - 1 ) + ", " + day + " );\" >";
+	    content +=               setMonths( y, m, d ) + "월";
+	    content +=               "<img class=\"calarrow\" src=\"" + img_path + "ico_right.gif\" onClick=\"make_calendar( " + y + ", " + ( m + 1 ) + ", " + day + " );\" >";
+	    content +=             "</td>";
+
+	    content +=           "</tr>";
+	    content +=           "<tr>";
+	    content +=             "<td height=\"12\" colspan=\"3\"></td>";
+	    content +=           "</tr>";
+	    content +=         "</table>";
+	
+	    // 요일
+	    content +=         "<table width=\"100%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\" style=\"background:#f4f5f9; height:20px; \" >\n";
+	    content +=           "<tr >\n";
+	    content +=             "<td width=\"10\" ></td>\n";
+	    content +=             "<td class=\"calyoil\" >" + day_name[0] + "</td>\n";
+	    content +=             "<td class=\"calyoil\" >" + day_name[1] + "</td>\n";
+	    content +=             "<td class=\"calyoil\" >" + day_name[2] + "</td>\n";
+	    content +=             "<td class=\"calyoil\" >" + day_name[3] + "</td>\n";
+	    content +=             "<td class=\"calyoil\" >" + day_name[4] + "</td>\n";
+	    content +=             "<td class=\"calyoil\" >" + day_name[5] + "</td>\n";
+	    content +=             "<td class=\"calyoil\" >" + day_name[6] + "</td>\n";
+	    content +=             "<td width=\"10\" ></td>\n";
+	    content +=           "</tr>";
+	    content +=         "</table>\n";
+	    content +=         "</td>";
+	    content +=       "</tr>\n";
+	
+	    //days
+	    content +=       "<tr>";
+	    content +=         "<td bgcolor=\"#ffffff\" >\n";
+	    content +=         "<table width=\"100%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\" ";
+	    content +=                  "onmouseover=\"hover(true)\" onmouseout=\"hover(false)\" > ";
+	    content +=           "<tr>";
+	    content +=             "<td width=\"10\" datetitle=\"\"></td>";
+	
+	    var column = 0;
+	
+	    for ( i = 1 ; i <= ( firstday - 1 ); i++ ) {
+	        content +=         "<td align=\"center\" class=\"calgray\" datetitle=\"\">" + ( DaysInBefMonth - ( firstday - 1 ) + i ) + "</td>\n";
+	        column = column + 1;
+	    }
+	
+	    var rows = 0;
+	    for( i = 1 ; i <= DaysInMonth; i++ ) {
+	        if ( column == 0 ) {
+	            content +=     "<td align=\"center\" class=\"cal03\" ";
+	        } else if ( column == 6 ) {
+	            content +=     "<td align=\"center\" class=\"cal02\" ";
+	        } else {
+	            content +=     "<td align=\"center\" class=\"cal01\" ";
+	        }
+	
+	        if ( i == day ) {
+	            content +=           "bgcolor=\"#f4f5f9\" style=\"text-decoration:underline;border:1px solid #00aeef;color:#00aeef;background:#fff;\" ";
+	        }
+	
+	        content +=           "onclick=\"choose( " + y + ", " + m + ","+i+" );\" datetitle=\"" + i + "\" >" + i + "</td>\n";
+	        column   = column + 1;
+	
+	        if ( column == 7 ) {
+	            content +=     "<td width=\"10\" datetitle=\"\"></td>";
+	            content +=   "</tr>\n";
+	            
+	            if ( i != DaysInMonth ) {
+	              content += "<tr>";
+	              content +=   "<td width=\"10\" datetitle=\"\"></td>";
+	                
+	                rows++;
+	            }
+	
+	            column = 0;            
+	        }
+	    }
+	
+	    if ( ( column > 0 ) && ( column < 7 ) ) {
+	        for ( i = 1; i <= ( 7 - column ) ; i++ ) {
+	            content +=     "<td align=\"center\" class=\"calgray\" datetitle=\"\">" + i + "</td>\n";
+	        }
+	
+	        content +=         "<td width=\"10\" datetitle=\"\" ></td></tr>\n";         
+	    }
+	
+	    if ( rows < 5 ) {
+	        content +=       "<tr>";
+	        content +=         "<td class=\"calgray\" colspan=\"9\" datetitle=\"\"></td>";
+	        content +=       "</tr>\n";
+	    }
+	
+	    content +=         "</table>\n";
+	    content +=         "</td>";
+	    content +=       "</tr>";
+	    content +=     "</table>";
+	    content +=     "</td>";
+	    content +=   "</tr>";
+	    content += "</table>\n"
+	    //content += "</form>\n"
+	        document.getElementById("calendar").innerHTML = content;
+	}
+	
+	</script>
+<!--  calendar.jsp 끝 -->
+
+    <div id="calendar" style="position:absolute;display:none;z-index:999">
+    </div>
+
+
+
+
+<script type="text/javascript" >
+
+    var bms_comm_user_onload;
+    try {
+        var coll = document.all.tags("body");
+        if (coll!=null){
+            for (i=0;i<coll.length;i++){
+                bms_comm_user_onload = coll[i].onload;
+                break;
+            }
+        }
+    }catch (e){
+    }
+
+    var bms_comm_post_user_onload;
+    try {
+        var coll = document.all.tags("body");
+        if (coll!=null){
+            for (i=0;i<coll.length;i++){
+                bms_comm_post_user_onload = coll[i].pst_onload;
+                break;
+            }
+        }
+    }catch (e){
+    }
+
+    var bms_comm_is_fixed_title = false;
+    try {
+        var coll = document.all.tags("body");
+        if (coll!=null){
+            for (i=0;i<coll.length;i++){
+                bms_comm_is_fixed_title = (coll[i].fixed_title!=null);
+                break;
+            }
+        }
+    }catch (e){
+    }
+</script>
+
+
+<script for="window" event="onload">
+
+    
+    try {
+        bms_comm_user_onload();
+    }catch (e){
+    }
+
+    
+    //alert("fixed_title : " + bms_comm_is_fixed_title);
+
+    
+    try {
+        
+        if (!bms_comm_is_fixed_title&&window.document.title!=null){
+
+            if (document.title==''){
+
+            } else {
+                var str = document.title;
+                var from = '::';
+                var to = '';
+                var i = 0;
+                var rStr = "";
+                while( str.indexOf(from) > -1 )
+                {
+                    i = str.indexOf(from);
+                    rStr += str.substring(0,i) + to;
+                    str = str.substring( i+from.length );
+                }
+                document.title = rStr+str;
+            }
+        }
+    }catch (e){
+    }
+
+    try {
+        //alert(!bms_comm_is_fixed_title + ": [" + document.title + "]");
+    }catch (e){
+    }
+
+
+    
+    try {
+        bms_comm_post_user_onload();
+    }catch (e){
+    }
+
+
+</script>
+
+<script type="text/javascript" >
+
+			function comOpenUserDetail(userid,userTds) {
+				var url = '/bms/org/userviewpop.do?cmd=userpopview&useruid='+userid;
+				if(userTds !== undefined){//userTds가 들어오면 파라미터로 추가
+				    url+='&userTds='+userTds;
+				}
+
+				var newWidth   = 650;
+				var newHeight  = 490;				
+				  
+				var newLeft    = (screen.availWidth  - newWidth ) / 2;
+				var newTop     = (screen.availHeight - newHeight) / 2;
+
+				window.open(url, 'userdetailwin', 'left='+newLeft+',top='+newTop+',width='+newWidth+',height='+newHeight+',scrollbars=no,status=yes, resizable=yes');
+
+			}
+
+	
+	function comOpenExtUserDetail(sAccountId) {
+	    var comExtUserInfoForm = document.comExtUserInfoForm;
+		var newWidth   	= 800;
+		var newHeight	= 351;
+		var newLeft 	= (screen.availWidth - newWidth) / 2;
+		var newTop 		= (screen.availHeight - newHeight) / 2;
+		var popupWin = window.open('','detailPopup','left='+newLeft+',top='+newTop+',width='+newWidth+',height='+newHeight+',scrollbars=yes,resizable=no,status=yes');
+		
+		comExtUserInfoForm.action = "/bms/org/externaluserviewpopfornoncloud.do";
+		comExtUserInfoForm.account_id.value = sAccountId;
+		comExtUserInfoForm.target = popupWin.name;
+		comExtUserInfoForm.submit();
+	}
+
+</script>
+<form name="comUserInfoForm" method="post" action="">
+	<input type="hidden" name="useruid"    id="useruid" >
+	<input type="hidden" name="uid" 	   id="uid" >
+	<input type="hidden" name="param" 	   id="param" >
+	<input type="hidden" name="url" 	   id="url" >
+	<input type="hidden" name="cmd" 	   id="cmd" >
+	<input type="hidden" name="searchtype" id="searchtype" value="1">
+	<input type="hidden" name="searchuid"  id="searchuid"  value="">
+	<input type="hidden" name="selfview"   id="selfview"   value="Y">
+</form>
+<form name="extInfoForm" method="post" action="">
+	<input type="hidden" name="extfilenames" value="exe|php|001|7z|ace|alz|arc|arj|b64|bh|bhx|bz2|cab|ear|enc|gz|ha|hqx|ice|img|iso|jsp|lha|lzh|mim|pak|php|rar|sit|tar|tgz|uue|war|xxe|xz|z|zoo|jspx|">
+</form>
+<form name="comExtUserInfoForm" method="post">
+	<input type="hidden" name="account_id" value="" />
+</form>
+
+
+
+</body>
+
+</html>

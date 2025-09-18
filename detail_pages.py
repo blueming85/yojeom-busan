@@ -681,7 +681,7 @@ def render_header():
                 st.rerun()
 
         with tab_col2:
-            if st.button("🍽️ 맛집정보", key="nav_restaurants", use_container_width=True,
+            if st.button("🍽️ 맛집지도", key="nav_restaurants", use_container_width=True,
                          type="primary" if current_page == 'restaurants' else "secondary"):
                 st.session_state.page = 'restaurants'
                 st.session_state.restaurant_items_to_show = 12
