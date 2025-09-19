@@ -196,295 +196,316 @@ def create_hover_popup_content(row, *args, **kwargs) -> str:
 # ------------------------------------------------------------
 # 지도 + 패널
 # ------------------------------------------------------------
+def render_map_section(plotly_data, map_height):
+    """지도 렌더링 함수 (공통)"""
+    import pandas as pd
+    import plotly.graph_objects as go
+    
+    # Plotly 지도 렌더링
+    if not plotly_data:
+        st.warning("표시할 마커가 없습니다.")
+        return
+    
+    # DataFrame 준비
+    df = pd.DataFrame(plotly_data)
+    df["lat"] = pd.to_numeric(df["lat"], errors="coerce")
+    df["lon"] = pd.to_numeric(df["lon"], errors="coerce")
+    df = df.dropna(subset=["lat", "lon"])
+
+    # 색/크기 매핑
+    df["color"] = df["category"].map({
+        "미쉐린가이드": "#FFD700",
+        "부산의맛":     "#FF6B6B",
+        "현지인":       "#4A90E2"
+    }).fillna("#4A90E2")
+
+    df["size"] = df["category"].map({
+        "미쉐린가이드": 25,
+        "부산의맛":     25,
+        "현지인":       25
+    }).fillna(12)
+
+    # Figure 생성
+    fig = go.Figure()
+
+    # 카테고리별 트레이스
+    for category in ["현지인", "부산의맛", "미쉐린가이드"]:
+        cat_df = df[df["category"] == category]
+        if cat_df.empty:
+            continue
+
+        fig.add_trace(go.Scattermapbox(
+            lat=cat_df["lat"],
+            lon=cat_df["lon"],
+            mode="markers",
+            marker=dict(
+                size=int(cat_df["size"].iloc[0]),
+                color=str(cat_df["color"].iloc[0]),
+                opacity=0.95,
+                symbol="circle"
+            ),
+            text=cat_df["title"],
+            hovertext=cat_df["hover_text"],
+            hoverinfo="text",
+            customdata=cat_df[["index", "file_path"]],
+            name=category,
+            cluster=dict(
+                enabled=True,
+                maxzoom=12,
+                step=1
+            )
+        ))
+
+    # 🔧 클릭 시 진한보라색 변화, 다른 마커들은 그대로
+    fig.update_traces(
+        selected={
+            'marker': {
+                'opacity': 1.0, 
+                'color': '#6B46C1',  # 진한보라색
+                'size': 25           # 크기는 그대로
+            }
+        },
+        unselected={'marker': {'opacity': 0.95}},  # 다른 마커들 그대로
+        selector=dict(type='scattermapbox')
+    )
+
+    # 레이아웃
+    center_lat = float(df["lat"].mean()) if not df.empty else 35.1796
+    center_lon = float(df["lon"].mean()) if not df.empty else 129.0756
+
+    fig.update_layout(
+        mapbox=dict(
+            style="open-street-map",
+            center=dict(lat=center_lat, lon=center_lon),
+            zoom=11
+        ),
+        height=map_height,  # 여기서 조건부 높이 적용
+        margin={"r": 0, "t": 0, "l": 0, "b": 0},
+        showlegend=True,
+        legend=dict(
+            yanchor="top",
+            y=0.99,
+            xanchor="left",
+            x=0.01,
+            bgcolor="rgba(255,255,255,0.85)"
+        ),
+        hovermode="closest",
+        uirevision="keep-zoom-pan"  # 줌/팬 유지
+    )
+
+    # 렌더링
+    try:
+        selected = st.plotly_chart(
+            fig,
+            use_container_width=True,
+            key="restaurant_map_plotly",
+            on_select="rerun",
+            selection_mode="points",
+            config={
+                "scrollZoom": True,
+                "displayModeBar": True,
+                "doubleClick": "reset"
+            }
+        )
+    except TypeError:
+        # 구버전 폴백
+        selected = st.plotly_chart(
+            fig,
+            use_container_width=True,
+            key="restaurant_map_plotly",
+            config={
+                "scrollZoom": True,
+                "displayModeBar": True,
+                "doubleClick": "reset"
+            }
+        )
+        selected = None
+
+    # 포인트 선택 처리
+    if selected:
+        points = []
+        try:
+            if isinstance(selected, dict):
+                points = selected.get("selection", {}).get("points", [])
+            else:
+                sel = getattr(selected, "selection", None)
+                if isinstance(sel, dict):
+                    points = sel.get("points", [])
+        except Exception:
+            points = []
+
+        if points:
+            point = points[0]
+            customdata = point.get("customdata")
+            if isinstance(customdata, (list, tuple)) and len(customdata) > 0:
+                idx = customdata[0]
+                if idx != st.session_state.get("selected_marker_index"):
+                    selected_restaurant = plotly_data[idx]["original_data"]
+                    st.session_state.selected_panel_restaurant = selected_restaurant
+                    st.session_state.show_restaurant_panel = True
+                    st.session_state.selected_marker_index = idx
+                    
+                    # 🔧 자동 스크롤 JavaScript 실행
+                    st.markdown("""
+                    <script>
+                    delayedScroll();
+                    </script>
+                    """, unsafe_allow_html=True)
+                    
+                    st.rerun()
+
+
+def render_panel_section():
+    """패널 렌더링 함수 (공통)"""
+    # 🔧 패널에 고유 ID 추가
+    with st.container():
+        st.markdown('<div id="restaurant-detail-panel">', unsafe_allow_html=True)
+        
+        if st.session_state.get("show_restaurant_panel"):
+            render_restaurant_side_panel(st.session_state["selected_panel_restaurant"])
+        else:
+            st.markdown('<h3 style="color: white;">📍 맛집 상세정보</h3>', unsafe_allow_html=True)
+         
+            st.markdown("""
+             <div style="
+                 padding: 1rem;
+                 background-color: rgba(255, 255, 255, 0.1);
+                 border-radius: 8px;
+                 border-left: 4px solid #17a2b8;
+                 color: white;
+                 font-size: 16px;
+                 line-height: 1.5;
+                 margin: 10px 0;
+                 text-align: center;
+             ">
+             지도에서 마커를 클릭하면<br>
+             상세정보가 여기에 표시됩니다
+             </div>
+             """, unsafe_allow_html=True)
+        
+        st.markdown('</div>', unsafe_allow_html=True)
+
+
 def render_restaurant_map_with_sidebar(restaurant_list: List[Dict]):
-   """맛집 지도: 모바일+PC 자동스크롤 + 진한보라색 클릭 효과"""
-   import pandas as pd
-   import plotly.graph_objects as go
-   from streamlit_js_eval import streamlit_js_eval
-   
-   # 상태값 초기화
-   if 'show_restaurant_panel' not in st.session_state:
-       st.session_state.show_restaurant_panel = False
-   if 'selected_panel_restaurant' not in st.session_state:
-       st.session_state.selected_panel_restaurant = None
-   if 'selected_marker_index' not in st.session_state:
-       st.session_state.selected_marker_index = None
+    """맛집 지도: 모바일+PC 자동스크롤 + 진한보라색 클릭 효과"""
+    import pandas as pd
+    import plotly.graph_objects as go
+    from streamlit_js_eval import streamlit_js_eval
+        
+    # 상태값 초기화
+    if 'show_restaurant_panel' not in st.session_state:
+        st.session_state.show_restaurant_panel = False
+    if 'selected_panel_restaurant' not in st.session_state:
+        st.session_state.selected_panel_restaurant = None
+    if 'selected_marker_index' not in st.session_state:
+        st.session_state.selected_marker_index = None 
 
-   if not restaurant_list:
-       st.info("🔍 조건에 맞는 맛집이 없습니다.")
-       return
+    if not restaurant_list:
+        st.info("🔍 조건에 맞는 맛집이 없습니다.")
+        return 
 
-   # 화면 너비 감지 (모바일 판단)
-   screen_width = streamlit_js_eval(
-       js_expressions='window.innerWidth',
-       want_output=True,
-       key='screen_width'
-   )
+    # 화면 너비 감지 (모바일 판단)
+    screen_width = streamlit_js_eval(
+        js_expressions='window.innerWidth',
+        want_output=True,
+        key='screen_width'
+    ) 
 
-   # 모바일 기준: 768px 이하
-   is_mobile = screen_width is not None and screen_width <= 768
+    # 모바일 기준: 768px 이하
+    is_mobile = screen_width is not None and screen_width <= 768 
 
-   # 조건부 높이 설정
-   map_height = 350 if is_mobile else 750  # 모바일: 300px, 웹: 700px
+    # 조건부 높이 설정
+    map_height = 350 if is_mobile else 750
 
-   # 🔧 모바일+PC 모두 자동 스크롤 JavaScript
-   st.markdown("""
-   <script>
-   function scrollToPanel() {
-       const panel = document.getElementById('restaurant-detail-panel');
-       if (panel) {
-           panel.scrollIntoView({ 
-               behavior: 'smooth', 
-               block: 'start',
-               inline: 'nearest'
-           });
-       }
-   }
-   
-   function delayedScroll() {
-       setTimeout(scrollToPanel, 300);
-   }
-   </script>
-   """, unsafe_allow_html=True)
+    # 🔧 모바일+PC 모두 자동 스크롤 JavaScript
+    st.markdown("""
+    <script>
+    function scrollToPanel() {
+        const panel = document.getElementById('restaurant-detail-panel');
+        if (panel) {
+            panel.scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'start',
+                inline: 'nearest'
+            });
+        }
+    }
+    
+    function delayedScroll() {
+        setTimeout(scrollToPanel, 300);
+    }
+    </script>
+    """, unsafe_allow_html=True)
 
-   # 필터 변경 감지
-   def _filter_signature():
-       region = st.session_state.get('selected_restaurant_region', '전체')
-       food   = st.session_state.get('selected_restaurant_food_type', '전체')
-       cat    = st.session_state.get('selected_restaurant_category', '전체')
-       query  = st.session_state.get('restaurant_search_input', '')
-       key = (region, food, cat, query)
-       import hashlib
-       return hashlib.sha1(repr(key).encode()).hexdigest()
+    # 필터 변경 감지
+    def _filter_signature():
+        region = st.session_state.get('selected_restaurant_region', '전체')
+        food   = st.session_state.get('selected_restaurant_food_type', '전체')
+        cat    = st.session_state.get('selected_restaurant_category', '전체')
+        query  = st.session_state.get('restaurant_search_input', '')
+        key = (region, food, cat, query)
+        import hashlib
+        return hashlib.sha1(repr(key).encode()).hexdigest()
 
-   cur_sig  = _filter_signature()
-   prev_sig = st.session_state.get("_filter_sig", "")
-   if cur_sig != prev_sig:
-       st.session_state["_filter_sig"] = cur_sig
-       st.session_state.show_restaurant_panel = False
-       st.session_state.selected_panel_restaurant = None
-       st.session_state.selected_marker_index = None
+    cur_sig  = _filter_signature()
+    prev_sig = st.session_state.get("_filter_sig", "")
+    if cur_sig != prev_sig:
+        st.session_state["_filter_sig"] = cur_sig
+        st.session_state.show_restaurant_panel = False
+        st.session_state.selected_panel_restaurant = None
+        st.session_state.selected_marker_index = None
 
-   # 마커 데이터 구성 (Plotly용)
-   @st.cache_data(show_spinner=False, max_entries=64)
-   def build_plotly_data(sig: str, base: List[Dict]):
-       michelin = [r for r in base if r.get('category') == '미쉐린가이드']
-       busan    = [r for r in base if r.get('category') == '부산의맛']
-       local    = [r for r in base if r.get('category') == '현지인']
-       prio = michelin + busan + local
-       
-       rows = []
-       for idx, r in enumerate(prio):
-           lat, lon = r.get('latitude'), r.get('longitude')
-           if lat and lon:
-               rows.append({
-                   'lat': lat,
-                   'lon': lon,
-                   'title': r.get('title', '맛집'),
-                   'category': r.get('category', '현지인'),
-                   'hover_text': create_hover_popup_content(r),
-                   'index': idx,
-                   'file_path': r.get('file_path', ''),
-                   'michelin_grade': r.get('michelin_grade', ''),
-                   'district': r.get('district', ''),
-                   'food_type': r.get('food_type', ''),
-                   'address': r.get('address', ''),
-                   'phone': r.get('phone', ''),
-                   'representative_menu': r.get('representative_menu', ''),
-                   'original_data': r  # 원본 데이터 포함
-               })
-       return rows
+    # 마커 데이터 구성 (Plotly용)
+    @st.cache_data(show_spinner=False, max_entries=64)
+    def build_plotly_data(sig: str, base: List[Dict]):
+        michelin = [r for r in base if r.get('category') == '미쉐린가이드']
+        busan    = [r for r in base if r.get('category') == '부산의맛']
+        local    = [r for r in base if r.get('category') == '현지인']
+        prio = michelin + busan + local
+        
+        rows = []
+        for idx, r in enumerate(prio):
+            lat, lon = r.get('latitude'), r.get('longitude')
+            if lat and lon:
+                rows.append({
+                    'lat': lat,
+                    'lon': lon,
+                    'title': r.get('title', '맛집'),
+                    'category': r.get('category', '현지인'),
+                    'hover_text': create_hover_popup_content(r),
+                    'index': idx,
+                    'file_path': r.get('file_path', ''),
+                    'michelin_grade': r.get('michelin_grade', ''),
+                    'district': r.get('district', ''),
+                    'food_type': r.get('food_type', ''),
+                    'address': r.get('address', ''),
+                    'phone': r.get('phone', ''),
+                    'representative_menu': r.get('representative_menu', ''),
+                    'original_data': r  # 원본 데이터 포함
+                })
+        return rows
 
-   plotly_data = build_plotly_data(cur_sig, restaurant_list)
-   by_path = {r.get('file_path'): r for r in restaurant_list}
+    plotly_data = build_plotly_data(cur_sig, restaurant_list)
 
-   col1, col2 = st.columns([7, 3])
+    # 모바일/데스크탑 분기 처리
+    if is_mobile:
+        # 모바일: 세로 배치 (지도 → 간격 → 상세정보)
+        render_map_section(plotly_data, map_height)
+        st.markdown("<div style='margin-bottom: 20px;'></div>", unsafe_allow_html=True)
+        render_panel_section()
+    else:
+        # 데스크탑: 좌우 분할 (지도 | 상세정보)  
+        col1, col2 = st.columns([7, 3])
+        
+        with col1:
+            render_map_section(plotly_data, map_height)
+        
+        with col2:
+            render_panel_section()
 
-   with col1:
-       # Plotly 지도 렌더링
-       if not plotly_data:
-           st.warning("표시할 마커가 없습니다.")
-       else:
-           # DataFrame 준비
-           df = pd.DataFrame(plotly_data)
-           df["lat"] = pd.to_numeric(df["lat"], errors="coerce")
-           df["lon"] = pd.to_numeric(df["lon"], errors="coerce")
-           df = df.dropna(subset=["lat", "lon"])
-
-           # 색/크기 매핑
-           df["color"] = df["category"].map({
-               "미쉐린가이드": "#FFD700",
-               "부산의맛":     "#FF6B6B",
-               "현지인":       "#4A90E2"
-           }).fillna("#4A90E2")
-
-           df["size"] = df["category"].map({
-               "미쉐린가이드": 25,
-               "부산의맛":     25,
-               "현지인":       25
-           }).fillna(12)
-
-           # Figure 생성
-           fig = go.Figure()
-
-           # 카테고리별 트레이스
-           for category in ["현지인", "부산의맛", "미쉐린가이드"]:
-               cat_df = df[df["category"] == category]
-               if cat_df.empty:
-                   continue
-
-               fig.add_trace(go.Scattermapbox(
-                   lat=cat_df["lat"],
-                   lon=cat_df["lon"],
-                   mode="markers",
-                   marker=dict(
-                       size=int(cat_df["size"].iloc[0]),
-                       color=str(cat_df["color"].iloc[0]),
-                       opacity=0.95,
-                       symbol="circle"
-                   ),
-                   text=cat_df["title"],
-                   hovertext=cat_df["hover_text"],
-                   hoverinfo="text",
-                   customdata=cat_df[["index", "file_path"]],
-                   name=category,
-                   cluster=dict(
-                       enabled=True,
-                       maxzoom=12,
-                       step=1
-                   )
-               ))
-
-           # 🔧 클릭 시 진한보라색 변화, 다른 마커들은 그대로
-           fig.update_traces(
-               selected={
-                   'marker': {
-                       'opacity': 1.0, 
-                       'color': '#6B46C1',  # 진한보라색
-                       'size': 25           # 크기는 그대로
-                   }
-               },
-               unselected={'marker': {'opacity': 0.95}},  # 다른 마커들 그대로
-               selector=dict(type='scattermapbox')
-           )
-
-           # 레이아웃
-           center_lat = float(df["lat"].mean()) if not df.empty else 35.1796
-           center_lon = float(df["lon"].mean()) if not df.empty else 129.0756
-
-           fig.update_layout(
-               mapbox=dict(
-                   style="open-street-map",
-                   center=dict(lat=center_lat, lon=center_lon),
-                   zoom=11
-               ),
-               height=map_height,  # 여기서 조건부 높이 적용
-               margin={"r": 0, "t": 0, "l": 0, "b": 0},
-               showlegend=True,
-               legend=dict(
-                   yanchor="top",
-                   y=0.99,
-                   xanchor="left",
-                   x=0.01,
-                   bgcolor="rgba(255,255,255,0.85)"
-               ),
-               hovermode="closest",
-               uirevision="keep-zoom-pan"  # 줌/팬 유지
-           )
-
-           # 렌더링
-           try:
-               selected = st.plotly_chart(
-                   fig,
-                   use_container_width=True,
-                   key="restaurant_map_plotly",
-                   on_select="rerun",
-                   selection_mode="points",
-                   config={
-                       "scrollZoom": True,
-                       "displayModeBar": True,
-                       "doubleClick": "reset"
-                   }
-               )
-           except TypeError:
-               # 구버전 폴백
-               selected = st.plotly_chart(
-                   fig,
-                   use_container_width=True,
-                   key="restaurant_map_plotly",
-                   config={
-                       "scrollZoom": True,
-                       "displayModeBar": True,
-                       "doubleClick": "reset"
-                   }
-               )
-               selected = None
-
-           # 포인트 선택 처리
-           if selected:
-               points = []
-               try:
-                   if isinstance(selected, dict):
-                       points = selected.get("selection", {}).get("points", [])
-                   else:
-                       sel = getattr(selected, "selection", None)
-                       if isinstance(sel, dict):
-                           points = sel.get("points", [])
-               except Exception:
-                   points = []
-
-               if points:
-                   point = points[0]
-                   customdata = point.get("customdata")
-                   if isinstance(customdata, (list, tuple)) and len(customdata) > 0:
-                       idx = customdata[0]
-                       if idx != st.session_state.get("selected_marker_index"):
-                           selected_restaurant = plotly_data[idx]["original_data"]
-                           st.session_state.selected_panel_restaurant = selected_restaurant
-                           st.session_state.show_restaurant_panel = True
-                           st.session_state.selected_marker_index = idx
-                           
-                           # 🔧 자동 스크롤 JavaScript 실행
-                           st.markdown("""
-                           <script>
-                           delayedScroll();
-                           </script>
-                           """, unsafe_allow_html=True)
-                           
-                           st.rerun()
-
-   with col2:
-       # 🔧 패널에 고유 ID 추가
-       with st.container():
-           st.markdown('<div id="restaurant-detail-panel">', unsafe_allow_html=True)
-           
-           if st.session_state.get("show_restaurant_panel"):
-               render_restaurant_side_panel(st.session_state["selected_panel_restaurant"])
-           else:
-               st.markdown('<h3 style="color: white;">📍 맛집 상세정보</h3>', unsafe_allow_html=True)
-            
-               st.markdown("""
-                <div style="
-                    padding: 1rem;
-                    background-color: rgba(255, 255, 255, 0.1);
-                    border-radius: 8px;
-                    border-left: 4px solid #17a2b8;
-                    color: white;
-                    font-size: 16px;
-                    line-height: 1.5;
-                    margin: 10px 0;
-                    text-align: center;
-                ">
-                지도에서 마커를 클릭하면<br>
-                상세정보가 여기에 표시됩니다
-                </div>
-                """, unsafe_allow_html=True)
-           
-           st.markdown('</div>', unsafe_allow_html=True)
-   
-   # 하단 설명/범례
-   st.markdown("---")
-   st.markdown("""
+    # 하단 설명/범례
+    st.markdown("---")
+    st.markdown("""
 **🗺️ 부산 맛집 지도**
 
 **🎯 이용 방법:**
@@ -496,152 +517,13 @@ def render_restaurant_map_with_sidebar(restaurant_list: List[Dict]):
 - **확대/축소**: 마우스 휠 또는 +/- 버튼
 - **이동**: 마우스 드래그
 """)
-   st.markdown("### 🏷️ 지도 범례")
-   c1, c2 = st.columns(2)
-   with c1:
-       st.markdown("**🌟 미쉐린 가이드** (금색)")
-   with c2:
-       st.markdown("**🔴 부산의맛** / **🔵 현지인**")
+    st.markdown("### 🏷️ 지도 범례")
+    c1, c2 = st.columns(2)
+    with c1:
+        st.markdown("**🌟 미쉐린 가이드** (금색)")
+    with c2:
+        st.markdown("**🔴 부산의맛** / **🔵 현지인**")
 
-
-def _render_plotly_map(marker_data: List[Dict]):
-    """Plotly 지도 렌더링(동그라미 마커 + 클러스터 + 휠줌 유지)"""
-    import pandas as pd
-    import plotly.graph_objects as go
-    import streamlit as st
-
-    if not marker_data:
-        st.warning("표시할 마커가 없습니다.")
-        return
-
-    # 1) DataFrame 준비
-    df = pd.DataFrame(marker_data)
-    # 혹시 문자열이면 숫자로 변환
-    df["lat"] = pd.to_numeric(df["lat"], errors="coerce")
-    df["lon"] = pd.to_numeric(df["lon"], errors="coerce")
-    df = df.dropna(subset=["lat", "lon"])
-
-    # 색/크기 매핑 (동그라미가 더 잘 보이도록 사이즈 업)
-    df["color"] = df["category"].map({
-        "미쉐린가이드": "#FFD700",  # 금색
-        "부산의맛":     "#FF6B6B",  # 살짝 밝은 레드
-        "현지인":       "#4A90E2"   # 블루
-    }).fillna("#4A90E2")
-
-    df["size"] = df["category"].map({
-        "미쉐린가이드": 18,
-        "부산의맛":     14,
-        "현지인":       12
-    }).fillna(12)
-
-    # 2) Figure 생성
-    fig = go.Figure()
-
-    # 카테고리별 트레이스 + 클러스터 활성화
-    for category in ["현지인", "부산의맛", "미쉐린가이드"]:
-        cat_df = df[df["category"] == category]
-        if cat_df.empty:
-            continue
-
-        fig.add_trace(go.Scattermapbox(
-            lat=cat_df["lat"],
-            lon=cat_df["lon"],
-            mode="markers",
-            marker=dict(
-                # 클러스터 마커는 테두리 지정 불가 → 색/크기로 가독성 확보
-                size=int(cat_df["size"].iloc[0]),
-                color=str(cat_df["color"].iloc[0]),
-                opacity=1.0,
-                symbol="circle"
-            ),
-            text=cat_df["title"],
-            hovertext=cat_df["hover_text"],
-            hoverinfo="text",
-            customdata=cat_df[["index", "file_path"]],
-            name=category,
-            cluster=dict(
-                enabled=True,
-                # 낮을수록 "덜 확대해도" 클러스터가 빨리 풀림
-                maxzoom=12,
-                step=1
-            )
-        ))
-
-    # 3) 레이아웃(줌/팬 유지)
-    center_lat = float(df["lat"].mean()) if not df["lat"].empty else 35.1796
-    center_lon = float(df["lon"].mean()) if not df["lon"].empty else 129.0756
-
-    fig.update_layout(
-        mapbox=dict(
-            style="open-street-map",
-            center=dict(lat=center_lat, lon=center_lon),
-            zoom=11
-        ),
-        height=700,
-        margin={"r": 0, "t": 0, "l": 0, "b": 0},
-        showlegend=True,
-        legend=dict(
-            yanchor="top",
-            y=0.99,
-            xanchor="left",
-            x=0.01,
-            bgcolor="rgba(255,255,255,0.85)"
-        ),
-        hovermode="closest",
-        uirevision="keep-zoom-pan"  # 사용자가 바꾼 줌/팬 유지
-    )
-
-    # 4) 렌더링(휠줌/도구바 켜기) + 선택 이벤트(버전 호환)
-    try:
-        selected = st.plotly_chart(
-            fig,
-            use_container_width=True,
-            key="restaurant_map_plotly",
-            on_select="rerun",          # 지원 버전에서만 동작
-            selection_mode="points",
-            config={
-                "scrollZoom": True,     # 마우스 휠 줌
-                "displayModeBar": True, # 박스줌/이동/리셋 버튼 보이기
-                "doubleClick": "reset"  # 더블클릭 시 보기 리셋
-            }
-        )
-    except TypeError:
-        # on_select/selection_mode 미지원 버전 폴백
-        selected = st.plotly_chart(
-            fig,
-            use_container_width=True,
-            key="restaurant_map_plotly",
-            config={
-                "scrollZoom": True,
-                "displayModeBar": True,
-                "doubleClick": "reset"
-            }
-        )
-        # 여기에 여백 추가
-        st.markdown("<div style='margin-bottom: 20px;'></div>", unsafe_allow_html=True)
-    # 5) 포인트 선택 처리(지원 버전에서만 값이 들어옴)
-    points = []
-    try:
-        if isinstance(selected, dict):
-            points = selected.get("selection", {}).get("points", [])
-        else:
-            sel = getattr(selected, "selection", None)
-            if isinstance(sel, dict):
-                points = sel.get("points", [])
-    except Exception:
-        points = []
-
-    if points:
-        point = points[0]
-        customdata = point.get("customdata")
-        if isinstance(customdata, (list, tuple)) and len(customdata) > 0:
-            idx = customdata[0]
-            if idx != st.session_state.get("selected_marker_index"):
-                selected_restaurant = marker_data[idx]["original_data"]
-                st.session_state.selected_panel_restaurant = selected_restaurant
-                st.session_state.show_restaurant_panel = True
-                st.session_state.selected_marker_index = idx
-                st.rerun()
 
 # ------------------------------------------------------------
 # 공통 UI
