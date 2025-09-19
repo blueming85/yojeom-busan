@@ -225,7 +225,7 @@ def render_restaurant_map_with_sidebar(restaurant_list: List[Dict]):
    is_mobile = screen_width is not None and screen_width <= 768
 
    # 조건부 높이 설정
-   map_height = 300 if is_mobile else 700  # 모바일: 300px, 웹: 700px
+   map_height = 350 if is_mobile else 750  # 모바일: 300px, 웹: 700px
 
    # 🔧 모바일+PC 모두 자동 스크롤 JavaScript
    st.markdown("""
@@ -617,7 +617,8 @@ def _render_plotly_map(marker_data: List[Dict]):
                 "doubleClick": "reset"
             }
         )
-
+        # 여기에 여백 추가
+        st.markdown("<div style='margin-bottom: 20px;'></div>", unsafe_allow_html=True)
     # 5) 포인트 선택 처리(지원 버전에서만 값이 들어옴)
     points = []
     try:
