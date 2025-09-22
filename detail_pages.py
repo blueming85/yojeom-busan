@@ -412,7 +412,7 @@ def render_restaurant_map_with_sidebar(restaurant_list: List[Dict]):
     ) 
 
     # 모바일 기준: 768px 이하
-    is_mobile = screen_width is not None and screen_width <= 768 
+    is_mobile = screen_width is None or screen_width <= 768
 
     # 조건부 높이 설정
     map_height = 350 if is_mobile else 750
@@ -603,7 +603,7 @@ def render_header():
         st.markdown("### 부산시 최신 보도자료를 알려드립니다")
 
     elif current_page == 'restaurants':
-        st.markdown("### 부산 맛집 정보를 지도에서 확인하세요")
+        st.markdown("### 부산 맛집 정보를 확인하세요")
 
     elif current_page == 'policy':
         st.markdown("### 도시혁신균형실 정책사업을 지도에서 한눈에 확인하세요")
