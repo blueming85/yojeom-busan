@@ -49,6 +49,7 @@ from detail_pages import (
 )
 
 # 회색 그라데이션 배경만 적용
+# 회색 그라데이션 배경만 적용
 def apply_custom_styles():
     """회색 그라데이션 배경과 기본 텍스트 색상 적용"""
     st.markdown("""
@@ -94,24 +95,9 @@ def apply_custom_styles():
             padding-left: 1rem !important;
         }
         
-        /* 모바일 Plotly 지도 크기 축소만 */
-        .js-plotly-plot,
-        .js-plotly-plot .plotly,
-        .plotly-graph-div,
-        .plotly-graph-div > div,
-        .stPlotlyChart,
-        .stPlotlyChart > div,
-        .element-container .js-plotly-plot,
-        .element-container .plotly-graph-div {
-            height: 250px !important;
-            max-height: 250px !important;
-            min-height: 250px !important;
-        }
-        canvas.deck-canvas {
-            height: 200px !important;
-            max-height: 200px !important;
-            min-height: 200px !important;
-        }
+        /* ✅ [수정됨] 모바일 Plotly 지도 높이 강제 설정 부분을 삭제했습니다.
+        이제 detail_pages.py의 Python 코드에서 설정한 높이가 정상적으로 적용됩니다.
+        */
     }
 
 
@@ -620,9 +606,6 @@ def apply_custom_styles():
     }
     </style>
     """, unsafe_allow_html=True)
-
-# CSS 스타일 적용
-apply_custom_styles()
 
 
 class BusanNewsPortal:
