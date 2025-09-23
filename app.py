@@ -49,7 +49,6 @@ from detail_pages import (
 )
 
 # 회색 그라데이션 배경만 적용
-# 회색 그라데이션 배경만 적용
 def apply_custom_styles():
     """회색 그라데이션 배경과 기본 텍스트 색상 적용"""
     st.markdown("""
@@ -84,7 +83,7 @@ def apply_custom_styles():
         padding-left: 370px !important;
     }
 
-    /* 모바일에서는 기본값 사용 + 맛집지도 크기 조정 */
+    /* 모바일에서는 기본값 사용 */
     @media (max-width: 768px) {
         section[data-testid="stSidebar"] {
             width: auto !important;
@@ -94,12 +93,7 @@ def apply_custom_styles():
         .main .block-container {
             padding-left: 1rem !important;
         }
-        
-        /* ✅ [수정됨] 모바일 Plotly 지도 높이 강제 설정 부분을 삭제했습니다.
-        이제 detail_pages.py의 Python 코드에서 설정한 높이가 정상적으로 적용됩니다.
-        */
     }
-
 
     /* Plotly 호버 툴팁 텍스트 색상 수정 - 모바일에서 잘 보이도록 검정색으로 */
     .js-plotly-plot .plotly .hovertext,
@@ -607,6 +601,9 @@ def apply_custom_styles():
     </style>
     """, unsafe_allow_html=True)
 
+# CSS 스타일 적용
+apply_custom_styles()
+
 
 class BusanNewsPortal:
     """부산시청 보도자료 포털 메인 클래스"""
@@ -880,7 +877,7 @@ def get_ai_recommendations(portal: BusanNewsPortal, situation: str, interest: st
         "육아/교육": ["청년·교육"],
         "복지혜택/건강의료": ["복지·건강"],
         "문화/관광": ["문화·관광"],
-        "교통/인프라": ["교통·주거"],      # ✅ 교통/인프라 → 교통·주거 우선
+        "교통/인프라": ["교통·주거"],      # ✅ 교통/인프라 → 교통·주거 우선 
         "행정서비스": ["행정·소식"],
     }
 
@@ -986,7 +983,7 @@ def get_ai_recommendations(portal: BusanNewsPortal, situation: str, interest: st
 {json.dumps(news_info, ensure_ascii=False)}
 
 JSON으로만 응답:
-{{"recommendations":[{{"id":번호,"reason":"구체적도움이유"}}]]}}
+{{"recommendations":[{{"id":번호,"reason":"구체적도움이유"}}]}}
 """.strip()
 
         models_to_try = [
@@ -1127,7 +1124,7 @@ def render_news_sidebar(portal: BusanNewsPortal):
     if both_selected:
         if st.session_state.get('ai_loading', False):
             st.sidebar.button(
-                "📄 추천 중...", 
+                "🔄 추천 중...", 
                 disabled=True,
                 use_container_width=True,
                 type="primary"
@@ -1146,19 +1143,6 @@ def render_news_sidebar(portal: BusanNewsPortal):
                         if recommendations:
                             st.session_state.ai_recommendations = recommendations
                             st.session_state.selected_news_tag = "전체"  # 태그 선택 초기화
-                            # st.success를 st.markdown으로 변경하여 하얀색 텍스트 적용
-                            # st.sidebar.markdown(f"""
-                            # <div style="
-                            #     background-color: #10B981;
-                            #     color: white !important;
-                            #     padding: 8px 12px;
-                            #     border-radius: 8px;
-                            #     margin: 8px 0;
-                            #     font-weight: bold;
-                            # ">
-                            #     🎯 {len(recommendations)}개의 맞춤 보도자료를 찾았습니다!
-                            # </div>
-                            # """, unsafe_allow_html=True)
                         else:
                             st.error("추천 결과를 가져올 수 없습니다. 다시 시도해주세요.")
                 except Exception as e:
@@ -1190,7 +1174,7 @@ def render_news_sidebar(portal: BusanNewsPortal):
         """, unsafe_allow_html=True)
         
         if st.sidebar.button(
-            "📄 일반 모드로 돌아가기",
+            "🔄 일반 모드로 돌아가기",
             use_container_width=True,
             type="secondary",
             key="clear_ai_recommendations"
@@ -1248,7 +1232,7 @@ def render_restaurant_sidebar(restaurant_portal: BusanRestaurantPortal):
         button_type = "primary" if is_selected else "secondary"
         
         emoji = ""
-        if category == "미쉐린가이드":
+        if category == "미슐랭가이드":
             emoji = "⭐"
         elif category == "부산의맛":
             emoji = "🍽️"
